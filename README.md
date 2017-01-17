@@ -6,13 +6,24 @@ PLDI 2017.
 
 ## Building the Project
 
-1. Follow the instructions for installing Coq and Ssreflect:
+### Requirements
 
-   * https://coq.inria.fr/download
-   * https://math-comp.github.io/math-comp/
+* Coq 8.5pl3 (available from https://coq.inria.fr/coq-85)
+* Mathematical Components 1.6.1 (http://math-comp.github.io/math-comp/)
 
-2. Run `make clean; make` from the root folder. This will build all
-   the libraries and will check all the proofs.
+### Building
+
+If Coq is not installed such that its binaries like `coqc` and
+`coq_makefile` are in the `PATH`, then the `COQBIN` environment variable
+must be set to point to the directory containing such binaries.  For
+example:
+
+```
+export COQBIN=/home/user/coq/bin/
+```
+
+Next, run `make clean; make` from the root folder. This will build all
+the libraries and will check all the proofs.
 
 ## Project Structure
 

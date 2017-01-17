@@ -80,3 +80,4 @@ cv/*.out
 Makefile.coq
 extraction/**/*.mli
 extraction/**/*.ml
+_build
