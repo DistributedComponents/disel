@@ -1,8 +1,7 @@
-# Disel -- Distributed Separation Logic
+# Disel - Distributed Separation Logic
 
-Implementation and examples accompanying the manuscript entitled
-"Programming and Proving with Distributed Protocols", submitted to
-PLDI 2017.
+Implementation and case studies of Disel, a separation-style logic for
+compositional verification of distributed systems.
 
 ## Building the Project
 
