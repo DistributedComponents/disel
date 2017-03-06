@@ -17,6 +17,7 @@ Section Rely.
 Variable w : world.
 Variable this: nid.
 
+Notation getl := (getLocal).
 Notation gets := getStatelet.
 Notation getp := (@getProtocol _ w).
 
@@ -65,7 +66,7 @@ Lemma step_consume_other l s s' m tm from z:
   find m (dsoup (gets s' l)) = Some (Msg tm from this true).
 Proof.
 move=>N S.
-case: (S)=>[[H1 <-] | k st _ to a loc' pf D C S' Spf ->/= |
+case: (S)=>[[H1 <-] | k st _ to a loc' pf D C S' Pf Spf ->/= |
             k rt _ m' from' pf D C tm' T [H2 H3->/=]]//;
 move: (coh_coh l C);                                                         
 rewrite /gets findU; case B: (l == k)=>//=; move/eqP: B=>B; subst k;
@@ -76,7 +77,7 @@ rewrite (stepV1 S).
   case: ifP=>///eqP; move/find_some: E=>F Z.
   by move/negbTE: (dom_fresh (dsoup d)); rewrite -Z F.
 move: H2=>{H3}; move: (coh_s l C) pf; rewrite /gets.
-case: (dom_find l s)=>[|d-> _ C' pf H2 _]; first by move/find_none; rewrite -(cohD C) D.
+case: (dom_find l s)=>[|d-> _ C' pf H2 _]; first by move/find_none; rewrite D. 
 case B: (m == m'); do[move/eqP: B=>Z; subst|move=>H]. 
 - by rewrite H2; case=>Z1 Z2 Z3; subst z; move/negbTE: N; rewrite eqxx.
 (* Well, this should be easier *)
@@ -100,7 +101,7 @@ Lemma step_send_other l s s' m tm to b z:
   exists b', find m (dsoup (gets s l)) = Some (Msg tm this to b') /\ (b -> b').
 Proof.
 move=>N S.
-case: (S)=>[[H1 <-->] | k st _ to' a loc' pf D C S' Spf ->/= |
+case: (S)=>[[H1 <-->] | k st _ to' a loc' pf D C S' Ph Spf ->/= |
             k rt _ m' from' pf D C tm' T [H2 H3->/=]]//; do?[by exists b];
 move: (coh_coh l C);                                                         
 rewrite /gets findU; case B: (l == k)=>//=; do?[by exists b];
@@ -139,7 +140,7 @@ Lemma step_send_other' l s s' m tm to b z:
   exists b', find m (dsoup (gets s' l)) = Some (Msg tm this to b') /\ (b' -> b).
 Proof.
 move=>N S.
-case: (S)=>[[H1 <-->] | k st _ to' a loc' pf D C S' Spf ->/= |
+case: (S)=>[[H1 <-->] | k st _ to' a loc' pf D C S' Ph Spf ->/= |
             k rt _ m' from' pf D C tm' T [H2 H3->/=]]//; do?[by exists b];
 move: (coh_coh l C);                                                         
 rewrite /gets findU; case B: (l == k)=>//=; do?[by exists b];

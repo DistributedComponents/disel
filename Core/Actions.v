@@ -106,10 +106,6 @@ Proof. by exists s, (f (safe_local S)). Qed.
 Lemma skip_safe_coh s1 : skip_safe s1 -> Coh W s1.
 Proof. by []. Qed.
 
-(* Lemma skip_step_frame s1 s2 r z: *)
-(*   l != z -> skip_step s1 s2 r -> getS s1 z = getS s2 z. *)
-(* Proof. by move=>N[_ <-]. Qed. *)
-
 Lemma skip_step_sem s1 (S : skip_safe s1) s2 r:
   skip_step S s2 r -> network_step W this s1 s2.
 Proof. by move=>H; apply: Idle; case: H. Qed.
@@ -119,98 +115,6 @@ Definition skip_action_wrapper :=
 
 End SkipActionWrapper.
 
-(* A wrapper for the send-action *)
-Section SendActionWrapper.
-
-Variable W : world.
-Variable p : protocol.
-Notation getP l := (getProtocol W l).
-Notation getS s l := (getStatelet s l).
-Variable this : nid.
-
-Variable l : Label.
-
-Variable pf : (getProtocol W l) = p.
-
-(* A dedicated send-transition *)
-Variable st: send_trans (coh p).
-(* The transition is present *)
-Variable pf' : st \In (snd_trans p).
-
-(* The message and the recipient *)
-Variable msg : seq nat.
-Variable to  : nid.
-
-(* This check is implicit in the action semantics *)
-Definition can_send (s : state) := (l \in dom s) && (this \in nodes p (getS s l)).
-
-Definition send_act_safe s :=
-  [/\ Coh W s, send_safe st this to (getS s l) msg & can_send s].
-
-Lemma send_act_safe_coh s : send_act_safe s -> Coh W s.
-Proof. by case. Qed.
-
-Lemma safe_safe s : send_act_safe s -> send_safe st this to (getS s l) msg.
-Proof. by case. Qed.
-
-Definition send_act_step s1 (S: send_act_safe s1) s2 r :=
-   r = msg /\
-   exists b,
-     Some b = send_step (safe_safe S) /\
-     let: d :=  getS s1 l in
-     let: f' := upd this b (dstate d) in
-     let: s' := (post_msg (dsoup d) (Msg (TMsg (t_snd st) msg)
-                                         this to true)).1 in
-     s2 = upd l (DStatelet f' s') s1.
-
-Lemma send_act_step_total s (S: send_act_safe s): exists s' r , send_act_step S s' r.
-Proof.
-rewrite /send_act_step/send_act_safe.
-case: S=>C S J.
-move/(s_safe_def): (S)=>[b][S']E.
-set s2 := let: d :=  getS s l in
-          let: f' := upd this b (dstate d) in
-          let: s' := (post_msg (dsoup d) (Msg (TMsg (t_snd st) msg)
-                                                this to true)).1 in
-          upd l (DStatelet f' s') s.
-exists s2, msg; split=>//; exists b; split=>//.
-move: (safe_safe (And3 C S J))=> S''.
-by rewrite -E (proof_irrelevance S'' S') .
-Qed.
-
-(* Lemma send_act_step_safe s1 s2 r: *)
-(*   send_act_step s1 s2 r -> send_act_safe s1. *)
-(* Proof. *)
-(* rewrite /send_act_step/send_act_safe; case: (can_send (getS s1 l)); last by case. *)
-(* case=>C Z [h][E1]E2; subst r s2. *)
-(* by split=>//; apply/s_safe_def; exists h; rewrite E1. *)
-(* Qed. *)
-
-(* This lemma might be useful later *)
-(* Lemma send_act_step_frame s1 s2 r z: *)
-(*   l != z -> send_act_step s1 s2 r -> getS s1 z = getS s2 z. *)
-(* Proof. *)
-(* move=>N; rewrite /send_act_step; case: can_send; last by case=>? _<-. *)
-(* move=> [C] Z'[h][E Z]; subst s2 r; rewrite eq_sym in N. *)
-(* by rewrite {2}/getStatelet findU; move/negbTE: N=>->. *)
-(* Qed. *)
-
-
-
-Lemma send_act_step_sem s1 (S : send_act_safe s1) s2 r:
-  send_act_step S s2 r -> network_step W this s1 s2.
-Proof.
-case=>_[b][E Z]; case: (S)=>C S'/andP[D1] D2; subst s2=>/=.
-rewrite (proof_irrelevance (safe_safe S) S') in E; clear S.
-move: st S' E pf'; clear pf' st; subst p=>st S' E pf'.
-by apply: (@SendMsg W this s1 _ l st pf' to msg)=>//. 
-Qed.
-
-
-Definition send_action_wrapper :=
-  Action send_act_safe_coh send_act_step_total send_act_step_sem.
-
-End SendActionWrapper.
 
 Section TryReceiveActionWrapper.
 
@@ -230,7 +134,7 @@ Variable filter : Label -> nat -> pred (seq nat).
 
 (* Necessary validity lemmas *)
 Variable f_valid_label : forall l t m ,
-    filter l t m -> l \in dom W.
+    filter l t m -> l \in dom (getc W).
 
 (* Variable f_valid_tags : forall l t m , *)
 (*     filter l t m -> t \in rcv_tags (getP l). *)
@@ -305,7 +209,7 @@ Lemma tryrecv_act_step_sem s1 (S : tryrecv_act_safe s1) s2 r:
 Proof.
 case=>C; rewrite /tryrecv_act_step; case; first by case=>_ _ ->; apply: Idle.
 case=>[l][m][tms][from][rt][Y][[E R E1 M]]F/=Z _.
-have X1: l \in dom W by apply: f_valid_label F.
+have X1: l \in dom s1 by move: (f_valid_label F); rewrite (cohD C).
 by apply: (ReceiveMsg R X1 E1 (i := m) (from := from)).
 Qed.
 
@@ -313,6 +217,86 @@ Definition tryrecv_action_wrapper :=
   Action tryrecv_act_safe_coh tryrecv_act_step_total tryrecv_act_step_sem.
 
 End TryReceiveActionWrapper.
+
+(* A wrapper for the send-action *)
+Section SendActionWrapper.
+
+Variable W : world.
+Variable p : protocol.
+Notation getP l := (getProtocol W l).
+Notation getS s l := (getStatelet s l).
+Variable this : nid.
+
+Variable l : Label.
+
+Variable pf : (getProtocol W l) = p.
+
+(* A dedicated send-transition *)
+Variable st: send_trans (coh p).
+(* The transition is present *)
+Variable pf' : st \In (snd_trans p).
+
+(* The message and the recipient *)
+Variable msg : seq nat.
+Variable to  : nid.
+
+(* This check is implicit in the action semantics *)
+Definition can_send (s : state) := (l \in dom s) && (this \in nodes p (getS s l)).
+
+Definition send_act_safe s :=
+  [/\ Coh W s, send_safe st this to (getS s l) msg & can_send s].
+
+Lemma send_act_safe_coh s : send_act_safe s -> Coh W s.
+Proof. by case. Qed.
+
+Lemma safe_safe s : send_act_safe s -> send_safe st this to (getS s l) msg.
+Proof. by case. Qed.
+
+Definition send_act_step s1 (S: send_act_safe s1) s2 r :=
+   r = msg /\
+   exists b,
+     Some b = send_step (safe_safe S) /\
+     let: d :=  getS s1 l in
+     let: f' := upd this b (dstate d) in
+     let: s' := (post_msg (dsoup d) (Msg (TMsg (t_snd st) msg)
+                                         this to true)).1 in
+     s2 = upd l (DStatelet f' s') s1.
+
+Lemma send_act_step_total s (S: send_act_safe s): exists s' r , send_act_step S s' r.
+Proof.
+rewrite /send_act_step/send_act_safe.
+case: S=>C S J.
+move/(s_safe_def): (S)=>[b][S']E.
+set s2 := let: d :=  getS s l in
+          let: f' := upd this b (dstate d) in
+          let: s' := (post_msg (dsoup d) (Msg (TMsg (t_snd st) msg)
+                                                this to true)).1 in
+          upd l (DStatelet f' s') s.
+exists s2, msg; split=>//; exists b; split=>//.
+move: (safe_safe (And3 C S J))=> S''.
+by rewrite -E (proof_irrelevance S'' S') .
+Qed.
+
+(****************************************************************)
+(* TODO: Think of how to define action in the presence of hooks *)
+zzzzzz
+(****************************************************************)
+
+Lemma send_act_step_sem s1 (S : send_act_safe s1) s2 r:
+  send_act_step S s2 r -> network_step W this s1 s2.
+Proof.
+case=>_[b][E Z]; case: (S)=>C S'/andP[D1] D2; subst s2=>/=.
+rewrite (proof_irrelevance (safe_safe S) S') in E; clear S.
+move: st S' E pf'; clear pf' st; subst p=>st S' E pf'.
+apply: (@SendMsg W this s1 _ l st pf' to msg)=>////. 
+Qed.
+
+
+Definition send_action_wrapper :=
+  Action send_act_safe_coh send_act_step_total send_act_step_sem.
+
+End SendActionWrapper.
+
 
 End Actions.
 
