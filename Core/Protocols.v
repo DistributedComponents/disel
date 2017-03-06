@@ -8,7 +8,6 @@ Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
 Require Import Freshness.
 Require Import State.
 Require Import EqTypeX.
-Require Import DepMaps.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -32,11 +31,11 @@ rewrite /getLocal F2/=; case X: (n == m); last by rewrite findU X/=.
 by move/eqP: X=>X; subst m; rewrite findU eqxx/=V F2.
 Qed.
         
-Definition castEqX T (t t' : eqTypeX) (r : t = t') (e : T t) :=
-  match r in (_ = t') return T t' with erefl => e end.
+(* Definition castEqX T (t t' : eqTypeX) (r : t = t') (e : T t) := *)
+(*   match r in (_ = t') return T t' with erefl => e end. *)
 
-Definition eqcEqX X m' (r : m' = m') (e : X m') : castEqX r e = e.
-Proof. by move: r; apply: Streicher_K. Qed.
+(* Definition eqcEqX X m' (r : m' = m') (e : X m') : castEqX r e = e. *)
+(* Proof. by move: r; apply: Streicher_K. Qed. *)
 
 Module Coherence.
 

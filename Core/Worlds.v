@@ -17,10 +17,12 @@ Section WorldGetters.
 
 (* World is a dependent partial map of protocols *)
 
-Definition world := union_map Label protocol.
+Definition context := union_map Label protocol.
+Definition world := context.
+
 Variable w : world.
 
-Variables (p : protocol) (st: send_trans (Protocols.coh p)).
+Variables (p : protocol).
 
 (* The function is, in fact, partially defined and returns Empty
    Protocol for a non-present label. *)
