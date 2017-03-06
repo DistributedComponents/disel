@@ -5,7 +5,7 @@ Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude ordtype finmap pcm unionmap heap coding domain.
-Require Import State DepMaps Protocols Worlds NetworkSem Rely.
+Require Import State Protocols Worlds NetworkSem Rely.
 Require Import HoareTriples InferenceRules.
 Require Import While.
 Require Import TwoPhaseProtocol TwoPhaseCoordinator TwoPhaseParticipant.
@@ -99,15 +99,15 @@ Notation W := (mkWorld (TwoPhaseCoordinator.tpc l cn pts others Hnin)).
 Lemma init_coh : init_state \In Coh W.
 Proof.
 split.
-- by rewrite /valid/=/DepMaps.valid gen_validPt.
+- by rewrite gen_validPt.
 - by rewrite/init_state gen_validPt.
-- by move=>z; rewrite /ddom/init_state !um_domPt inE/=.
+- by move=>z; rewrite /init_state !um_domPt inE/=.
 move=>k; case B: (l==k); last first.
-- have X: (k \notin dom init_state) /\ (k \notin ddom W).
-    by rewrite /ddom/init_state/W/=!gen_domPt !inE/=; move/negbT: B. 
+- have X: (k \notin dom init_state) /\ (k \notin dom W).
+    by rewrite /init_state/W/=!gen_domPt !inE/=; move/negbT: B. 
   rewrite /getProtocol /getStatelet/=.
   case: dom_find X=>//; last by move=>? _ _[].
-  by move=>->[_]; rewrite /ddom; case: dom_find=>//->.
+  by move=>->[_]; case: dom_find=>//->.
 move/eqP:B=>B; subst k; rewrite prEq/getStatelet/init_state gen_findPt/=.
 split=>//=; do?[by apply: valid_init_dstate]; first by split=>//m ms; rewrite find0E.
 - move=>z; rewrite /init_dstate/TPCProtocol.nodes/=/others.

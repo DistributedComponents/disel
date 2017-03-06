@@ -5,7 +5,7 @@ Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem.
+Require Import Freshness State EqTypeX Protocols Worlds NetworkSem.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.

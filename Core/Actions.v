@@ -5,7 +5,7 @@ Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem.
+Require Import Freshness State EqTypeX Protocols Worlds NetworkSem.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -230,7 +230,7 @@ Variable filter : Label -> nat -> pred (seq nat).
 
 (* Necessary validity lemmas *)
 Variable f_valid_label : forall l t m ,
-    filter l t m -> l \in ddom W.
+    filter l t m -> l \in dom W.
 
 (* Variable f_valid_tags : forall l t m , *)
 (*     filter l t m -> t \in rcv_tags (getP l). *)
@@ -305,7 +305,7 @@ Lemma tryrecv_act_step_sem s1 (S : tryrecv_act_safe s1) s2 r:
 Proof.
 case=>C; rewrite /tryrecv_act_step; case; first by case=>_ _ ->; apply: Idle.
 case=>[l][m][tms][from][rt][Y][[E R E1 M]]F/=Z _.
-have X1: l \in ddom W by apply: f_valid_label F.
+have X1: l \in dom W by apply: f_valid_label F.
 by apply: (ReceiveMsg R X1 E1 (i := m) (from := from)).
 Qed.
 

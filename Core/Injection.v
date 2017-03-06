@@ -5,7 +5,7 @@ Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem.
+Require Import Freshness State EqTypeX Protocols Worlds NetworkSem.
 Require Import Actions.
 
 Set Implicit Arguments.
@@ -74,7 +74,7 @@ Proof. by case: w=>W ? cohE sl sR; apply: sR. Qed.
 Definition extends (U V : world) (w : injects U V) s s1 := 
   exists s2, [/\ s = s1 \+ s2, s1 \In Coh U & s \In Coh V].
 
-Notation dom_filt W := (fun k => k \in ddom W).
+Notation dom_filt W := (fun k => k \in dom W).
 
 Definition projectS (W : world) (s : state) :=
   um_filter (dom_filt W) s.
@@ -84,18 +84,17 @@ Lemma projectS_cohL W1 W2 s :
 Proof.
 case=>V1 V2 D H; split; first by move/validL: V1.
 - by rewrite valid_um_filter.
-- move=>z; case B: (z \in ddom W1); rewrite /ddom in B *.
-  + rewrite dom_um_filt !inE /ddom B/= -D /ddom domUn !inE B/=.
-    by rewrite /valid /= /DepMaps.valid/= in V1; rewrite V1.
-  by rewrite dom_um_filt !inE /ddom B.
+- move=>z; case B: (z \in dom W1).
+  + by rewrite dom_um_filt !inE B/= -D domUn !inE B/=; rewrite V1.
+  by rewrite dom_um_filt !inE B.
 move=>l; move: (H l)=>{H}H.
-case B: (l \in ddom W1); rewrite /ddom in B; last first.
+case B: (l \in dom W1); last first.
 - rewrite /getProtocol /getStatelet; move: (B).
   case: dom_find=>//-> _.
   suff X: ~~(l \in dom (projectS W1 s)) by case: dom_find X=>//-> _. 
   by rewrite /projectS dom_um_filt inE/= B.
 have E1: find l s = find l (projectS W1 s).
-- by rewrite /projectS/ddom/= find_um_filt B.
+- by rewrite /projectS/= find_um_filt B.
 have E2: getProtocol (W1 \+ W2) l = getProtocol W1 l.
 - by rewrite /getProtocol findUnL// B. 
 by rewrite -E2 /getStatelet -E1 in H *.  
@@ -108,20 +107,20 @@ Proof. by rewrite joinC; apply: projectS_cohL. Qed.
 Lemma projectSE W1 W2 s :
   s \In Coh (W1 \+ W2) -> s = projectS W1 s \+ projectS W2 s.
 Proof.
-case=>Vw Vs D H. rewrite /projectS/ddom.
+case=>Vw Vs D H. rewrite /projectS.
 have X: {in dom s, dom_filt W2 =1 predD (dom_filt W2) (dom_filt W1)}.
-- move=>z _/=; case I : (z \in ddom (W1 \+ W2)); rewrite /ddom.
+- move=>z _/=; case I : (z \in dom (W1 \+ W2)).
   + move: I; rewrite domUn !inE/==>/andP[V']/orP[]Z; rewrite Z/=.
     - by case: validUn V'=>//_ _/(_ z Z)/=G _;apply/negbTE. 
     rewrite joinC in V'; case: validUn V'=>//_ _/(_ z Z)G _.
     by rewrite andbC.
   move: I; rewrite domUn inE/==>/negbT; rewrite negb_and negb_or/=.
-  have X: valid (DepMaps.dmap W1 \+ DepMaps.dmap W2) by [].
+  have X: valid (W1 \+ W2) by [].
   by rewrite X/==>/andP[]->.
 rewrite (eq_in_um_filt X) -um_filt_predU/=; clear X.
 suff X: {in dom s, predU (dom_filt W1) (dom_filt W2) =1 predT}.
 - by rewrite (eq_in_um_filt X) um_filt_predT. 
-by move=>z; rewrite/= -D /ddom domUn inE=>/andP[].
+by move=>z; rewrite/= -D domUn inE=>/andP[].
 Qed.
 
 Lemma coh_split W1 W2 s :
@@ -138,28 +137,16 @@ Lemma injExtL (W1 W2 : world) (pf : injects W1 (W1 \+ W2)) :
   valid (W1 \+ W2) -> inj_ext pf = W2.
 Proof.
 move=>H; case: pf=>W2' E/= _ _ _.
-rewrite /PCM.join/=/DepMaps.join/= in H *.
-rewrite /valid /=/DepMaps.valid/= in H.
-case: W1 W2 W2' E H=>W1 pf1[W2] pf2[W3]pf3/=.
-rewrite /PCM.join/=/DepMaps.join/=; case=>E H.
-move: (joinfK H E)=>Z; subst W3.
-suff X: pf2 = pf3 by rewrite X.
-by rewrite (proof_irrelevance pf2 pf3).
+rewrite /PCM.join/=/= in H *.
+rewrite /valid /= in H.
+by rewrite (joinfK H E).
 Qed.
 
 Lemma injExtR (W1 W2 : world) (pf : injects W2 (W1 \+ W2)) :
   valid (W1 \+ W2) -> inj_ext pf = W1.
 Proof.
 move=>H; case: pf=>W2' E/= _ _ _.
-rewrite /PCM.join/=/DepMaps.join/= in H *.
-rewrite /valid /=/DepMaps.valid/= in H.
-case: W1 W2 W2' E H=>W1 pf1[W2] pf2[W3]pf3/=.
-rewrite [W1 \+ W2]joinC.
-rewrite /PCM.join/=/DepMaps.join/=; case=>E H.
-rewrite -(joinC W2) in E.
-move: (joinfK H E)=>Z; subst W3.
-suff X: pf1 = pf3 by rewrite X.
-by rewrite (proof_irrelevance pf1 pf3).
+by rewrite joinC in H E; rewrite (joinfK H E).
 Qed.
 
 End Exports.
@@ -183,7 +170,7 @@ suff X: s = projectS U (s \+ s').
   rewrite E in V. rewrite {1}X in E; move/sym: E=>E.
   by rewrite (joinfK V E).
 rewrite /projectS.
-suff X: {in dom (s \+ s'), ddom U =1 dom s}.
+suff X: {in dom (s \+ s'), dom U =1 dom s}.
 - by rewrite (eq_in_um_filt X) um_filt_dom ?(cohS H)//.
 by move=>z _; move: (cohD C z); rewrite /in_mem.
 Qed.
@@ -196,10 +183,10 @@ by rewrite [U \+ W]joinC [s\+_]joinC in H; apply: (cohUnKR H).
 Qed.
 
 Lemma getPUn U W l :
-  valid (U \+ W) -> l \in ddom U ->
+  valid (U \+ W) -> l \in dom U ->
   getProtocol U l = getProtocol (U \+ W) l.
 Proof.
-move=>V; rewrite /ddom /getProtocol=>D.
+move=>V; rewrite /getProtocol=>D.
 by rewrite findUnL ?V// D.
 Qed.
 
@@ -308,7 +295,7 @@ case: S.
 
   (* Receive Step *)
 move=>l rt R i from H1.
-rewrite /ddom domUn inE=>/andP[Vs]/=/orP; case=>D C msg H2 [H3 H4]/=;
+rewrite domUn inE=>/andP[Vs]/=/orP; case=>D C msg H2 [H3 H4]/=;
 [rewrite (cohD C1) in D|rewrite (cohD D1) in D];
 [rewrite updUnL D|rewrite updUnR D]=>G;[left|right].
 - have X: s1' = s2'.
@@ -366,11 +353,9 @@ move=>H; exists W=>//[s|s1 s2 s this|s1 s2 s1' s2' this]; [split | |].
   have W1 : valid (s1 \+ s2).
   + case: validUn; rewrite ?(cohS C1) ?(cohS C2)//.
     move=>l; rewrite -(cohD C1)-(cohD C2).
-    rewrite /valid/=/DepMaps.valid/= in H.
-    case: validUn H=>//_ _/(_ l) G _/G; rewrite /ddom/=.
-    by move/negbTE=>->.
+    by case: validUn H=>//_ _/(_ l) G _/G; move/negbTE=>->.
   split=>//[|l].
-  + move=>l; rewrite !domUn !inE/=; rewrite /valid/=/DepMaps.valid/= in H.
+  + move=>l; rewrite !domUn !inE/=.
     by rewrite H W1/= -(cohD C1)-(cohD C2).
   + rewrite /getProtocol/getStatelet !findUnL// (cohD C1).
     by case B: (l \in dom s1)=>//; apply: coh_coh.
@@ -382,7 +367,7 @@ Lemma injectR (U W : world) : valid (W \+ U) -> injects U (W \+ U).
 Proof. by rewrite (joinC W); apply: injectL. Qed.
 
 Lemma locProjL W1 W2 l s1 s2:
-  (s1 \+ s2) \In Coh (W1 \+ W2) -> l \in ddom W1 ->
+  (s1 \+ s2) \In Coh (W1 \+ W2) -> l \in dom W1 ->
   s1 \In Coh W1 -> getStatelet (s1 \+ s2) l = getStatelet s1 l.
 Proof.
 move=>C D C1; rewrite (cohD C1) in D.
@@ -390,7 +375,7 @@ by rewrite (getSUn (cohS C) D).
 Qed.
 
 Lemma locProjR W1 W2 l s1 s2:
-  (s1 \+ s2) \In Coh (W1 \+ W2) -> l \in ddom W2 ->
+  (s1 \+ s2) \In Coh (W1 \+ W2) -> l \in dom W2 ->
   s2 \In Coh W2 -> getStatelet (s1 \+ s2) l = getStatelet s2 l.
 Proof. by rewrite !(joinC W1) !(joinC s1); apply: locProjL. Qed.
 

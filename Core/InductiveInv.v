@@ -8,7 +8,6 @@ Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
 Require Import Freshness.
 Require Import State.
 Require Import EqTypeX.
-Require Import DepMaps.
 Require Import Protocols Worlds NetworkSem Rely.
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -321,8 +320,8 @@ Lemma with_inv_coh pr I (ii : InductiveInv pr I) s:
   s \In Coh (mkWorld pr).
 Proof.
 case=>G1 G2 G3 G4; split=>//.
-- by rewrite /valid/=/DepMaps.valid !gen_validPt in G1 *. 
-- by move=>z; move: (G3 z); rewrite /ddom/= !um_domPt !inE.
+- by rewrite !gen_validPt in G1 *. 
+- by move=>z; move: (G3 z); rewrite !um_domPt !inE.
 move=>l; move: (G4 l).
 case X: (l == plab pr); first by move/eqP:X=>X; subst l; rewrite !prEq; case.
 rewrite /getProtocol/mkWorld/=.
@@ -363,7 +362,7 @@ case; first by case=>_<-; apply: Idle.
 (*** Send-transition of the host protocol ***)
 move=>l st Hs to msg h H1 H2 _ S E ->/=.
 have Y : l = plab pr
-  by rewrite -(cohD C)/ddom gen_domPt inE/= in H2; move/eqP:H2. 
+  by rewrite -(cohD C) gen_domPt inE/= in H2; move/eqP:H2. 
 subst l; move: st Hs H1 S E; rewrite /get_st/InMem!prEq/==>st Hs H1 S E.
 suff X: exists st',
     [/\ st' \In get_st (mkWorld (ProtocolWithIndInv ii)) (plab pr),
@@ -387,7 +386,7 @@ by exists (conj S G); rewrite (proof_irrelevance (proj1 (conj S G)) S).
 
 (*** Receive-transition of the host protocol ***)
 move=>l rt  Hr i from H1 H2 C1 msg E[F]Hw/=.
-have Y : l = plab pr by rewrite /ddom gen_domPt inE/= in H2; move/eqP:H2. 
+have Y : l = plab pr by rewrite  gen_domPt inE/= in H2; move/eqP:H2. 
 subst l; move: rt Hr H1 E (coh_s _ C1) Hw.
 rewrite /get_rt/InMem/=!prEq=>rt Hr H1 E C1' Hw .
 have Hi: (coh (getProtocol (mkWorld (ProtocolWithIndInv ii)) (plab pr)))
@@ -403,7 +402,7 @@ case:X=>rt'[Hr']E' Hw' Gr G.
 have pf: (z \in nodes (getProtocol (mkWorld (ProtocolWithIndInv ii)) (plab pr))
                   (getStatelet s1 (plab pr))) by rewrite prEq. 
 move: (@ReceiveMsg _ z s1 s2 (plab pr) rt' Hr' i from pf)=>/=.
-rewrite /ddom/= gen_domPt inE eqxx/=; move/(_ is_true_true C' msg E')=>X.
+rewrite /= gen_domPt inE eqxx/=; move/(_ is_true_true C' msg E')=>X.
 subst s2; apply X; split=>//; clear X.
 - by rewrite (proof_irrelevance (coh_s (plab pr) C') Hi).
 congr (upd _ _); congr {| dstate := _ ; dsoup := _ |}; congr (upd _ _).
@@ -432,7 +431,7 @@ case.
 (* Emulating send-transition *)
 move=>l st Hs to msg h H1 H2 C' S E->{s2}.
 have Y : l = plab pr
-  by rewrite -(cohD C')/ddom gen_domPt inE/= in H2; move/eqP:H2. 
+  by rewrite -(cohD C') gen_domPt inE/= in H2; move/eqP:H2. 
 subst l; move: st Hs H1 S E; rewrite /get_st/InMem!prEq/==>st Hs H1 S E.
 suff X: exists st',
     [/\ st' \In get_st (mkWorld pr) (plab pr),
@@ -446,7 +445,7 @@ by apply: (getInvSendTrans (ii := ii)).
 
 (* Emulating a receive-transition *)  
 move=>l rt  Hr i from H1 H2 C1 msg E[F]Hw/=.
-have Y : l = plab pr by rewrite /ddom gen_domPt inE/= in H2; move/eqP:H2. 
+have Y : l = plab pr by rewrite gen_domPt inE/= in H2; move/eqP:H2. 
 subst l; move: rt Hr H1 E (coh_s _ C1) Hw.
 rewrite /get_rt/InMem/=!prEq=>rt Hr H1 E C1' Hw.
 have Hi: (coh (getProtocol (mkWorld pr) (plab pr)))
@@ -462,7 +461,7 @@ case:X=>rt'[Hr']E' Hw' Gr G.
 have pf: (z \in nodes (getProtocol (mkWorld pr) (plab pr))
                   (getStatelet s1 (plab pr))) by rewrite prEq. 
 move: (@ReceiveMsg _ z s1 s2 (plab pr) rt' Hr' i from pf)=>/=.
-rewrite /ddom/= gen_domPt inE eqxx/=.
+rewrite /= gen_domPt inE eqxx/=.
 move/(_ is_true_true (with_inv_coh C1) msg E')=>X.
 subst s2; apply X; split=>//; clear X.
 - by rewrite (proof_irrelevance (coh_s (plab pr) (with_inv_coh C1)) Hi).

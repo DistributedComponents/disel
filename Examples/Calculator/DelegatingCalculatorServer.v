@@ -6,7 +6,7 @@ Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap.
 Require Import heap coding domain.
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
+Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 Require Import InductiveInv.
 Require Import While.
@@ -37,8 +37,8 @@ Notation W1 := (mkWorld cal1).
 Notation W2 := (mkWorld cal2).
 
 (* Composite world *)
-Definition V := DepMaps.join W1 W2.
-Lemma validV : valid (dmap V).
+Definition V := W1 \+ W2.
+Lemma validV : valid V.
 Proof.
 by rewrite /V gen_validPtUn/= gen_validPt/= gen_domPt inE/=.
 Qed.
@@ -56,7 +56,6 @@ Hypothesis  Hs2 : sd \in cs2.
 Notation loc i k := (getLocal sv (getStatelet i k)).
 Notation loc1 i := (loc i l1).
 Notation loc2 i := (loc i l2).
-
 
 (* Delegate computation to someone else *)
 Definition delegate_f := compute_f l2 f prec cs2 cls2 _ Hc2 sd.
@@ -96,13 +95,13 @@ move=>i/=[K1 L1]; apply: vrf_coh=>CD1; apply: step.
 move: (coh_split CD1)=>[i1[j1]][C1 D1 Z]; subst i.
 apply: inject_rule=>//.
 have E1 : loc (i1 \+ j1) l1 = loc i1 l1
-  by rewrite (locProjL CD1 _ C1)///ddom gen_domPt inE/=.
+  by rewrite (locProjL CD1 _ C1)// gen_domPt inE/=.
 rewrite E1 in K1.
 apply: with_inv_rule=>//.
 apply: (gh_ex (g:=[::])).
 apply: call_rule=>//[[from args]] i2/=[K2]H1 H2 _ j2 CD2 R1.
 have E2 : loc (i1 \+ j1) l2 = loc j1 l2.
-  by rewrite (locProjR CD1 _ D1)///ddom gen_domPt inE/=.
+  by rewrite (locProjR CD1 _ D1)// gen_domPt inE/=.
 (* Adapt the second protocol's view *)
 rewrite E2 -(rely_loc' l2 R1) in L1.
 apply: step; clear C1 D1.
@@ -120,9 +119,9 @@ rewrite -(rely_loc' _ R3) in L3; move: L3=>L4.
 apply: ret_rule=>m R _; rewrite (rely_loc' _ R).
 move/rely_coh: (R3)=>[]; rewrite injExtL ?(cohW CD2)//.
 move=>_ D4; clear R3; rewrite !(rely_loc' _ R); clear R.
-have X: l2 \in ddom W2 by rewrite /ddom gen_domPt inE eqxx.
+have X: l2 \in dom W2 by rewrite gen_domPt inE eqxx.
 rewrite (@locProjR _ _ _ _ _ CD4 X D4); split=>//.
-have X': l1 \in ddom W1 by rewrite /ddom gen_domPt inE eqxx.
+have X': l1 \in dom W1 by rewrite gen_domPt inE eqxx.
 rewrite /= eqxx in K4; rewrite (@locProjL _ _ _ _ _ CD4 X' _)//.
 by apply: (cohUnKL CD4 D4).
 Qed.

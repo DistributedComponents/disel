@@ -6,7 +6,7 @@ Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap.
 Require Import heap coding domain.
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
+Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 Require Import InductiveInv.
 Require Import CalculatorProtocol CalculatorInvariant.
@@ -39,7 +39,7 @@ Export CalculatorProtocol.
 
 Program Definition tryrecv_req_act := act (@tryrecv_action_wrapper W sv
       (fun k t b => (k == l) && (t == req)) _).
-Next Obligation. by case/andP:H=>/eqP->; rewrite /ddom gen_domPt inE/=. Qed.
+Next Obligation. by case/andP:H=>/eqP->; rewrite gen_domPt inE/=. Qed.
 
 (* Receive-transition for the calculator *)
 Program Definition tryrecv_req :
@@ -67,7 +67,7 @@ move=>Z _; subst rt; move: H3; rewrite /msg_wf/=/sr_wf=>->; split=>//.
 set d := (getStatelet i2 l).
 have P1: valid (dstate d) by apply: (cohVl cohs).
 have P2: valid i2 by apply: (cohS (proj2 (rely_coh R1))).
-have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1)))/ddom gen_domPt inE/=. 
+have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1)))gen_domPt inE/=. 
 rewrite -(rely_loc' _ R1) in E1.
 - by rewrite (rely_loc' _ R3)/= locE//=/sr_step Hs/= (getStK cohs E1).
 case: (cohs)=>Cs _ _ _. move/esym: F=> F.
@@ -172,7 +172,7 @@ set d := (getStatelet i2 l).
 split=>//[|r i3 i4[Sf]St R3].
 - split=>//; last first.
   + by rewrite/Actions.can_send mem_cat Hs/=
-       -(cohD C2)/ddom/= gen_domPt/= inE eqxx.
+       -(cohD C2)/= gen_domPt/= inE eqxx.
   split=>//; split=>//.
   exists C; rewrite -(rely_loc' _ R1) in L1; rewrite (getStK C L1).
   by apply/hasP; exists (to, sv, args)=>//=; rewrite H3 !eqxx.
@@ -180,7 +180,7 @@ rewrite (rely_loc' _ R3)=>{R3}.
 case: St=>->[b]/=[][]->->/=; split=>//.
 have P1: valid (dstate (getStatelet i2 l)). by apply: (cohVl C).
 have P2: valid i2 by apply: (cohS (proj2 (rely_coh R1))).
-have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1)))/ddom gen_domPt inE/=. 
+have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1))) gen_domPt inE/=. 
 rewrite -(rely_loc' _ R1) in L1.
 by rewrite (proof_irrelevance (ss_safe_coh _ ) C) locE// (getStK C L1).
 Qed.

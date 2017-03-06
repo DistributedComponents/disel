@@ -5,7 +5,7 @@ Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds.
+Require Import Freshness State EqTypeX Protocols Worlds.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -69,7 +69,7 @@ Inductive network_step (s1 s2 : state) : Prop :=
 | ReceiveMsg l rt (_ : rt \In @get_rt l) i from
              (* Pick a world, receive transition and a message *)
              (pf: this \in (nodes (getp l)) (gets s1 l))
-             (pf': l \in ddom w) (C: Coh w s1)
+             (pf': l \in dom w) (C: Coh w s1)
              (msg : TaggedMessage)
              (pf': tag msg = t_rcv rt) of
              let: d := (gets s1 l) in

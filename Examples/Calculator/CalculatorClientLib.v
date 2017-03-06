@@ -6,7 +6,7 @@ Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap.
 Require Import heap coding domain.
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
+Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 Require Import InductiveInv.
 Require Import CalculatorProtocol CalculatorInvariant.
@@ -43,7 +43,7 @@ Hypothesis  Hc : cl \in cls.
 
 Program Definition tryrecv_resp_act := act (@tryrecv_action_wrapper W cl
       (fun k t b => (k == l) && (t == resp)) _).
-Next Obligation. by case/andP:H=>/eqP->; rewrite /ddom gen_domPt inE/=. Qed.
+Next Obligation. by case/andP:H=>/eqP->; rewrite gen_domPt inE/=. Qed.
 
 Notation loc i := (getLocal cl (getStatelet i l)).
 Notation st := (ptr_nat 1).
@@ -106,7 +106,7 @@ have X: (cl, from, (behead tms)) \in rs.
 - by case/andP: Hw; rewrite (getStK (proj1 cohs) L1). 
 have P1: valid (dstate d) by apply: (cohVl C).
 have P2: valid i2 by apply: (cohS (proj2 (rely_coh R1))).
-have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1)))/ddom gen_domPt inE/=. 
+have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1)))gen_domPt inE/=. 
 rewrite (rely_loc' _ R3)/= locE// /cr_step (getStK (proj1 cohs) L1)/=.
 clear R3 Hw P1 P2 P3; exists (remove_elem rs (cl, from, (behead tms))). 
 move: (remove_elem_in rs (cl, from, (behead tms))); rewrite X.
@@ -217,7 +217,7 @@ case: (rely_coh R1)=>_ C2.
 have C': coh cal (getStatelet i2 l) by case: C2=>_ _ _/(_ l);rewrite prEq.
 split=>//=.
 - split=>//=; last first; [|split].
-  + rewrite/Actions.can_send -(cohD C2)/ddom/=gen_domPt inE/= eqxx.
+  + rewrite/Actions.can_send -(cohD C2)/=gen_domPt inE/= eqxx.
     by rewrite mem_cat Hc orbC.
   + by split=>//; case: C'. 
   by case: C'.
@@ -228,7 +228,7 @@ rewrite (getStK _ E1) in R3.
 apply: (gh_ex (g:=[:: (cl, server, args)])).
 apply: call_rule=>//.
 - move=>C4; rewrite (rely_loc' _ R3) locE//; last by apply: (cohVl C').
-  + by rewrite -(cohD C2)/ddom gen_domPt inE/=.
+  + by rewrite -(cohD C2) gen_domPt inE/=.
   by apply: (cohS C2).
 clear R3=>v i5[rs'][from][args'][E5]P5 R C.  
 suff X: args = args' /\ rs' = [::] by case: X=>Z X; subst args' rs'.  

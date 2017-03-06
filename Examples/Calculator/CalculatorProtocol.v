@@ -5,7 +5,7 @@ Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
+Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 
 Set Implicit Arguments.

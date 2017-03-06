@@ -6,7 +6,7 @@ Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap.
 Require Import heap coding domain.
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
+Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 Require Import InductiveInv.
 Require Import While.
@@ -58,8 +58,8 @@ Notation W1 := (mkWorld cal1).
 Notation W2 := (mkWorld cal2).
 
 (* Composite world *)
-Definition V := DepMaps.join W1 W2.
-Lemma validV : valid (dmap V).
+Definition V := W1 \+ W2.
+Lemma validV : valid V.
 Proof. by rewrite /V gen_validPtUn/= gen_validPt/= gen_domPt inE/=. Qed.
 
 (* This server node *)
@@ -134,12 +134,12 @@ Qed.
 
 Lemma coh1 : l1 \\-> init_dstatelet1 \In Coh W1.
 Proof.
-split=>//; first by rewrite /valid/=/DepMaps.valid/= ?gen_validPt.
+split=>//; first by rewrite ?gen_validPt.
 - by rewrite gen_validPt/=.
-- by rewrite /ddom=>z; rewrite !gen_domPt !inE/=.   
+- by move=>z; rewrite !gen_domPt !inE/=.   
 move=>k; case B: (l1==k); last first.
-- have X: (k \notin ddom W1).
-    by rewrite /ddom/init_state/W1/=!gen_domPt !inE/=; move/negbT: B. 
+- have X: (k \notin dom W1).
+    by rewrite /init_state/W1/=!gen_domPt !inE/=; move/negbT: B. 
   by rewrite /getProtocol /getStatelet/= ?gen_findPt2 eq_sym !B/=. 
 move/eqP:B=>B; subst k; rewrite prEq/getStatelet/init_state gen_findPt/=.
 apply: coh1'.
@@ -165,12 +165,12 @@ Qed.
 
 Lemma coh2 : l2 \\-> init_dstatelet2 \In Coh W2.
 Proof.
-split=>//; first by rewrite /valid/=/DepMaps.valid/= ?gen_validPt.
+split=>//; first by rewrite ?gen_validPt.
 - by rewrite gen_validPt/=.
-- by rewrite /ddom=>z; rewrite !gen_domPt !inE/=.   
+- by move=>z; rewrite !gen_domPt !inE/=.   
 move=>k; case B: (l2==k); last first.
-- have X: (k \notin ddom W2).
-    by rewrite /ddom/init_state/W2/=!gen_domPt !inE/=; move/negbT: B. 
+- have X: (k \notin dom W2).
+    by rewrite /init_state/W2/=!gen_domPt !inE/=; move/negbT: B. 
   by rewrite /getProtocol /getStatelet/= ?gen_findPt2 eq_sym !B/=. 
 move/eqP:B=>B; subst k; rewrite prEq/getStatelet/init_state gen_findPt/=.
 apply: coh2'.
@@ -180,11 +180,11 @@ Lemma init_coh : init_state \In Coh V.
 Proof.
 split=>//; first by apply: validV.
 - by apply: validI.
-- rewrite /ddom/V/=/init_state/==>z. 
+- rewrite /V/=/init_state/==>z. 
 - rewrite !domUn !inE/= !validI validV/= !gen_domPt !inE/=; auto.
 move=>k; case B: ((l1 == k) || (l2 == k)); last first.
-- have X: (k \notin ddom V).
-  + by rewrite /V/ddom domUn inE/= validV/= !gen_domPt!inE/= B. 
+- have X: (k \notin dom V).
+  + by rewrite /V domUn inE/= validV/= !gen_domPt!inE/= B. 
   rewrite /getProtocol /getStatelet/=.
   case: dom_find (X)=>//->_/=; rewrite /init_state.
   case/negbT/norP: B=>/negbTE N1/negbTE N2.

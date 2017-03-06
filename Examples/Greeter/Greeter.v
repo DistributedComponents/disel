@@ -5,20 +5,15 @@ Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
+Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(*
-
-The Hello World example - a distributed protocol, allowing anyone send
-anyone a greeting message.
-
-
-*)
+(* The Hello World example - a distributed protocol, allowing anyone send
+anyone a greeting message. *)
 
 Module GreeterProtocol.
 Section GreeterProtocol.
@@ -223,11 +218,7 @@ Definition gp := GreeterProtocol nodes l.
 
 (* Simplest world with one protocol *)
 (* TODO: simplify this using canonicals *)
-Program Definition W := @DepMap _ plab (l \\-> gp) _.
-Next Obligation.
-apply/allP=>z; rewrite um_keysPt inE=>/eqP Z; subst z.
-by rewrite gen_findPt /=. 
-Qed.
+Definition W := l \\-> gp.
 
 Variable this : nid.
 
@@ -343,9 +334,9 @@ Definition gp1 := GreeterProtocol nodes l1.
 Definition gp2 := GreeterProtocol nodes l2.
 
 
-Definition V := DepMaps.join (W l1 nodes) (W l2 nodes).
+Definition V := (W l1 nodes) \+ (W l2 nodes).
 
-Lemma validV : valid (dmap V).
+Lemma validV : valid V.
 Proof.
 by rewrite /V gen_validPtUn/= gen_validPt/= gen_domPt inE/=.
 Qed.
@@ -385,10 +376,10 @@ apply: step.
 move: (coh_split C)=>[i1[j1]][C1 C2 Z]; subst i.
 apply: inject_rule=>//.
 have E1 : loc (i1 \+ j1) l1 = loc i1 l1
-  by rewrite (locProjL C _ C1)///ddom gen_domPt inE/=.
+  by rewrite (locProjL C _ C1)// gen_domPt inE/=.
 rewrite E1 in H1; apply: call_rule=>// r1 m1 [Q1 Z1] C1' j' C' R1.
 have E2 : loc (i1 \+ j1) l2 = loc j1 l2.
-  by rewrite (locProjR C _ C2)///ddom gen_domPt inE/=.
+  by rewrite (locProjR C _ C2)// gen_domPt inE/=.
 rewrite E2 -(rely_loc' l2 R1) in H2.
 apply: step.
 rewrite joinC; apply: inject_rule.
@@ -401,7 +392,7 @@ apply: ret_rule=>m3 R3[G1]G2 G3; split; last first.
 - by rewrite Z1 Z2 -[_.+1]addn1 -[n2.+1]addn1
              addnAC !addnA !addn1 -addn2.
 - rewrite (rely_loc' l2 R3) joinC; rewrite joinC in C3'.
-  by rewrite (locProjR C3' _ C3)///ddom gen_domPt inE/=.
+  by rewrite (locProjR C3' _ C3)// gen_domPt inE/=.
 rewrite (rely_loc' l1 R3).
 move/rely_coh: (R2)=>[]; rewrite injExtR ?(cohW C)// =>_ C5.
 rewrite joinC in C3' *.
