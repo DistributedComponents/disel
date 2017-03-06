@@ -18,6 +18,7 @@ Section NetworkSemantics.
 Variable w : world.
 Variable this: nid.
 
+Notation getl := (getLocal).
 Notation gets := (getStatelet).
 Notation getp := (@getProtocol w).
 
@@ -37,8 +38,15 @@ Lemma coh_s l s: Coh w s -> coh (getp l) (gets s l).
 Proof. by case=>_ _ _ /(_ l). Qed.
 
 Lemma Coh_dom l s : l \in dom s -> Coh w s -> 
-                          dom (dstate (gets s l)) =i nodes (getp l) (gets s l).
-Proof. by move=>D; case=>W V E /(_ l); apply:cohDom. Qed.
+                     dom (dstate (gets s l)) =i nodes (getp l) (gets s l).
+Proof. by move=>D; case:w=>c h [] W V K E /(_ l); apply:cohDom. Qed.
+
+(************************************************)
+(* [Ilya] Stopped here *)
+ZZZZZZ
+(* Defined "hookable" semantics *)  
+(************************************************)
+
 
 (*  Semantics of the network in the presence of some world *)
 (* Defining small-step semantics of the network *)
@@ -54,7 +62,10 @@ Inductive network_step (s1 s2 : state) : Prop :=
           
           (* It's safe to send *)
           (S : send_safe st this to (gets s1 l) msg)
+
+          (* TODO: add the hooking statement *)
           
+          (* b is a result of executing the transition *)
           (spf : Some b = send_step S) of
           
           (* Generate the message and the new local state *)
