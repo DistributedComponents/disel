@@ -5,7 +5,7 @@ Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-Require Import Freshness State EqTypeX DepMaps Protocols.
+Require Import Freshness State EqTypeX Protocols.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -17,7 +17,7 @@ Section WorldGetters.
 
 (* World is a dependent partial map of protocols *)
 
-Definition world := depmap plab.
+Definition world := union_map Label protocol.
 Variable w : world.
 
 Variables (p : protocol) (st: send_trans (Protocols.coh p)).
@@ -25,14 +25,13 @@ Variables (p : protocol) (st: send_trans (Protocols.coh p)).
 (* The function is, in fact, partially defined and returns Empty
    Protocol for a non-present label. *)
 Definition getProtocol i : protocol:=
-  match find i (dmap w) with
+  match find i w with
   | Some p => p
   | None => EmptyProt i 
   end.
 
 End WorldGetters.
 End WorldGetters.
-
 
 Export WorldGetters.
 
@@ -46,17 +45,16 @@ Section Core.
 (* The following definition ties together worlds and states *)
 
 Definition Coh (w : world) : Pred state := fun s =>
-  [/\ valid w, valid s, ddom w =i dom s &
+  [/\ valid w, valid s, dom w =i dom s &
       forall l, coh (getProtocol w l) (getStatelet s l)].
 
 Lemma cohW w s : Coh w s -> valid w.
 Proof. by case. Qed.
 
-
 Lemma cohS w s : Coh w s -> valid s.
 Proof. by case. Qed.
 
-Lemma cohD w s : Coh w s -> ddom w =i dom s.
+Lemma cohD w s : Coh w s -> dom w =i dom s.
 Proof. by case. Qed.
 
 Lemma coh_coh w s l : Coh w s -> coh (getProtocol w l) (getStatelet s l).
@@ -68,8 +66,8 @@ Proof. by case. Qed.
 Lemma unit_coh w s :
   Coh w s -> w = Unit <-> s = Unit.
 Proof.
-case=>V V' E H; split=>Z; [subst w|subst s]; rewrite /ddom dom0 in E; last first.
-- by move/(dom0E V): E; move/dep_unit.
+case=>V V' E H; split=>Z; [subst w|subst s]; rewrite dom0 in E; last first.
+- by move/(dom0E V): E.
 have E': dom s =i pred0 by move=>z; move: (E z)=>->.
 by move/(dom0E V') : E'.
 Qed.
@@ -77,7 +75,7 @@ Qed.
 Lemma Coh0 (w : world) (s : state) :
   w = Unit -> s = Unit -> Coh w s.
 Proof.
-move=>->->{w s}; split=>//=[|l]; first by rewrite /ddom !dom0.
+move=>->->{w s}; split=>//=[|l]; first by rewrite !dom0.
 by rewrite /getProtocol /getStatelet !find0E. 
 Qed.
 
@@ -95,12 +93,10 @@ Proof.
 move=>C1 C2 V.
 case: (C1)=>_ G1 J1 H1; case: (C2)=>_ G2 J2 H2.
 have X: valid (s1 \+ s2).
-- case: validUn=>//; [by rewrite G1|by rewrite G2|move=>l; rewrite -J1 -J2=>D1 D2].
-  rewrite /valid/=/DepMaps.valid/= in V.
+- case: validUn=>//; [by rewrite G1|by rewrite G2|move=>l; rewrite -J1 -J2=>D1 D2].  
   by case: validUn V=>//=V1 V2; move/(_ _ D1); rewrite D2.
-have Y: ddom (w1 \+ w2) =i dom (s1 \+ s2).
-- move=>z; rewrite !domUn !inE/=.
-  by rewrite /valid/=/DepMaps.valid/= in V; rewrite V X/= J1 J2.  
+have Y: dom (w1 \+ w2) =i dom (s1 \+ s2).
+- move=>z; rewrite !domUn !inE/=; by rewrite V X/= J1 J2.  
 split=>// l; rewrite /getProtocol /getStatelet.
 case: (dom_find l (s1 \+ s2))=>[|v]Z.
 - move/find_none: (Z); rewrite -Y.
@@ -111,7 +107,6 @@ rewrite findUnL // in Z; rewrite findUnL // J1 in Z'.
 by case: ifP Z Z'=>_ F1 F2; [move: (H1 l)|move: (H2 l)];
    rewrite /getProtocol /getStatelet F1 F2.
 Qed.
-
 
 (* Coherence is trivially precise wrt. statelets *)
 Lemma coh_prec W: precise (Coh W).
@@ -153,10 +148,7 @@ Section MakeWorld.
 Variable p : protocol.
 Notation l := (plab p).
 
-Program Definition mkWorld := @DepMap _ plab (l \\-> p) _.
-Next Obligation.
-by apply/allP=>z; rewrite um_keysPt inE=>/eqP Z; subst z; rewrite gen_findPt/=.
-Qed.
+Definition mkWorld : world := l \\-> p.
 
 Lemma prEq : (getProtocol mkWorld l) = p.
 Proof. by rewrite /getProtocol um_findPt. Qed.
