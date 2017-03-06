@@ -41,14 +41,16 @@ Lemma Coh_dom l s : l \in dom s -> Coh w s ->
                      dom (dstate (gets s l)) =i nodes (getp l) (gets s l).
 Proof. by move=>D; case:w=>c h [] W V K E /(_ l); apply:cohDom. Qed.
 
-(************************************************)
-(* [Ilya] Stopped here *)
-ZZZZZZ
-(* Defined "hookable" semantics *)  
-(************************************************)
+(* A predicate making all hooks apply to the send-transition with a
+   tag st of a protocol with label l.  *)
+Definition all_hooks_fire l st s n (msg : seq nat) to :=
+  (* For any hook associated with client protocol l and send-tag st *)
+  forall z lc hk, Some hk = find ((z, lc), (l, st)) (snd w) ->
+  let: core_local   := getl n (gets s lc) in
+  let: client_local := getl n (gets s l)  in              
+  hk core_local client_local msg to.
 
-
-(*  Semantics of the network in the presence of some world *)
+(* Semantics of the network in the presence of some world *)
 (* Defining small-step semantics of the network *)
 Inductive network_step (s1 s2 : state) : Prop :=
   (* Do nothing *)
@@ -63,7 +65,8 @@ Inductive network_step (s1 s2 : state) : Prop :=
           (* It's safe to send *)
           (S : send_safe st this to (gets s1 l) msg)
 
-          (* TODO: add the hooking statement *)
+          (* All hooks are applicable *)
+          (pf_hooks : all_hooks_fire l (t_snd st) s1 this msg to)
           
           (* b is a result of executing the transition *)
           (spf : Some b = send_step S) of
@@ -80,7 +83,7 @@ Inductive network_step (s1 s2 : state) : Prop :=
 | ReceiveMsg l rt (_ : rt \In @get_rt l) i from
              (* Pick a world, receive transition and a message *)
              (pf: this \in (nodes (getp l)) (gets s1 l))
-             (pf': l \in dom w) (C: Coh w s1)
+             (pf': l \in dom s1) (C: Coh w s1)
              (msg : TaggedMessage)
              (pf': tag msg = t_rcv rt) of
              let: d := (gets s1 l) in
@@ -96,7 +99,7 @@ Inductive network_step (s1 s2 : state) : Prop :=
               s2 = upd l (DStatelet f' s'') s1].
 
 
-(* First important result: network stepping preserves overall coherence.
+(* The first important result: network stepping preserves overall coherence.
 
    Intuitively, this follows from the fact that the transitions
    preserve coherence.  *)
@@ -104,37 +107,37 @@ Inductive network_step (s1 s2 : state) : Prop :=
 Lemma step_coh s1 s2: network_step s1 s2 ->
                       Coh w s1 /\ Coh w s2.
 Proof.
-case=>[[H1 <-] | l st _ to a loc' pf D C S Spf ->/= |
+case=>[[H1 <-] | l st _ to a loc' pf D C S Ph Spf ->/= |
        l rt _ i from pf D C H1 msg [H3 H4->/=]]//; split=>//.
-- case: (C)=>W V E H; split=>//; first by rewrite validU/= V.
+- case: (C)=>W V K E H; split=>//; first by rewrite validU/= V.
   + move=>z; rewrite domU/= !inE V.
     by case b:  (z == l)=>//; move/eqP: b=>?; subst; rewrite E D.
   move=>k; case b: (k == l); rewrite /gets findU b/=; last by apply: H.
   rewrite V/=; move/eqP: b=>Z; subst k=>/=.
-  case: st a S Spf => /= t_snd ssafe G1 G2 sstep Y G3 a S Spf.
+  case: st a S Ph Spf => /= t_snd ssafe G1 G2 sstep Y G3 a S Ph Spf.
   have X: exists b pf, sstep this to (gets s1 l) a pf = Some b by exists loc', S.
   move/Y: X=>X; move: (G1 _ _ _ _ X) (G2 _ _ _ _ X)=>{G1 G2}G1 G2; apply: G3. 
   rewrite /gets in Spf; rewrite Spf; move: (coh_s l C)=>G1'.
   by rewrite -(proof_irrelevance S X). 
-case: (C)=>W V E H; split=>//; first by rewrite validU/= V.
+case: (C)=>W V K E H; split=>//; first by rewrite validU/= V.
 - move=>z; rewrite domU/= !inE V.
-  by case b:  (z == l)=>//; move/eqP: b=>?; subst; rewrite D.
+  by case b:  (z == l)=>//; move/eqP: b=>?; subst; rewrite E D.
 move=>k; case b: (k == l); rewrite /gets findU b/=; last by apply: H.    
-move: (coh_s l (And4 W V E H))=>G1.
-rewrite V; move/eqP: b=>Z; subst k=>/=; rewrite E in D.
+move: (coh_s l (And5 W V K E H))=>G1.
+rewrite V; move/eqP: b=>Z; subst k=>/=.
 have pf' : this \in dom (dstate (gets s1 l))
   by move: (pf); rewrite -(Coh_dom D C).
 case: rt H1 H3 msg H4=>/= r_rcvwf mwf rstep G msg T F M.
 rewrite -(proof_irrelevance (H l) (coh_s l C)) in M.
 move: (G (gets s1 l) from this i (H l) pf msg pf' T M F); rewrite /gets.
 by move: (H l)=>G1'; rewrite -(proof_irrelevance G1 G1'). 
-Qed.  
+Qed.
 
 (* Stepping preserves the protocol structure *)
 Lemma step_preserves_labels s1 s2 :
   network_step s1 s2 -> dom s1 =i dom s2.
 Proof.
-by move/step_coh=>[[_ _ E1 _] [_ _ E2 _]]z; rewrite -E1 -E2.
+by move/step_coh=>[[_ _ _ E1 _][_ _ _ E2 _]]z; rewrite -E1 -E2.
 Qed.
 
 (* Stepping only changes the local state of "this" node, 
@@ -145,7 +148,7 @@ Lemma step_is_local s1 s2 l: network_step s1 s2 ->
   find z (dstate (gets s1 l)) = find z (dstate (gets s2 l)).
 Proof.
 move=>S z N; case: S; first by case=>_ Z; subst s2.
-- move=>k st ? to a b pf D C S Spf Z; subst s2; case B: (l == k); 
+- move=>k st ? to a b pf D C S Ph Spf Z; subst s2; case B: (l == k); 
           rewrite /gets findU B //= (cohS C)/=.
   by move/negbTE: N; rewrite findU=>->/=; move/eqP: B=>->. 
 move=>k rt ? i from H1 H2 C msg T/= [H3 H4]Z; subst s2.
@@ -159,7 +162,6 @@ Proof. by case/step_coh=>/cohS. Qed.
 Lemma stepV2 s1 s2: network_step s1 s2 -> valid s2.
 Proof. by case/step_coh=>_ /cohS. Qed.
 
-
 (* 
    Network steps do not allocate/deallocate nodes 
    (although this might change soon)
@@ -169,16 +171,16 @@ Lemma step_preserves_node_ids s1 s2 l:
   dom (dstate (gets s1 l)) =i dom (dstate (gets s2 l)).
 Proof.
 move=>D S; case: (S); first by case=>C<-.
-- move=> l' st H to msg b H1 H2 C _ _ Z; subst s2.
+- move=> l' st H to msg b H1 H2 C _ _ _ Z; subst s2.
   rewrite /gets findU; case B: (l == l')=>//=; rewrite (stepV1 S)/==>n.
   move/eqP: B=>B; subst l'; rewrite domU/= !inE; case B: (n == this)=>//.
   move/eqP:B=>B; subst n; rewrite -(Coh_dom D C) in H1; rewrite H1.
-  by case: C=>_ _ _/(_ l)/cohVl->. 
+  by case: C=>_ _ _ _/(_ l)/cohVl->. 
 move=>l' rt _ m from H1 D' C msg E[F]W/=Z; subst s2.  
 rewrite /gets findU; case B: (l == l')=>//=; rewrite (stepV1 S)/==>n.
 move/eqP: B=>B; subst l'; rewrite domU/= !inE; case B: (n == this)=>//.
 move/eqP:B=>B; subst n; clear S; rewrite -(Coh_dom D C) in H1; rewrite H1.
-by case: (C)=>_ _ _/(_ l)/cohVl->. 
+by case: (C)=>_ _ _ _/(_ l)/cohVl->. 
 Qed.
 
 End NetworkSemantics.

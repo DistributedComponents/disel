@@ -17,7 +17,6 @@ Core/Protocols.v
 Core/EqTypeX.v
 Core/DepMaps.v
 Core/StatePredicates.v
-Core/Hooks.v
 Core/Worlds.v
 Core/NetworkSem.v
 Core/Rely.v
