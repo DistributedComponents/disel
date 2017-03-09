@@ -298,17 +298,13 @@ rewrite /all_hooks_fire/filter_hooks in K.
 move: st S' E K pf'; clear pf' st; subst p=>st S' E K' pf'.
 apply: (@SendMsg W this s1 _ l st pf' to msg)=>////.
 move=>z lc hk E'; apply: (K' z); rewrite E'.
-
-ZZZ
-
+by rewrite find_um_filt/= eqxx.
 Qed.
-
 
 Definition send_action_wrapper :=
   Action send_act_safe_coh send_act_step_total send_act_step_sem.
 
 End SendActionWrapper.
-
 
 End Actions.
 
