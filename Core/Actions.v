@@ -247,7 +247,7 @@ Definition can_send (s : state) := (l \in dom s) && (this \in nodes p (getS s l)
 (* Take only the hooks that affect the transition with a tag st of *)
 (* protocol l *)
 Definition filter_hooks (h : hooks) :=
-  um_filter (fun e => (e.2.2 == t_snd st) && (e.1.2 == l)) h.
+  um_filter (fun e => e.2 == (l, t_snd st)) h.
 
 Definition send_act_safe s :=
   [/\ Coh W s, send_safe st this to (getS s l) msg, can_send s &
@@ -294,10 +294,8 @@ Lemma send_act_step_sem s1 (S : send_act_safe s1) s2 r:
 Proof.
 case=>_[b][E Z]; case: (S)=>C S' /andP[D1] D2 K; subst s2=>/=.
 rewrite (proof_irrelevance (safe_safe S) S') in E; clear S.
-
 rewrite /all_hooks_fire/filter_hooks in K.
 move: st S' E K pf'; clear pf' st; subst p=>st S' E K' pf'.
-(*  *)
 apply: (@SendMsg W this s1 _ l st pf' to msg)=>////.
 move=>z lc hk E'; apply: (K' z); rewrite E'.
 
