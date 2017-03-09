@@ -21,7 +21,7 @@ Core/Worlds.v
 Core/NetworkSem.v
 Core/Rely.v
 Core/Actions.v
-Core/Injection.v
+Core/InjectionGeneralized.v
 Core/InductiveInv.v
 Core/Process.v
 Core/Always.v

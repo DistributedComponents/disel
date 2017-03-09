@@ -285,10 +285,6 @@ move: (safe_safe (And4 C S J K))=> S''.
 by rewrite -E (proof_irrelevance S'' S') .
 Qed.
 
-(****************************************************************)
-(* TODO: Think of how to define action in the presence of hooks *)
-(****************************************************************)
-
 Lemma send_act_step_sem s1 (S : send_act_safe s1) s2 r:
   send_act_step S s2 r -> network_step W this s1 s2.
 Proof.
