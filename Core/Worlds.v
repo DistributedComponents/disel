@@ -45,6 +45,9 @@ Definition world := (context * hooks)%type.
 Definition getc (w: world) : context := fst w.
 Coercion getc : world >-> context.
 
+Definition geth (w: world) : hooks := snd w.
+Coercion geth : world >-> hooks.
+
 Variable w : world.
 
 Variables (p : protocol).

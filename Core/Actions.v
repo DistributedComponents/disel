@@ -243,8 +243,16 @@ Variable to  : nid.
 (* This check is implicit in the action semantics *)
 Definition can_send (s : state) := (l \in dom s) && (this \in nodes p (getS s l)).
 
+
+(* Take only the hooks that affect the transition with a tag st of *)
+(* protocol l *)
+Definition filter_hooks (h : hooks) :=
+  um_filter (fun e => (e.2.2 == t_snd st) && (e.1.2 == l)) h.
+
 Definition send_act_safe s :=
-  [/\ Coh W s, send_safe st this to (getS s l) msg & can_send s].
+  [/\ Coh W s, send_safe st this to (getS s l) msg, can_send s &
+      (* All hooks from a "reduced footprint" are applicable *)         
+      all_hooks_fire (filter_hooks (geth W)) l (t_snd st) s this msg to].
 
 Lemma send_act_safe_coh s : send_act_safe s -> Coh W s.
 Proof. by case. Qed.
@@ -265,7 +273,7 @@ Definition send_act_step s1 (S: send_act_safe s1) s2 r :=
 Lemma send_act_step_total s (S: send_act_safe s): exists s' r , send_act_step S s' r.
 Proof.
 rewrite /send_act_step/send_act_safe.
-case: S=>C S J.
+case: S=>C S J K.
 move/(s_safe_def): (S)=>[b][S']E.
 set s2 := let: d :=  getS s l in
           let: f' := upd this b (dstate d) in
@@ -273,22 +281,27 @@ set s2 := let: d :=  getS s l in
                                                 this to true)).1 in
           upd l (DStatelet f' s') s.
 exists s2, msg; split=>//; exists b; split=>//.
-move: (safe_safe (And3 C S J))=> S''.
+move: (safe_safe (And4 C S J K))=> S''.
 by rewrite -E (proof_irrelevance S'' S') .
 Qed.
 
 (****************************************************************)
 (* TODO: Think of how to define action in the presence of hooks *)
-zzzzzz
 (****************************************************************)
 
 Lemma send_act_step_sem s1 (S : send_act_safe s1) s2 r:
   send_act_step S s2 r -> network_step W this s1 s2.
 Proof.
-case=>_[b][E Z]; case: (S)=>C S'/andP[D1] D2; subst s2=>/=.
+case=>_[b][E Z]; case: (S)=>C S' /andP[D1] D2 K; subst s2=>/=.
 rewrite (proof_irrelevance (safe_safe S) S') in E; clear S.
-move: st S' E pf'; clear pf' st; subst p=>st S' E pf'.
-apply: (@SendMsg W this s1 _ l st pf' to msg)=>////. 
+
+rewrite /all_hooks_fire/filter_hooks in K.
+move: st S' E K pf'; clear pf' st; subst p=>st S' E K' pf'.
+(*  *)
+apply: (@SendMsg W this s1 _ l st pf' to msg)=>////.
+move=>z lc hk E'.
+ZZZZ
+
 Qed.
 
 

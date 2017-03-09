@@ -43,9 +43,9 @@ Proof. by move=>D; case:w=>c h [] W V K E /(_ l); apply:cohDom. Qed.
 
 (* A predicate making all hooks apply to the send-transition with a
    tag st of a protocol with label l.  *)
-Definition all_hooks_fire l st s n (msg : seq nat) to :=
+Definition all_hooks_fire (h : hooks) l st s n (msg : seq nat) to :=
   (* For any hook associated with client protocol l and send-tag st *)
-  forall z lc hk, Some hk = find ((z, lc), (l, st)) (snd w) ->
+  forall z lc hk, Some hk = find ((z, lc), (l, st)) h ->
   let: core_local   := getl n (gets s lc) in
   let: client_local := getl n (gets s l)  in              
   hk core_local client_local msg to.
@@ -66,7 +66,7 @@ Inductive network_step (s1 s2 : state) : Prop :=
           (S : send_safe st this to (gets s1 l) msg)
 
           (* All hooks are applicable *)
-          (pf_hooks : all_hooks_fire l (t_snd st) s1 this msg to)
+          (pf_hooks : all_hooks_fire (geth w) l (t_snd st) s1 this msg to)
           
           (* b is a result of executing the transition *)
           (spf : Some b = send_step S) of
