@@ -148,26 +148,31 @@ exists (projectS W1 s), (projectS W2 s).
 split=>//; [by apply: projectS_cohL C G1| by apply: projectS_cohR C G2].
 Qed.
 
+(* Lemma injExtL (W1 W2 : world) (pf : injects W1 (W1 \+ W2) K) : *)
+(*   valid (W1 \+ W2) -> inj_ext pf = W2. *)
+(* Proof. *)
+(* move=>H; case: pf=>W2' [G1 G2] E/= _ _ _. *)
+(* rewrite /PCM.join/=/= in H *. *)
+(* Check joinfK. *)
+(* rewrite /valid /= in H. *)
+(* move/andP:H=>H1 H2. *)
+(* by rewrite (joinfK H E). *)
+(* Qed. *)
+
+
+(* Lemma injExtR (W1 W2 : world) (pf : injects W2 (W1 \+ W2)) : *)
+(*   valid (W1 \+ W2) -> inj_ext pf = W1. *)
+(* Proof. *)
+(* move=>H; case: pf=>W2' E/= _ _ _. *)
+(* by rewrite joinC in H E; rewrite (joinfK H E). *)
+(* Qed. *)
+
 (**************************************************************************)
 (** TODO: stopped here **)
 ZZZZZ
 (**************************************************************************)
 
-Lemma injExtL (W1 W2 : world) (pf : injects W1 (W1 \+ W2) K) :
-  valid (W1 \+ W2) -> inj_ext pf = W2.
-Proof.
-move=>H; case: pf=>W2' E/= _ _ _.
-rewrite /PCM.join/=/= in H *.
-rewrite /valid /= in H.
-by rewrite (joinfK H E).
-Qed.
 
-Lemma injExtR (W1 W2 : world) (pf : injects W2 (W1 \+ W2)) :
-  valid (W1 \+ W2) -> inj_ext pf = W1.
-Proof.
-move=>H; case: pf=>W2' E/= _ _ _.
-by rewrite joinC in H E; rewrite (joinfK H E).
-Qed.
 
 End Exports.
 End Exports.
