@@ -93,6 +93,9 @@ Proof. by case w=>[c h]; case. Qed.
 Lemma cohS w s : Coh w s -> valid s.
 Proof. by case w=>[c h]; case. Qed.
 
+Lemma cohH w s : Coh w s -> hook_complete w.
+Proof. by case w=>[c h]; case. Qed.
+
 Lemma cohD w s : Coh w s -> dom (getc w) =i dom s.
 Proof. by case w=>[c h]; case. Qed.
 

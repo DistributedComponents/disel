@@ -55,24 +55,23 @@ Definition inj_ext := E.
 Definition injects := injects. 
 Definition Inject := Inject.
 
-Variables (U V : world) (K: hooks).
-
-Lemma cohK (w : injects U V K) : V = U \+ inj_ext w \+ (Unit, K).
+Lemma cohK (U V : world) (K : hooks) (w : injects U V K) :
+  V = U \+ inj_ext w \+ (Unit, K).
 Proof. by case: w=>E/=. Qed.
 
-Lemma cohE (w : injects U V K) s :
+Lemma cohE (U V : world) (K : hooks) (w : injects U V K) s :
   Coh V s <-> exists s1 s2,
       [/\ s = s1 \+ s2, Coh U s1 & Coh (inj_ext w) s2].
 Proof. by case: w=>W ??? cohE sL sR; apply: cohE. Qed.
 
-Lemma sem_extend (w : injects U V K) s1 s2 s this: 
+Lemma sem_extend (U V : world) (K : hooks) (w : injects U V K) s1 s2 s this: 
       s1 \+ s \In Coh V -> s2 \+ s \In Coh V ->
       network_step U this s1 s2 -> network_step V this (s1 \+ s) (s2 \+ s).
 Proof.
 by case: w=>W _ _ _ cohE sL sR C G; apply: sL=>//.
 Qed.
 
-Lemma sem_split (w : injects U V K) s1 s1' s2 s2' this: 
+Lemma sem_split (U V : world) (K : hooks) (w : injects U V K) s1 s1' s2 s2' this: 
       s1 \In Coh U -> s2 \In Coh U ->
       network_step V this (s1 \+ s1') (s2 \+ s2') ->
       (network_step U this s1 s2   /\ s1' = s2') \/
@@ -148,31 +147,35 @@ exists (projectS W1 s), (projectS W2 s).
 split=>//; [by apply: projectS_cohL C G1| by apply: projectS_cohR C G2].
 Qed.
 
-(* Lemma injExtL (W1 W2 : world) (pf : injects W1 (W1 \+ W2) K) : *)
-(*   valid (W1 \+ W2) -> inj_ext pf = W2. *)
-(* Proof. *)
-(* move=>H; case: pf=>W2' [G1 G2] E/= _ _ _. *)
-(* rewrite /PCM.join/=/= in H *. *)
-(* Check joinfK. *)
-(* rewrite /valid /= in H. *)
-(* move/andP:H=>H1 H2. *)
-(* by rewrite (joinfK H E). *)
-(* Qed. *)
+Lemma injExtL' (W1 W2 : world) K (pf : injects W1 (W1 \+ W2) K) :
+  valid (W1 \+ W2) -> inj_ext pf \+ (Unit, K) = W2.
+Proof.
+move=>H; case: pf=>W2' _ E/=_ _ _ _.
+rewrite -joinA in E.
+case/andP: H=>H1 H2.
+rewrite /PCM.join/= in H1 H2 E *.
+case: W2 H1 H2 E=>/=c2 h2 H1 H2 [E1 E2].
+by rewrite (joinfK H1 E1) (joinfK H2 E2). 
+Qed.
 
+Lemma injExtR' W1 W2 K (pf : injects W2 (W1 \+ W2) K) :
+  valid (W1 \+ W2) -> inj_ext pf \+ (Unit, K) = W1.
+Proof.
+move=>H; case: pf=>W2' _ E/= _ _ _ _.
+rewrite -(joinC W2) in E H.
+case/andP: H=>H1 H2; rewrite -joinA in E.
+rewrite /PCM.join/= in H1 H2 E *.
+case: W1 H1 H2 E=>/=c1 h1 H1 H2 [E1 E2].
+by rewrite (joinfK H1 E1) (joinfK H2 E2).
+Qed.
 
-(* Lemma injExtR (W1 W2 : world) (pf : injects W2 (W1 \+ W2)) : *)
-(*   valid (W1 \+ W2) -> inj_ext pf = W1. *)
-(* Proof. *)
-(* move=>H; case: pf=>W2' E/= _ _ _. *)
-(* by rewrite joinC in H E; rewrite (joinfK H E). *)
-(* Qed. *)
+Lemma injExtL W1 W2 (pf : injects W1 (W1 \+ W2) Unit) :
+  valid (W1 \+ W2) -> inj_ext pf = W2.
+Proof. by move/(injExtL' pf); rewrite unitR. Qed.
 
-(**************************************************************************)
-(** TODO: stopped here **)
-ZZZZZ
-(**************************************************************************)
-
-
+Lemma injExtR W1 W2 (pf : injects W2 (W1 \+ W2) Unit) :
+  valid (W1 \+ W2) -> inj_ext pf  = W1.
+Proof. by move/(injExtR' pf); rewrite unitR. Qed.
 
 End Exports.
 End Exports.
@@ -181,13 +184,13 @@ End Injection.
 
 Export Injection.Exports.
 
-
 Module InjectExtra.
 
 Lemma cohUnKR U W s s':
-  s \+ s' \In Coh (U \+ W) -> s \In Coh U -> s' \In Coh W.
+  s \+ s' \In Coh (U \+ W) -> s \In Coh U ->
+  hook_complete W -> s' \In Coh W.
 Proof.
-move=>H C.
+move=>H C G2; move: (cohH C) => G1.
 suff X: s' = projectS W (s \+ s').
 - by rewrite X; apply: (projectS_cohR H).
 suff X: s = projectS U (s \+ s').
@@ -195,24 +198,25 @@ suff X: s = projectS U (s \+ s').
   rewrite E in V. rewrite {1}X in E; move/sym: E=>E.
   by rewrite (joinfK V E).
 rewrite /projectS.
-suff X: {in dom (s \+ s'), dom U =1 dom s}.
+suff X: {in dom (s \+ s'), dom U.1 =1 dom s}.
 - by rewrite (eq_in_um_filt X) um_filt_dom ?(cohS H)//.
 by move=>z _; move: (cohD C z); rewrite /in_mem.
 Qed.
 
 Lemma cohUnKL U W s s':
-  s \+ s' \In Coh (U \+ W) -> s' \In Coh W -> s \In Coh U .
+  s \+ s' \In Coh (U \+ W) -> s' \In Coh W ->
+  hook_complete U -> s \In Coh U .
 Proof.
-move=>H C.
-by rewrite [U \+ W]joinC [s\+_]joinC in H; apply: (cohUnKR H).
+by move=>H C G1; rewrite [U \+ W]joinC [s\+_]joinC in H; apply: (cohUnKR H).
 Qed.
 
-Lemma getPUn U W l :
-  valid (U \+ W) -> l \in dom U ->
+Lemma getPUn (U W : world) l :
+  valid (U \+ W) -> l \in dom U.1 ->
   getProtocol U l = getProtocol (U \+ W) l.
 Proof.
 move=>V; rewrite /getProtocol=>D.
-by rewrite findUnL ?V// D.
+case/andP: (V)=>V1 V2.
+by rewrite findUnL ?V1// D.
 Qed.
 
 Lemma getSUn s1 s2 l :
@@ -223,11 +227,23 @@ move=>V; rewrite /getStatelet=>D.
 by rewrite findUnL ?V// D.
 Qed.
 
-(* TODO: extend for hooks *)
+(**************************************************************************)
+(***  Stopped Here *****)
+(**
+TODO: Figure out what's the most common construction wrt. hooking
+(based on the three examples that we have so far)
+
+**)
+zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+(**************************************************************************)
+
+(* TODO: extend for hooks, it should be assymmetric wrt. core/client *)
 Lemma inject_frame U W this s1 s2 s:
   valid (U \+ W) ->
+  (* Something about hooks *)
   s1 \+ s \In Coh (U \+ W) ->
   network_step U this s1 s2 ->
+  (* hook_complete W -> *)
   network_step (U \+ W) this (s1 \+ s) (s2 \+ s).
 Proof.
 move=>V C1 S; move/step_coh: (S)=>[C1' C2'].
