@@ -18,19 +18,17 @@ Section Injection.
 
 Variable W : world.
 
-Structure injects (U V : world) := Inject {
+Structure injects (U V : world) (K : hooks) := Inject {
   (* The "delta world" *)
   E : world;
                                        
-  (* The "additional hooks" *)
-  K : hooks;                                     
+  _ : hook_complete U /\ hook_complete E;
 
   (* Additional hooks are included with an empty world *)
   _ : V = U \+ E \+ (Unit, K);
 
-  (* Additional hooks are well-formed *)
-  _ : hooks_consistent V;
-    
+  (* Additional hooks are well-formed with respect to the world *)
+  _ : hooks_consistent (getc (U \+ E)) K;
   
   (* These all should be easy to prove given a standard world disentanglement *)
   _ : forall s, Coh V s <-> exists s1 s2,
@@ -53,55 +51,56 @@ End Injection.
 Module Exports.
 Section Exports.
 
-Definition inj_ext := E. 
+Definition inj_ext := E.
 Definition injects := injects. 
 Definition Inject := Inject.
 
-Variables (U V : world).
+Variables (U V : world) (K: hooks).
 
-Lemma cohK (w : injects U V) : V = U \+ inj_ext w.
+Lemma cohK (w : injects U V K) : V = U \+ inj_ext w \+ (Unit, K).
 Proof. by case: w=>E/=. Qed.
 
-Lemma cohE (w : injects U V) s :
+Lemma cohE (w : injects U V K) s :
   Coh V s <-> exists s1 s2,
       [/\ s = s1 \+ s2, Coh U s1 & Coh (inj_ext w) s2].
-Proof. by case: w=>W ? cohE sL sR; apply: cohE. Qed.
+Proof. by case: w=>W ??? cohE sL sR; apply: cohE. Qed.
 
-Lemma sem_extend (w : injects U V) s1 s2 s this: 
+Lemma sem_extend (w : injects U V K) s1 s2 s this: 
       s1 \+ s \In Coh V -> s2 \+ s \In Coh V ->
       network_step U this s1 s2 -> network_step V this (s1 \+ s) (s2 \+ s).
 Proof.
-by case: w=>W _ cohE sL sR C G; apply: sL=>//.
+by case: w=>W _ _ _ cohE sL sR C G; apply: sL=>//.
 Qed.
 
-Lemma sem_split (w : injects U V) s1 s1' s2 s2' this: 
+Lemma sem_split (w : injects U V K) s1 s1' s2 s2' this: 
       s1 \In Coh U -> s2 \In Coh U ->
       network_step V this (s1 \+ s1') (s2 \+ s2') ->
       (network_step U this s1 s2   /\ s1' = s2') \/
       (network_step (inj_ext w) this s1' s2' /\ s1 = s2).
-Proof. by case: w=>W ? cohE sl sR; apply: sR. Qed.
+Proof. by case: w=>W ??? cohE sl sR; apply: sR. Qed.
 
-Definition extends (U V : world) (w : injects U V) s s1 := 
+Definition extends (U V : world) (K : hooks) (w : injects U V K) s s1 := 
   exists s2, [/\ s = s1 \+ s2, s1 \In Coh U & s \In Coh V].
 
 Notation dom_filt W := (fun k => k \in dom W).
+
+(* TODO: prove something about hooks K being irrelevant for coherence *)
+
+(* TODO: remove all irrelevant hooks *)
 
 Definition projectS (W : world) (s : state) :=
   um_filter (dom_filt (getc W)) s.
 
 Lemma projectS_cohL W1 W2 s :
-  s \In Coh (W1 \+ W2) -> projectS W1 s \In Coh W1.
+  s \In Coh (W1 \+ W2) -> hook_complete W1 -> projectS W1 s \In Coh W1.
 Proof.
-case=>V1 V2 D H; split; first by move/validL: V1.
+case=>V1 V2 G1 D H G2; split=>//; first by move/validL: V1.
 - by rewrite valid_um_filter.
-- case: W1 W2 V1 D H{p}=>c1 h1; case=> c2 h2/=V1 H D z lc ls t D'.
-  
-  
-- move=>z; case B: (z \in dom W1).
-  + by rewrite dom_um_filt !inE B/= -D domUn !inE B/=; rewrite V1.
+- move=>z; case B: (z \in dom (getc W1)).
+  + by rewrite dom_um_filt !inE B/= -D/=domUn !inE B/=; case/andP:V1=>->.
   by rewrite dom_um_filt !inE B.
 move=>l; move: (H l)=>{H}H.
-case B: (l \in dom W1); last first.
+case B: (l \in dom (getc W1)); last first.
 - rewrite /getProtocol /getStatelet; move: (B).
   case: dom_find=>//-> _.
   suff X: ~~(l \in dom (projectS W1 s)) by case: dom_find X=>//-> _. 
@@ -109,44 +108,52 @@ case B: (l \in dom W1); last first.
 have E1: find l s = find l (projectS W1 s).
 - by rewrite /projectS/= find_um_filt B.
 have E2: getProtocol (W1 \+ W2) l = getProtocol W1 l.
-- by rewrite /getProtocol findUnL// B. 
+  - rewrite /getProtocol findUnL//?B//.
+    by rewrite /valid/= in V1; case/andP: V1.
 by rewrite -E2 /getStatelet -E1 in H *.  
 Qed.
 
 Lemma projectS_cohR W1 W2 s :
-  s \In Coh (W1 \+ W2) -> projectS W2 s \In Coh W2.
+  s \In Coh (W1 \+ W2) -> hook_complete W2 -> projectS W2 s \In Coh W2.
 Proof. by rewrite joinC; apply: projectS_cohL. Qed.
 
 Lemma projectSE W1 W2 s :
-  s \In Coh (W1 \+ W2) -> s = projectS W1 s \+ projectS W2 s.
+  s \In Coh (W1 \+ W2) ->
+  s = projectS W1 s \+ projectS W2 s.
 Proof.
-case=>Vw Vs D H. rewrite /projectS.
-have X: {in dom s, dom_filt W2 =1 predD (dom_filt W2) (dom_filt W1)}.
-- move=>z _/=; case I : (z \in dom (W1 \+ W2)).
+case=>Vw Vs G D H; rewrite /projectS.
+have X: {in dom s, dom_filt (getc W2) =1 predD (dom_filt (getc W2)) (dom_filt (getc W1))}.
+- move=>z _/=; case I : (z \in dom (W1.1 \+ W2.1)).
   + move: I; rewrite domUn !inE/==>/andP[V']/orP[]Z; rewrite Z/=.
-    - by case: validUn V'=>//_ _/(_ z Z)/=G _;apply/negbTE. 
-    rewrite joinC in V'; case: validUn V'=>//_ _/(_ z Z)G _.
+    - by case: validUn V'=>//_ _/(_ z Z)/=G' _;apply/negbTE. 
+    rewrite joinC in V'; case: validUn V'=>//_ _/(_ z Z)G' _.
     by rewrite andbC.
   move: I; rewrite domUn inE/==>/negbT; rewrite negb_and negb_or/=.
   have X: valid (W1 \+ W2) by [].
-  by rewrite X/==>/andP[]->.
+  by case/andP: X=>->/=_/andP[]->.
 rewrite (eq_in_um_filt X) -um_filt_predU/=; clear X.
-suff X: {in dom s, predU (dom_filt W1) (dom_filt W2) =1 predT}.
+suff X: {in dom s, predU (dom_filt (getc W1)) (dom_filt (getc W2)) =1 predT}.
 - by rewrite (eq_in_um_filt X) um_filt_predT. 
 by move=>z; rewrite/= -D domUn inE=>/andP[].
 Qed.
 
 Lemma coh_split W1 W2 s :
   s \In Coh (W1 \+ W2) ->
+  hook_complete W1 -> hook_complete W2 ->
   exists s1 s2 : state,
     [/\ s1 \In Coh W1, s2 \In Coh W2 & s = s1 \+ s2].
 Proof.
-move=>C; move/projectSE: (C)->.
+move=>C G1 G2; move/projectSE: (C)->.
 exists (projectS W1 s), (projectS W2 s).
-split=>//; [by apply: projectS_cohL C| by apply: projectS_cohR C].
+split=>//; [by apply: projectS_cohL C G1| by apply: projectS_cohR C G2].
 Qed.
 
-Lemma injExtL (W1 W2 : world) (pf : injects W1 (W1 \+ W2)) :
+(**************************************************************************)
+(** TODO: stopped here **)
+ZZZZZ
+(**************************************************************************)
+
+Lemma injExtL (W1 W2 : world) (pf : injects W1 (W1 \+ W2) K) :
   valid (W1 \+ W2) -> inj_ext pf = W2.
 Proof.
 move=>H; case: pf=>W2' E/= _ _ _.
@@ -211,6 +218,7 @@ move=>V; rewrite /getStatelet=>D.
 by rewrite findUnL ?V// D.
 Qed.
 
+(* TODO: extend for hooks *)
 Lemma inject_frame U W this s1 s2 s:
   valid (U \+ W) ->
   s1 \+ s \In Coh (U \+ W) ->

@@ -74,15 +74,16 @@ Section Core.
 
 (* The following definition ties together worlds and states *)
 
-Definition hooks_consistent (w : world) : Prop :=
-  let: (c, h) := w in
+Definition hooks_consistent (c : context) (h : hooks) : Prop :=
   forall z lc ls t, ((z, lc), (ls, t)) \in dom h ->
   (lc \in dom c) && (ls \in dom c).
+
+Definition hook_complete w := hooks_consistent (getc w) (geth w).
 
 Definition Coh (w : world) : Pred state := fun s =>
   let: c := fst w in
   let: h := snd w in                                           
-  [/\ valid w, valid s, hooks_consistent w,
+  [/\ valid w, valid s, hook_complete w,
       dom c =i dom s &
       forall l, coh (getProtocol w l) (getStatelet s l)].
 
