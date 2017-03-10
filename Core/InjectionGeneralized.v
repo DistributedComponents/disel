@@ -233,6 +233,8 @@ Qed.
 TODO: Figure out what's the most common construction wrt. hooking
 (based on the three examples that we have so far)
 
+This is a trivial case that 
+
 **)
 zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
 (**************************************************************************)
