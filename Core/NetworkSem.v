@@ -46,6 +46,7 @@ Proof. by move=>D; case:w=>c h [] W V K E /(_ l); apply:cohDom. Qed.
 Definition all_hooks_fire (h : hooks) l st s n (msg : seq nat) to :=
   (* For any hook associated with client protocol l and send-tag st *)
   forall z lc hk, Some hk = find ((z, lc), (l, st)) h ->
+  lc \in dom s -> l \in dom s ->               
   let: core_local   := getl n (gets s lc) in
   let: client_local := getl n (gets s l)  in              
   hk core_local client_local msg to.
