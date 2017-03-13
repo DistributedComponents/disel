@@ -56,8 +56,11 @@ Proof. by rewrite /getStatelet gen_findPt. Qed.
 
 Lemma cohSt d : coh d -> Coh W (toSt d).
 Proof.
-move=>C; split; do?[by apply: gen_validPt];
-        first by move=>z; rewrite !gen_domPt inE.
+move=>C; split.
+- by apply/andP; rewrite valid_unit; split=>//; apply: gen_validPt.
+- by apply: gen_validPt.
+- by move=>z lc ls st; rewrite dom0 inE.
+- by move=>z; rewrite !gen_domPt inE.
 move=>k; case B: (k \in dom (toSt d)); last first.
 - rewrite /getProtocol /getStatelet.
   case: (dom_find k (toSt d))=>[->|v /find_some]; last by rewrite B.
@@ -233,7 +236,8 @@ Lemma getInvSendTrans st z to msg s1 h :
   forall (S : send_safe st z to (getStatelet s1 (plab p)) msg),
   Some h = send_step S ->
   exists st', [/\ st' \In get_st (mkWorld p) (plab p),
-     t_snd st' = t_snd st &
+     t_snd st' = t_snd st,
+     all_hooks_fire (mkWorld p) (plab p) (t_snd st') s1 z msg to &          
      exists S': (send_safe st' z to (getStatelet s1 (plab p)) msg),
        Some h = send_step S'].
 Proof.
@@ -242,6 +246,7 @@ case/Mem_map_inv; case=>st' stI/= [->]H1; case=>S Is E.
 rewrite /get_st/InMem!prEq; exists st'. split=>//.
 - by rewrite -HS/=; apply: (Mem_map ProtocolWithInvariant.st H1).
 rewrite/send_step/=/Transitions.send_step/=/send_stepI in E.
+- by move=>???/sym/find_some; rewrite dom0 inE.
 by exists (proj1 (conj S Is)).
 Qed.
 
@@ -319,8 +324,9 @@ Lemma with_inv_coh pr I (ii : InductiveInv pr I) s:
   s \In Coh (mkWorld (ProtocolWithIndInv ii)) ->    
   s \In Coh (mkWorld pr).
 Proof.
-case=>G1 G2 G3 G4; split=>//.
-- by rewrite !gen_validPt in G1 *. 
+case=>G1 G2 Gh G3 G4; split=>//.
+- by apply/andP; rewrite valid_unit; split=>//; rewrite !gen_validPt in G1 *.
+- by move=>???? ;rewrite dom0 inE.  
 - by move=>z; move: (G3 z); rewrite !um_domPt !inE.
 move=>l; move: (G4 l).
 case X: (l == plab pr); first by move/eqP:X=>X; subst l; rewrite !prEq; case.
@@ -360,33 +366,33 @@ move=>C'; move: (with_inv_coh C')=>C.
 case; first by case=>_<-; apply: Idle. 
 
 (*** Send-transition of the host protocol ***)
-move=>l st Hs to msg h H1 H2 _ S E ->/=.
+move=>l st Hs to msg h H1 H2 _ S A E ->/=.
 have Y : l = plab pr
   by rewrite -(cohD C) gen_domPt inE/= in H2; move/eqP:H2. 
-subst l; move: st Hs H1 S E; rewrite /get_st/InMem!prEq/==>st Hs H1 S E.
+subst l; move: st Hs H1 S E A; rewrite /get_st/InMem!prEq/==>st Hs H1 S E A.
 suff X: exists st',
     [/\ st' \In get_st (mkWorld (ProtocolWithIndInv ii)) (plab pr),
-     t_snd st' = t_snd st &
+     t_snd st' = t_snd st,
+     all_hooks_fire (mkWorld (ProtocolWithIndInv ii)) (plab pr) (t_snd st') s1 z msg to &
      exists S': (send_safe st' z to (getStatelet s1 (plab pr)) msg),
                 Some h = send_step S'].
-case:X=>st'[Hs']Et[S']E'; rewrite -Et.
+case:X=>st'[Hs']Et A'[S']E'; rewrite -Et.
 move: (with_inv_nodes ii (plab pr)); rewrite !prEq=>P.
-rewrite -P in H1.
-by apply: (SendMsg (to:=to)(this:=z)(b:=h)(msg:=msg) Hs').
+by rewrite -P in H1; apply: (SendMsg (to:=to)(this:=z)(b:=h)(msg:=msg) Hs').
 
 (* Finding the corresponding send-transition of rich protocol *)
 rewrite -(with_inv_labE ii)/get_st/InMem!prEq.
 case: ii (@stIn _ _ ii) C' =>sts rts HS HR/= Hi C'.
 rewrite -HS in Hs; move/Mem_map_inv: Hs=>[[st' stI]]/=[Es]Si; subst st'.
 have G: I (getStatelet s1 (plab pr)) (nodes pr (getStatelet s1 (plab pr))).
-+ by case: C'=>_ _ _/(_ (plab pr)); rewrite prEq; case.
++ by case: C'=>_ _ _ _/(_ (plab pr)); rewrite prEq; case.
 move:(Hi _ Si)=>/={Hi Si}Hi; exists (@snd_transI pr I st stI); split=>//=.
 rewrite /send_safeI /send_stepI/=.
 by exists (conj S G); rewrite (proof_irrelevance (proj1 (conj S G)) S).
 
 (*** Receive-transition of the host protocol ***)
 move=>l rt  Hr i from H1 H2 C1 msg E[F]Hw/=.
-have Y : l = plab pr by rewrite  gen_domPt inE/= in H2; move/eqP:H2. 
+have Y : l = plab pr by rewrite -(cohD C) gen_domPt inE/= in H2; move/eqP:H2. 
 subst l; move: rt Hr H1 E (coh_s _ C1) Hw.
 rewrite /get_rt/InMem/=!prEq=>rt Hr H1 E C1' Hw .
 have Hi: (coh (getProtocol (mkWorld (ProtocolWithIndInv ii)) (plab pr)))
@@ -402,7 +408,7 @@ case:X=>rt'[Hr']E' Hw' Gr G.
 have pf: (z \in nodes (getProtocol (mkWorld (ProtocolWithIndInv ii)) (plab pr))
                   (getStatelet s1 (plab pr))) by rewrite prEq. 
 move: (@ReceiveMsg _ z s1 s2 (plab pr) rt' Hr' i from pf)=>/=.
-rewrite /= gen_domPt inE eqxx/=; move/(_ is_true_true C' msg E')=>X.
+rewrite -(cohD C) /= gen_domPt inE eqxx/=; move/(_ is_true_true C' msg E')=>X.
 subst s2; apply X; split=>//; clear X.
 - by rewrite (proof_irrelevance (coh_s (plab pr) C') Hi).
 congr (upd _ _); congr {| dstate := _ ; dsoup := _ |}; congr (upd _ _).
@@ -429,23 +435,24 @@ Proof.
 case.
 - by case=>C'<-; apply: Idle; split=>//; apply: with_inv_coh C'.
 (* Emulating send-transition *)
-move=>l st Hs to msg h H1 H2 C' S E->{s2}.
+move=>l st Hs to msg h H1 H2 C' S A E->{s2}.
 have Y : l = plab pr
   by rewrite -(cohD C') gen_domPt inE/= in H2; move/eqP:H2. 
-subst l; move: st Hs H1 S E; rewrite /get_st/InMem!prEq/==>st Hs H1 S E.
+subst l; move: st Hs H1 S E A; rewrite /get_st/InMem!prEq/==>st Hs H1 S E A.
 suff X: exists st',
     [/\ st' \In get_st (mkWorld pr) (plab pr),
-     t_snd st' = t_snd st &
+     t_snd st' = t_snd st,
+     all_hooks_fire (mkWorld (ProtocolWithIndInv ii)) (plab pr) (t_snd st') s1 z msg to &
      exists S': (send_safe st' z to (getStatelet s1 (plab pr)) msg),
                 Some h = send_step S'].
-case:X=>st'[Hs']Et[S']E'; rewrite -Et.
+case:X=>st'[Hs']Et A'[S']E'; rewrite -Et.
 apply: (SendMsg (to:=to)(this:=z)(b:=h)(msg:=msg) Hs')=>//;
   [by rewrite prEq| by apply: (with_inv_coh C')].
 by apply: (getInvSendTrans (ii := ii)).
 
 (* Emulating a receive-transition *)  
 move=>l rt  Hr i from H1 H2 C1 msg E[F]Hw/=.
-have Y : l = plab pr by rewrite gen_domPt inE/= in H2; move/eqP:H2. 
+have Y : l = plab pr by rewrite -(cohD C1) gen_domPt inE/= in H2; move/eqP:H2. 
 subst l; move: rt Hr H1 E (coh_s _ C1) Hw.
 rewrite /get_rt/InMem/=!prEq=>rt Hr H1 E C1' Hw.
 have Hi: (coh (getProtocol (mkWorld pr) (plab pr)))
@@ -461,7 +468,7 @@ case:X=>rt'[Hr']E' Hw' Gr G.
 have pf: (z \in nodes (getProtocol (mkWorld pr) (plab pr))
                   (getStatelet s1 (plab pr))) by rewrite prEq. 
 move: (@ReceiveMsg _ z s1 s2 (plab pr) rt' Hr' i from pf)=>/=.
-rewrite /= gen_domPt inE eqxx/=.
+rewrite -(cohD C1) gen_domPt inE eqxx/=.
 move/(_ is_true_true (with_inv_coh C1) msg E')=>X.
 subst s2; apply X; split=>//; clear X.
 - by rewrite (proof_irrelevance (coh_s (plab pr) (with_inv_coh C1)) Hi).
@@ -490,9 +497,6 @@ case=>n; elim: n s1=>[|n Hi] s1; first by move=>[<-]/with_inv_coh=>C; exists 0.
 case=>z'[s3][N]H/Hi; move/with_inv_step':H=>S; case=>n' R.
 by exists n'.+1, z', s3. 
 Qed.
-
-(* TODO: Prove lemmas for rely-relations. *)
-
 
 (* The following definition requires the proofs, for each transitions
    of p that it satisfies the corresponding two-state invariants with

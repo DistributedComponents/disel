@@ -6,7 +6,7 @@ Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
 Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem.
-Require Import Actions Injection.
+Require Import Actions InjectionGeneralized.
 Require Import InductiveInv.
 
 Set Implicit Arguments.
@@ -21,7 +21,7 @@ Variable this : nid.
 Inductive proc (W : world) A :=
   Unfinished | Ret of A | Act of action W A this |
   Seq B of proc W B & B -> proc W A |
-  Inject V of injects V W & proc V A |
+  Inject V K of injects V W K & proc V A |
   WithInv p I (ii : InductiveInv p I) of
           W = mkWorld (ProtocolWithIndInv ii) & proc (mkWorld p) A.  
 
@@ -55,9 +55,9 @@ Fixpoint step (W : world) A (s1 : state) (p1 : proc this W A)
   | SeqStep sc', Seq _ p' k1 => 
     exists p'', step s1 p' sc' s2 p'' /\ p2 = Seq p'' k1
   (* Injection of a non-reduced term *)
-  | InjectRet, Inject V pf (Ret v) =>
+  | InjectRet, Inject V K pf (Ret v) =>
      exists s1', [/\ s2 = s1, p2 = Ret v & extends pf s1 s1']
-  | InjectStep sc', Inject V pf t1' =>
+  | InjectStep sc', Inject V K pf t1' =>
     exists s1' s2' s t2', 
     [/\ p2 = Inject pf t2', s1 = s1' \+ s, s2 = s2' \+ s, 
      s1' \In Coh V & step s1' t1' sc' s2' t2']
@@ -75,8 +75,8 @@ Fixpoint good (W : world) A (p : proc this W A) sc  : Prop :=
   | ActStep, Act _ => True
   | SeqRet, Seq _ (Ret _) _ => True
   | SeqStep sc', Seq _ p' _ => good p' sc'
-  | InjectStep sc', Inject _ _ p' => good p' sc'
-  | InjectRet, Inject _ _ (Ret _) => True
+  | InjectStep sc', Inject _ _ _ p' => good p' sc'
+  | InjectRet, Inject _ _ _ (Ret _) => True
   | WithInvStep sc', WithInv _ _ _ _ p' => good p' sc'
   | WithInvRet, WithInv _ _ _ _ (Ret _) => True
   | _, _ => False
@@ -99,9 +99,9 @@ Fixpoint safe (W : world) A (p : proc this W A) sc (s : state)  : Prop :=
   | ActStep, Act a => a_safe a s
   | SeqRet, Seq _ (Ret _) _ => True
   | SeqStep sc', Seq _ p' _ => safe p' sc' s
-  | InjectStep sc', Inject V pf p' =>
+  | InjectStep sc', Inject V K pf p' =>
       exists s', extends pf s s' /\ safe p' sc' s'
-  | InjectRet, Inject V pf (Ret _) => exists s', extends pf s s'
+  | InjectRet, Inject V K pf (Ret _) => exists s', extends pf s s'
   | WithInvStep sc', WithInv _ _ _ _ p' => safe p' sc' s
   | WithInvRet, WithInv _ _ _ _ (Ret _) => True
   | _, _ => True
@@ -135,12 +135,12 @@ move=>C H1 H2; elim: sc W A s p H2 H1 C=>[||sc IH|sc IH||sc IH|]W A s.
 - case=>//B p k/=H1 H2 C.
   case: (IH W B s p H1 H2 C)=>s'[p'][G1 G2].
   by exists s', (Seq p' k); split=>//; exists p'. 
-- case=>// V pf p/=H1 [z][E]H2 C. 
+- case=>// V K pf p/=H1 [z][E]H2 C. 
   case: (E)=>s3[Z] C1 C2.
   case: (IH V A z p H1 H2 C1) =>s'[p']H3; case: H3=>S St.
   exists (s' \+ s3), (Inject pf p'); split=>//; first by exists z.  
   by subst s; exists z, s', s3, p'. 
-- case=>//V pf; case=>// v/=_[s'] E C.          
+- case=>//V K pf; case=>// v/=_[s'] E C.          
   by exists s, (Ret v); split=>//=; exists s'.
 - case=>//pr I ii E p/= H1 H2 C.
   have C' : s \In Coh (mkWorld pr) by subst W; apply: (with_inv_coh C). 
@@ -185,7 +185,7 @@ case; case: sc=>//[|sc] C.
 by move=>G /= [p' [H1 ->]]; right; exists sc, p'.
 Qed.
 
-Lemma stepInject V W A (em : injects V W) 
+Lemma stepInject V W K A (em : injects V W K) 
                 s1 (t : proc this V A) sc s2 (q : proc this W A) :
   pstep s1 (Inject em t) sc s2 q <->
   (* Case 1 : stepped to the final state s1' of the inner program*)
@@ -247,21 +247,21 @@ elim: sc W A s1 s2 t q=>/=.
 - move=>W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
   + by move=>a/stepAct [v][pf][Z1]Z2 H; subst q; apply: (a_step_sem H).
   + by move=>???; case. 
-  + by move=>???; case.
+  + by move=>????; case.
   by move=>?????; case.   
 - move=>W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
   + move=>B p p0/stepSeq; case=>[[v][_]??? C|[sc'][p'][]]//.
     by subst p s2; apply: Idle. 
-  by move=>???/stepInject; case=>[[?][?][?]|[?][?][?][?][?][?]]//.
+  by move=>????/stepInject; case=>[[?][?][?]|[?][?][?][?][?][?]]//.
   by move=>?????; case.   
 - move=>sc HI W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
   + move=>B p p0/stepSeq; case=>[[?][?]|[sc'][p'][][]? ?]//.
     by subst sc' q; apply: HI.
-  by move=>???; case=>? _.
+  by move=>????; case=>? _.
   by move=>?????; case.   
 - move=>sc HI W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
   + by move=>B p p0; case. 
-  move=>V pf p/stepInject; case=>[[?][?][?]|[sc'][t'][s1'][s2'][s][][]????]//. 
+  move=>V K pf p/stepInject; case=>[[?][?][?]|[sc'][t'][s1'][s2'][s][][]????]//. 
   subst sc' q s1 s2=>C; move/HI=>S; apply: (sem_extend pf)=>//.
   apply/(cohE pf); exists s2', s; case: (step_coh S)=>C1 C2; split=>//.
   move/(cohE pf): (C)=>[s1][s2][E]C' H.
@@ -269,12 +269,12 @@ elim: sc W A s1 s2 t q=>/=.
   by move=>?????; case.   
 - move=>W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
   + by move=>???; case.
-  + move=>V i p; case/stepInject=>[[s1'][v][_]??? X|[?][?][?][?][?][?]]//.
+  + move=>V K i p; case/stepInject=>[[s1'][v][_]??? X|[?][?][?][?][?][?]]//.
     by subst p q s2; apply: Idle; split=>//; case: X=>x []. 
   by move=>?????; case.
 
 - move=>sc HI W A s1 s2 p q; case: p;
-           do?[by case|by move=>?; case|by move=>???; case].
+           do?[by case|by move=>?; case|by move=>???; case|by move=>????; case].
   move=>pr I ii E p; case/(stepWithInv s1); first by case=>?; case.
   case=>sc'[t'][][]Z1 Z2 _ C1; subst q sc'.
   by move/HI=>T; subst W; apply: with_inv_step. 

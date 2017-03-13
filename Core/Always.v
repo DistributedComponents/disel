@@ -6,7 +6,7 @@ Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
 Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-Require Import Actions Injection Process.
+Require Import Actions InjectionGeneralized Process.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -337,7 +337,7 @@ Implicit Arguments aftI [A s p P Q].
 End Always.
 
 Section AlwaysInject.
-Variables (V W : world) (A : Type) (w : injects V W) (this: nid).
+Variables (V W : world) (K : hooks) (A : Type) (w : injects V W K) (this: nid).
 Notation W2 := (inj_ext w).
 
 Lemma rely_ext i j s : 

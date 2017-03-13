@@ -34,9 +34,7 @@ Structure injects (U V : world) (K : hooks) := Inject {
   _ : forall s, Coh V s <-> exists s1 s2,
         [/\ s = s1 \+ s2, Coh U s1 & Coh E s2];
 
-  (* What if we can do the step in a small world, bu cannot do step in a
-     larger one? So U should be _unrestricted_ core protocol (it's
-     okay to restrict the rest) *)
+  (* Framing wrt. worlds and hooks *)
   _ : forall s1 s2 s this,
       s1 \+ s \In Coh V -> network_step U this s1 s2 ->
       network_step V this (s1 \+ s) (s2 \+ s);
@@ -399,13 +397,111 @@ by rewrite -(proof_irrelevance coh_s coh_s').
     by rewrite {1 3}/getStatelet findUnL// A1.
 Qed.
 
+(* The following two definitions are central for framing with respect
+to the hooks. In essence. we can add more hooks via the frame rule, if
+none of the protocols in the "core" world (i.e., the world, to which
+we attach the frame with more hooks) are going to become constrained
+by the newly added hooks.
+
+In other words, the new hooks only constrain the world "to be
+attached" but not our "core" world. *)
+
+Definition not_hooked_by (K : hooks) l :=
+  forall z lc l' st, (z, lc, (l', st)) \in dom K -> l != l'.
+
+Definition world_not_hooked (W: world) K :=
+  forall l, l \in dom W.1 -> not_hooked_by K l.
+
+Lemma hooks_frame (U W : world) (K : hooks) l st s s' n msg to :
+  hook_complete U -> hook_complete W ->
+  hooks_consistent (U \+ W).1 K ->
+  l \in dom s -> s \In Coh U -> s \+ s' \In Coh (U \+ W \+ (Unit, K)) ->
+  not_hooked_by K l ->        
+  all_hooks_fire (geth U) l st s n msg to ->
+  all_hooks_fire (geth (U \+ W \+ (Unit, K))) l st (s \+ s') n msg to.
+Proof.
+move=>G1 G2 G D' C1 C' N A z lc hk F D1 D2; move: F.
+case/andP: (cohW C')=>/=V1 V2.
+move: (cohUnKR (coh_hooks C') C1 G2) => C2.
+rewrite findUnL ?V2//=; case: ifP=>D3; last first.
+- by move/sym/find_some/N/negP; rewrite eqxx. 
+rewrite findUnR ?(validL V2)//; case: ifP=>[D|_].
++ case/G2/andP: D=>_ D; rewrite (cohD C2) in D.
+  by case: validUn (cohS C')=>//_ _/(_ _ D'); rewrite D.
+move/sym=> F.
+have D'': lc \in dom s by case/andP:(G1 _ _ _ _ (find_some F)); rewrite (cohD C1).
+have E: getStatelet s l = getStatelet (s \+ s') l
+  by rewrite (getSUn (cohS C'))// -?(cohD C1').
+have E': getStatelet s lc = getStatelet (s \+ s') lc.
+  by rewrite (getSUn (cohS C'))// -?(cohD C1').
+move: (getStatelet (s \+ s') l) (getStatelet (s \+ s') lc) E E'.
+by move=>y1 y2 Z1 Z2; subst y1 y2; move/sym: F=>F; apply: (A z).
+Qed.
+
+(********************************************************************)
+(*                      Framing result                              *)
+(********************************************************************)
+
+Lemma inject_frame U W K this s1 s2 s:
+  s1 \+ s \In Coh (U \+ W \+ (Unit, K)) ->
+  network_step U this s1 s2 ->
+  hook_complete U -> hook_complete W ->
+  hooks_consistent (U \+ W).1 K ->
+  (* State something about hook direction *)
+  world_not_hooked U K ->
+  network_step (U \+ W \+ (Unit, K)) this (s1 \+ s) (s2 \+ s).
+Proof.
+move=>C1 S Ku Kw Hk N; move/step_coh: (S)=>[C1' C2'].
+case: S; first by move=>[_ <-]; apply: Idle. 
+
+(* Send-transition *)
+- move=>l st H1 to msg h H2 H3 _ S A H4 G.
+  have E: getProtocol U l = getProtocol (U \+ W \+ (Unit, K)) l.
+  have Y: getProtocol U l = getProtocol (U \+ W) l.
+    + by rewrite (getPUn (validL (cohW C1)))// (cohD C1').
+    rewrite Y; rewrite (getPUn (cohW C1))// domUn inE (cohD C1') H3/=.
+    by case/andP: (validL (cohW C1))=>->.
+  have E': getStatelet s1 l = getStatelet (s1 \+ s) l.
+    by rewrite (getSUn (cohS C1))// -?(cohD C1').
+  have X: l \in dom (s1 \+ s) by rewrite domUn inE H3 (cohS C1).
+  move: (getProtocol U) (E) H2=>_ -> H2.
+  rewrite /get_st /InMem/= in H1.
+  rewrite E' in H2 G S H4; clear E'.
+  move: (getProtocol U l) E st H1 S H4 G H2 A=>_->st H1 S H4 G H2 A.
+  apply: (SendMsg H1 H2 X C1 _ H4 (s2 := s2 \+ s)); last first.
+  - by rewrite updUnL H3; congr (_ \+ _).
+  by apply: hooks_frame=>//; apply: N; rewrite -(cohD C1') in H3.
+ 
+    
+(* Receive-transition *)
+move=> l rt H1 msg from H2 H3 C tms G [G1 G2/= G3].
+have E: getProtocol U l = getProtocol (U \+ W \+ (Unit, K)) l.
+  have Y: getProtocol U l = getProtocol (U \+ W) l.
+  - by rewrite (getPUn (validL (cohW C1)))// (cohD C1').
+  rewrite Y; rewrite (getPUn (cohW C1))// domUn inE (cohD C1') H3/=.
+  by case/andP: (validL (cohW C1))=>->.
+have E': getStatelet s1 l = getStatelet (s1 \+ s) l.
+  by rewrite (getSUn (cohS C1))// -?(cohD C1').
+have X: l \in dom (s1 \+ s) by rewrite domUn inE (cohS C1) H3.
+rewrite /get_rt /InMem /= in H1.
+move: (getProtocol U l) (getStatelet s1 l) E E' C H2
+      (coh_s l C) rt G3 G G2 H1 G1=>z1 z2 Z1 Z2.
+subst z1 z2=>C pf C' G3 G G2 H1 H2 G1.
+apply: (ReceiveMsg H2 X G2 (i := msg) (from := from) (s2 := s2 \+ s)).
+split=>//=; first by rewrite (proof_irrelevance (coh_s l C1) C').
+rewrite updUnL H3; congr (_ \+ _); move: (NetworkSem.coh_s l C1)=>pf'. 
+by rewrite (proof_irrelevance pf' C').
+Qed.
+
+
 Lemma injectL (U W : world) K :
   valid (U \+ W \+ (Unit, K)) ->
   hook_complete U -> hook_complete W ->
   hooks_consistent (getc (U \+ W)) K ->
+  world_not_hooked U K ->
   injects U (U \+ W \+ (Unit, K)) K.
 Proof.
-move=>H G1 G2 G.
+move=>H G1 G2 G N.
 exists W=>//[s|s1 s2 s this|s1 s2 s1' s2' this]; [split | |].
 - move/coh_hooks=>C; exists (projectS U s), (projectS W s).
   split; [by apply projectSE|by apply: (projectS_cohL C)|
@@ -424,79 +520,29 @@ exists W=>//[s|s1 s2 s this|s1 s2 s1' s2' this]; [split | |].
   + rewrite (get_protocol_hooks K l (validL H)).
     rewrite /getProtocol/getStatelet !findUnL//; last by case/validL/andP:H.
     by rewrite (cohD C1); case B: (l \in dom s1)=>//; apply: coh_coh.
-
-(* TODO *)
-- by move=>C1 C2; admit. (* apply: inject_frame *)
+- by move=>C1 C2; apply: inject_frame. 
 by move=>C1 C2; apply: (inject_step (validL H)).
-Admitted.
-
-
-(**************************************************************************)
-(***  Stopped Here *****)
-(**
-TODO: Figure out what's the most common construction wrt. hooking
-(based on the three examples that we have so far)
-
-**)
-(**************************************************************************)
-
-
-
-(* TODO: extend for hooks, it should be assymmetric wrt. core/client *)
-Lemma inject_frame U W K this s1 s2 s:
-  s1 \+ s \In Coh (U \+ W \+ (Unit, K)) ->
-  network_step U this s1 s2 ->
-  hook_complete U -> hook_complete W ->
-  hooks_consistent (U \+ W).1 K ->
-  (* State something about hook direction *)
-  network_step (U \+ W \+ (Unit, K)) this (s1 \+ s) (s2 \+ s).
-Proof.
-move=>V C1 S; move/step_coh: (S)=>[C1' C2'].
-case: S; first by move=>[_ <-]; apply: Idle. 
-- move=>l st H1 to msg h H2 H3 _ S H4 G.
-  have E: getProtocol U l = getProtocol (U \+ W) l
-    by rewrite (getPUn V)// (cohD C1').
-  have E': getStatelet s1 l = getStatelet (s1 \+ s) l
-    by rewrite (getSUn (cohS C1)).
-  have X: l \in dom (s1 \+ s) by rewrite domUn inE H3 (cohS C1).
-  move: (getProtocol U) (E) H2=>_ -> H2.
-  rewrite /get_st /InMem/= in H1.
-  rewrite E' in H2 G S H4; clear E'.
-  move: (getProtocol U l) E st H1 S H4 G H2=>_->st H1 S H4 G H2.
-  apply: (SendMsg H1 H2 X C1 H4 (s2 := s2 \+ s)).
-  by rewrite updUnL H3; congr (_ \+ _).
-move=> l rt H1 msg from H2 H3 C tms G [G1 G2/= G3].
-have E: getProtocol U l = getProtocol (U \+ W) l
-  by rewrite (getPUn V)// (cohD C1').
-have E': getStatelet s1 l = getStatelet (s1 \+ s) l.
-  by rewrite (getSUn (cohS C1)) -?(cohD C1')//.
-have X: l \in dom (s1 \+ s) by rewrite domUn inE (cohS C1) -(cohD C1') H3.
-rewrite /get_rt /InMem /= in H1.
-move: (getProtocol U l) (getStatelet s1 l) E E' C H2
-                        (coh_s l C) rt G3 G G2 H1 G1=>z1 z2 Z1 Z2.
-subst z1 z2=>C pf C' G3 G G2 H1 H2 G1.
-rewrite -(cohD C1) in X.
-apply: (ReceiveMsg H2 X G2 (i := msg) (from := from) (s2 := s2 \+ s)).
-split=>//=; first by rewrite (proof_irrelevance (coh_s l C1) C').
-rewrite updUnL -(cohD C1') H3; congr (_ \+ _).
-move: (NetworkSem.coh_s l C1)=>pf'. 
-by rewrite (proof_irrelevance pf' C').
 Qed.
 
 
-Lemma injectR (U W : world) : valid (W \+ U) -> injects U (W \+ U).
+Lemma injectR (U W : world) K :
+  valid (W \+ U \+ (Unit, K)) ->
+  hook_complete U -> hook_complete W ->
+  hooks_consistent (getc (U \+ W)) K ->
+  world_not_hooked U K ->
+  injects U (W \+ U \+ (Unit, K)) K.
 Proof. by rewrite (joinC W); apply: injectL. Qed.
 
-Lemma locProjL W1 W2 l s1 s2:
-  (s1 \+ s2) \In Coh (W1 \+ W2) -> l \in dom W1 ->
+Lemma locProjL (W1 W2 : world) l s1 s2:
+  (s1 \+ s2) \In Coh (W1 \+ W2) -> l \in dom W1.1 ->
   s1 \In Coh W1 -> getStatelet (s1 \+ s2) l = getStatelet s1 l.
 Proof.
 move=>C D C1; rewrite (cohD C1) in D.
 by rewrite (getSUn (cohS C) D).
 Qed.
 
-Lemma locProjR W1 W2 l s1 s2:
-  (s1 \+ s2) \In Coh (W1 \+ W2) -> l \in dom W2 ->
+Lemma locProjR (W1 W2 : world) l s1 s2:
+  (s1 \+ s2) \In Coh (W1 \+ W2) -> l \in dom W2.1 ->
   s2 \In Coh W2 -> getStatelet (s1 \+ s2) l = getStatelet s2 l.
 Proof. by rewrite !(joinC W1) !(joinC s1); apply: locProjL. Qed.
 
