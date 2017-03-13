@@ -86,7 +86,7 @@ apply: ghC=>i x E/= _; subst x.
 apply: act_rule=>j R; split=>[|r k m]; first by case: (rely_coh R).
 case=>/=H1[Cj]Z; subst j=>->R'.
 split; first by rewrite (rely_loc' l R') (rely_loc' _ R).
-case: (rely_coh R')=>_; case=> _ _ _/(_ l)=>/= pf; rewrite prEq in pf.
+case: (rely_coh R')=>_; case=>_ _ _ _/(_ l)=>/= pf; rewrite prEq in pf.
 exists pf; move: (rely_loc' l R') =>/sym E.
 suff X: getStC (Actions.safe_local (prEq tpc) H1) = getStC pf by rewrite X.
 by apply: (getStCE pf _ E).   
@@ -135,16 +135,17 @@ case=>[[E1 P1 C1]|].
 - apply: step; apply:act_rule=>j1 R1/=; split=>[|r k m[Sf]St R2]. 
   split=>//=; first by case: (rely_coh R1).
   + split; first by split=>//; move/perm_eq_mem: Hp->; rewrite inE eqxx.
-    case: (proj2 (rely_coh R1))=>_ _ _/(_ l); rewrite (prEq tpc)=>C; exists C.
+    case: (proj2 (rely_coh R1))=>_ _ _ _/(_ l); rewrite (prEq tpc)=>C; exists C.
     left; exists e; split; last by exists d.
     by rewrite -(rely_loc' _ R1) in E1; rewrite (getStC_K _ E1).
   + rewrite /Actions.can_send /nodes inE eqxx andbC/=.
     by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
+  + by rewrite /Actions.filter_hooks um_filt0=>???/sym/find_some; rewrite dom0 inE.
 case: {-1}(Sf)=>_/=[]Hc[C][]; last first.
 - move=>[n][d'][ps][E1'][]Z1 Z2 _; subst n d'.
   rewrite -(rely_loc' _ R1) in E1.
   by rewrite (getStC_K C E1) in E1'; discriminate E1'.
-case=>b[E1'][d'][Z1 Z2]_; subst b d'.
+case=>b[E1'][d'][Z1 Z2]_ _; subst b d'.
 move: St=>[Z][h][[]Z' G]; subst r h.
 apply: (gh_ex (g := lg)).
 
@@ -202,18 +203,21 @@ case: Y=>to[tos] Z; subst to_send=>{X}.
   split=>//=; first by case: (rely_coh R1).
   + split; first by split=>//; move/perm_eq_mem: Hp->;
                     rewrite mem_cat orbC inE eqxx.
-    case: (proj2 (rely_coh R1))=>_ _ _/(_ l); rewrite prEq=>C; exists C.
+    case: (proj2 (rely_coh R1))=>_ _ _ _/(_ l); rewrite prEq=>C; exists C.
     right; exists e, d, ps; split=>//.
-    by rewrite -(rely_loc' _ R1) in E1; rewrite (getStC_K _ E1).                     + move/perm_eq_uniq: Hp; rewrite Puniq sym.
+      by rewrite -(rely_loc' _ R1) in E1; rewrite (getStC_K _ E1).
+  + move/perm_eq_uniq: Hp; rewrite Puniq sym.
     rewrite -cat_rcons cat_uniq -cats1 cat_uniq=>/andP[]/andP[_]/andP[].
-    by rewrite /= orbC/=.                                                            + rewrite /Actions.can_send /nodes inE eqxx andbC.
+    by rewrite /= orbC/=.
+  + rewrite /Actions.can_send /nodes inE eqxx andbC.
     by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
+  by rewrite /Actions.filter_hooks um_filt0=>???/sym/find_some; rewrite dom0 inE.
 (* dismiss the bogus branch *)    
 case: {-1}(Sf)=>_/=[]Hc[C][]. 
 - case=>b[E1'][d'][Z1 Z2]_; subst b d'.
   rewrite -(rely_loc' _ R1) in E1.
   by rewrite (getStC_K C E1) in E1'; discriminate E1'.
-move=>[n][d'][ps'][E1'][]Z1 Z2 N _; subst n d'. 
+move=>[n][d'][ps'][E1'][]Z1 Z2 N _ _; subst n d'. 
 rewrite -(rely_loc' _ R1) in E1.
 move: (E1'); rewrite (getStC_K C E1); case=>Z; subst ps'.
 move: St=>[Z][h][[]Z' G]; subst r h.
@@ -433,10 +437,11 @@ move=>to tos Hi s1 H C1.
 apply: step; apply: act_rule=>s2 R2/=.
 have Pre: Actions.send_act_safe W (p:=tpc) cn l
           (cn_send_commit_trans cn pts others) [:: e] to s2.
-- split; [by case: (rely_coh R2) | | ]; last first.
+- split; [by case: (rely_coh R2) | | |]; last first.
+  + by rewrite /Actions.filter_hooks um_filt0=>???/sym/find_some; rewrite dom0 inE.
   + rewrite /Actions.can_send /nodes inE eqxx andbC/=.
     by rewrite -(cohD (proj2 (rely_coh R2)))/ddom gen_domPt inE/=.
-  case: (proj2 (rely_coh R2))=>_ _ _/(_ l); rewrite prEq=>C; split.
+  case: (proj2 (rely_coh R2))=>_ _ _ _/(_ l); rewrite prEq=>C; split.
   + split=>//; case: H; first by case=>?[_]<-; rewrite inE eqxx.
     by case=>ps[_]/perm_eq_mem->; rewrite mem_cat orbC inE eqxx.
   exists C; case:H=>[[res][P1]P2 P3|[ps][P1 P2]];[left|right];  
@@ -534,10 +539,11 @@ move=>to tos Hi s1 H C1.
 apply: step; apply: act_rule=>s2 R2/=.
 have Pre: Actions.send_act_safe W (p:=tpc) cn l
           (cn_send_abort_trans cn pts others) [:: e] to s2.
-- split; [by case: (rely_coh R2) | | ]; last first.
+- split; [by case: (rely_coh R2) | | |]; last first.
+  + by rewrite /Actions.filter_hooks um_filt0=>???/sym/find_some; rewrite dom0 inE.
   + rewrite /Actions.can_send /nodes inE eqxx andbC/=.
     by rewrite -(cohD (proj2 (rely_coh R2)))/ddom gen_domPt inE/=.
-  case: (proj2 (rely_coh R2))=>_ _ _/(_ l); rewrite prEq=>C; split.
+  case: (proj2 (rely_coh R2))=>_ _ _ _/(_ l); rewrite prEq=>C; split.
   + split=>//; case: H; first by case=>?[_]<-; rewrite inE eqxx.
     by case=>ps[_]/perm_eq_mem->; rewrite mem_cat orbC inE eqxx.
   exists C; case:H=>[[res][P1]P2 P3|[ps][P1 P2]];[left|right];

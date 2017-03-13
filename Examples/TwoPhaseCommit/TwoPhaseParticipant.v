@@ -102,7 +102,7 @@ apply: ghC=>i x E/= _; subst x.
 apply: act_rule=>j R; split=>[|r k m]; first by case: (rely_coh R).
 case=>/=H1[Cj]Z; subst j=>->R'.
 split; first by rewrite (rely_loc' l R') (rely_loc' _ R).
-case: (rely_coh R')=>_; case=> _ _ _/(_ l)=>/= pf; rewrite prEq in pf.
+case: (rely_coh R')=>_; case=>_ _ _ _/(_ l)=>/= pf; rewrite prEq in pf.
 exists pf; move: (rely_loc' l R') =>/sym E.
 suff X: getStP Hnin (Actions.safe_local (prEq tpc) H1) Pin = getStP Hnin pf Pin by rewrite X.
 by apply: (TPCProtocol.getStPE Hnin pf _ Pin Hpin E).
@@ -201,11 +201,12 @@ have Pre: forall i2, network_rely W p i i2 ->
 - move=>i2 R1.
   split; first by case: (rely_coh R1).
   + have X: HPn cn pts p cn by [].
-    case: (proj2 (rely_coh R1))=>_ _ _/(_ l); rewrite (prEq tpc)=>C.
+    case: (proj2 (rely_coh R1))=>_ _ _ _/(_ l); rewrite (prEq tpc)=>C.
     case: doCommit; split=>//; exists X, C, e, d;
     by rewrite -(rely_loc' _ R1) in E1; rewrite (getStP_K _ _ _ _ E1).
-  rewrite /Actions.can_send /nodes inE/= mem_cat Hpin orbC.
-  by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/= eqxx.
+  + rewrite /Actions.can_send /nodes inE/= mem_cat Hpin orbC.
+    by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/= eqxx.
+  by rewrite /Actions.filter_hooks um_filt0=>???/sym/find_some; rewrite dom0 inE.
 
 case: doCommit Pre=>Pre; apply: act_rule=>i2 R1/=; move:(Pre i2 R1)=>{Pre}Pre.
 
@@ -345,11 +346,13 @@ have Pre: forall i2, network_rely W p i i2 ->
 - move=>i2 R1.
   split; first by case: (rely_coh R1).
   + have X: HPn cn pts p cn by [].
-    case: (proj2 (rely_coh R1))=>_ _ _/(_ l); rewrite (prEq tpc)=>C.
+    case: (proj2 (rely_coh R1))=>_ _ _ _/(_ l); rewrite (prEq tpc)=>C.
     case: hasCommitted E1; split=>//; exists X, C, e, d;
     by rewrite -(rely_loc' _ R1) in E1; rewrite (getStP_K _ _ _ _ E1).
-  rewrite /Actions.can_send /nodes inE/= mem_cat Hpin orbC.
-  by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/= eqxx.
+  + rewrite /Actions.can_send /nodes inE/= mem_cat Hpin orbC.
+    by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/= eqxx.
+  by rewrite /Actions.filter_hooks um_filt0=>???/sym/find_some; rewrite dom0 inE.
+
 case: hasCommitted E1 Pre=>E1 Pre; apply: act_rule=>i2 R1/=; move:(Pre i2 R1)=>{Pre}Pre.
 (* Send commit-ack *)
 split=>//; move=>b i3 i4[Sf]St R3.
