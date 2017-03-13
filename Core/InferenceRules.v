@@ -205,7 +205,7 @@ End BasicRules.
 Section InjectLemmas.
 
 Variable this : nid.
-Variables (W V : world) (A : Type) (w : injects V W).
+Variables (W V : world) (K : hooks) (A : Type) (w : injects V W K).
 Notation W2 := (inj_ext w).
 
 Variable (e1 : DT this V A).
@@ -217,7 +217,7 @@ Lemma inject_rule i j (r : cont A) :
         verify (i \+ j) (inject w e1) r.
 Proof.
 move=>Ci H C t [->|[t' [H' ->{t}]]]; first by apply: alw_unfin. 
-move/aft_inject: {H H'} (H Ci _ H'); move/(_ _ w _ C). 
+move/aft_inject: {H H'} (H Ci _ H'); move/(_ _ _ w _ C). 
 apply: aft_imp=>v s Cs [i'][j'][E] Ci' S'.
 by rewrite {s}E in Cs *; apply.
 Qed.
@@ -263,7 +263,7 @@ Proof.
 move=> H C t [->|[t' [H' ->{t}]]]; first by apply: alw_unfin. 
 move/aft_ind_inv: {H H'}(H (with_inv_coh C) _ H')=>/(_ _ _ C).
 apply: aft_imp=>v m _[C']; apply.
-by case: C'=>_ _ _/(_ l); rewrite prEq; case.
+by case: C'=>_ _ _ _/(_ l); rewrite prEq; case.
 Qed.        
 
 Lemma with_inv_rule i (r : cont A) : 
@@ -273,6 +273,5 @@ Proof.
 move=>H; apply: with_inv_rule'.
 by move=>H1 p H2; move: (H H1 p H2)=>G; apply: (aft_imp _ G).
 Qed.
-
 
 End InductiveInvLemmas.

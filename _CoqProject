@@ -21,7 +21,7 @@ Core/Worlds.v
 Core/NetworkSem.v
 Core/Rely.v
 Core/Actions.v
-Core/InjectionGeneralized.v
+Core/Injection.v
 Core/InductiveInv.v
 Core/Process.v
 Core/Always.v
@@ -30,13 +30,6 @@ Core/InferenceRules.v
 Core/While.v 
 Core/DiSeLExtraction.v
 Examples/Greeter/Greeter.v
-Examples/TwoPhaseCommit/TwoPhaseProtocol.v
-Examples/TwoPhaseCommit/TwoPhaseCoordinator.v
-Examples/TwoPhaseCommit/TwoPhaseParticipant.v
-Examples/TwoPhaseCommit/SimpleTPCApp.v
-Examples/TwoPhaseCommit/TwoPhaseExtraction.v
-Examples/TwoPhaseCommit/TwoPhaseInductiveInv.v
-Examples/TwoPhaseCommit/TwoPhaseInductiveProof.v 
 Examples/Calculator/CalculatorProtocol.v
 Examples/Calculator/CalculatorInvariant.v
 Examples/Calculator/CalculatorClientLib.v
@@ -45,3 +38,10 @@ Examples/Calculator/SimpleCalculatorServers.v
 Examples/Calculator/DelegatingCalculatorServer.v
 Examples/Calculator/SimpleCalculatorApp.v
 Examples/Calculator/CalculatorExtraction.v
+Examples/TwoPhaseCommit/TwoPhaseProtocol.v
+Examples/TwoPhaseCommit/TwoPhaseCoordinator.v
+Examples/TwoPhaseCommit/TwoPhaseParticipant.v
+Examples/TwoPhaseCommit/SimpleTPCApp.v
+Examples/TwoPhaseCommit/TwoPhaseExtraction.v
+Examples/TwoPhaseCommit/TwoPhaseInductiveInv.v
+Examples/TwoPhaseCommit/TwoPhaseInductiveProof.v 

@@ -6,7 +6,7 @@ Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
 Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem.
-Require Import Actions InjectionGeneralized.
+Require Import Actions Injection.
 Require Import InductiveInv.
 
 Set Implicit Arguments.

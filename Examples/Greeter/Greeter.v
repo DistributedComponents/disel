@@ -218,7 +218,7 @@ Definition gp := GreeterProtocol nodes l.
 
 (* Simplest world with one protocol *)
 (* TODO: simplify this using canonicals *)
-Definition W := l \\-> gp.
+Definition W : world := (l \\-> gp, Unit).
 
 Variable this : nid.
 
@@ -270,8 +270,9 @@ apply: act_rule=>s4 R3.
 split=>[|r s5 s6 [Sf2] St R4 n Hloc].
 - split; case/rely_coh: R3=>C3 C4=>//.
   + split=>//; first by eauto.
-    by case: C4=>_ _ _/(_ l); rewrite grEq.
-  by apply/andP; split=>//; move: (cohD C4)=><-; rewrite um_domPt inE.
+    by case: C4=>_ _ _ _/(_ l); rewrite grEq.
+  + by apply/andP; split=>//; move: (cohD C4)=><-; rewrite um_domPt inE.
+  by move=>???/=/sym/find_some/=; rewrite /Actions.filter_hooks um_filt0 dom0 inE.
 (*Bookkeeping for the postconidtion *)
 case: St=>Z1[h]/=[St]Z2; subst.
 
@@ -338,7 +339,9 @@ Definition V := (W l1 nodes) \+ (W l2 nodes).
 
 Lemma validV : valid V.
 Proof.
-by rewrite /V gen_validPtUn/= gen_validPt/= gen_domPt inE/=.
+rewrite /V; apply/andP=>/=.
+split; first by rewrite gen_validPtUn/= gen_validPt/= gen_domPt inE/=.
+by rewrite unitR valid_unit.
 Qed.
 
 Notation loc i k := (getLocal this (getStatelet i k)).
@@ -361,19 +364,42 @@ Definition greeter_spec3 n1 n2 to :=
       loc m l2 = counter :-> n2.+2 &
       r = n1 + n2 + 2]).
 
+Notation iinject x := (@inject _ _ _ _ _ _ x).
+
+Lemma hook_complete_unit (c : context) : hook_complete (c, Unit).
+Proof. by move=>????; rewrite dom0 inE. Qed.
+
+Lemma hooks_consistent_unit (c : context) : hooks_consistent c Unit.
+Proof. by move=>????; rewrite dom0 inE. Qed.
+
 Program Definition greet3 n1 n2 to : greeter_spec3 n1 n2 to :=
-  Do (r1 <-- inject _ (greet_prog1 n1 to);
-      r2 <-- inject _ (greet_prog2 n2 to);
+  Do (r1 <-- iinject (greet_prog1 n1 to);
+      r2 <-- iinject (greet_prog2 n2 to);
       ret _ _ (head 0 r1 + head 0 r2)).
 
-Next Obligation. apply: (injectL validV). Defined.
-Next Obligation. apply: (injectR validV). Defined.
+Next Obligation. exact Unit. Defined.
+Next Obligation. 
+rewrite -(unitR V)/V.
+have V: valid (W l1 nodes \+ W l2 nodes \+ Unit) by rewrite unitR validV.
+apply: (injectL V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
+by move=>??????; rewrite dom0 inE.
+Qed.
+Next Obligation. exact Unit. Defined.
+Next Obligation.
+rewrite -(unitR V)/V.
+have V: valid (W l1 nodes \+ W l2 nodes \+ Unit) by rewrite unitR validV.
+apply: (injectR V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
+by move=>??????; rewrite dom0 inE.
+Defined.
+
+Lemma hcomp l : hook_complete (W l nodes).
+Proof. by move=>????; rewrite dom0 inE. Qed.
 
 Next Obligation.
 move=>i/=[H1]H2 N.
 apply: vrf_coh=>C.
 apply: step.
-move: (coh_split C)=>[i1[j1]][C1 C2 Z]; subst i.
+move: (coh_split C (@hcomp l1) (@hcomp l2))=>[i1[j1]][C1 C2 Z]; subst i.
 apply: inject_rule=>//.
 have E1 : loc (i1 \+ j1) l1 = loc i1 l1
   by rewrite (locProjL C _ C1)// gen_domPt inE/=.

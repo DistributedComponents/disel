@@ -6,7 +6,7 @@ Require Import Eqdep.
 Require Import Relation_Operators.
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
 Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-Require Import Actions InjectionGeneralized Process Always.
+Require Import Actions Injection Process Always.
 Require Import domain.
 
 Set Implicit Arguments.
@@ -351,7 +351,7 @@ End Bind.
 
 
 Section Inject.
-Variables (this : nid) (V W : world) (A : Type) (w : injects V W). 
+Variables (this : nid) (V W : world) (K : hooks) (A : Type) (w : injects V W K). 
 Variable (e : DT this V A).
 Notation W2 := (inj_ext w). 
 Notation s := (spec_of e).
