@@ -96,14 +96,22 @@ Qed.
 (* Final Safety Facts *)
 Notation W := (mkWorld (TwoPhaseCoordinator.tpc l cn pts others Hnin)).
 
+Lemma hook_complete_unit (c : context) : hook_complete (c, Unit).
+Proof. by move=>????; rewrite dom0 inE. Qed.
+
+Lemma hooks_consistent_unit (c : context) : hooks_consistent c Unit.
+Proof. by move=>????; rewrite dom0 inE. Qed.
+
 Lemma init_coh : init_state \In Coh W.
 Proof.
 split.
-- by rewrite gen_validPt.
+- apply/andP; split; last by rewrite valid_unit.
+  by rewrite gen_validPt.
 - by rewrite/init_state gen_validPt.
+- by apply: hook_complete_unit.  
 - by move=>z; rewrite /init_state !um_domPt inE/=.
 move=>k; case B: (l==k); last first.
-- have X: (k \notin dom init_state) /\ (k \notin dom W).
+- have X: (k \notin dom init_state) /\ (k \notin dom W.1).
     by rewrite /init_state/W/=!gen_domPt !inE/=; move/negbT: B. 
   rewrite /getProtocol /getStatelet/=.
   case: dom_find X=>//; last by move=>? _ _[].

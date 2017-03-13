@@ -95,7 +95,6 @@ Proof. by move=>????; rewrite dom0 inE. Qed.
 Lemma hooks_consistent_unit (c : context) : hooks_consistent c Unit.
 Proof. by move=>????; rewrite dom0 inE. Qed.
 
-
 Next Obligation.
 rewrite -(unitR V)/V.
 have V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
