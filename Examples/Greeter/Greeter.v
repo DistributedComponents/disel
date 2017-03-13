@@ -364,8 +364,6 @@ Definition greeter_spec3 n1 n2 to :=
       loc m l2 = counter :-> n2.+2 &
       r = n1 + n2 + 2]).
 
-Notation iinject x := (@inject _ _ _ _ _ _ x).
-
 Lemma hook_complete_unit (c : context) : hook_complete (c, Unit).
 Proof. by move=>????; rewrite dom0 inE. Qed.
 

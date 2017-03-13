@@ -72,7 +72,7 @@ Next Obligation.
 apply: ghC=>i1 rs L1 C.
 apply: act_rule=>i2 R1/=; split; first by case: (rely_coh R1).
 move=>r i3 i4[Sf]S R3/=; rewrite -(rely_loc' l R1) in L1.
-case: Sf=>_ _ _ /(_ l); clear C=>C.
+case: Sf=>_ _ _ _ /(_ l); clear C=>C.
 case: S=>C2[|[l'][mid][tms][from][rt][pf][][E]Hin E1 Hw/=].
 - by case=>?->Z; subst i3; rewrite (rely_loc' _ R3).
 case/andP=>/eqP Z G; subst l'; set d := (getStatelet i2 l) in C E pf Hw *.
@@ -214,13 +214,13 @@ Next Obligation.
 move=>i1/=[E1 H2 H3]. 
 apply: step; apply: act_rule=>i2 R1.
 case: (rely_coh R1)=>_ C2.
-have C': coh cal (getStatelet i2 l) by case: C2=>_ _ _/(_ l);rewrite prEq.
+have C': coh cal (getStatelet i2 l) by case: C2=>_ _ _ _/(_ l);rewrite prEq.
 split=>//=.
-- split=>//=; last first; [|split].
+- split=>//=.
+  + by split=>//; case: C'. 
   + rewrite/Actions.can_send -(cohD C2)/=gen_domPt inE/= eqxx.
     by rewrite mem_cat Hc orbC.
-  + by split=>//; case: C'. 
-  by case: C'.
+  + by rewrite/Actions.filter_hooks um_filt0=>???/sym/find_some; rewrite dom0 inE.
 move=>y i3 i4[S]/=;case=>Z[b]/=[F]E3 R3; subst y.
 case: F=>/=F; subst b i3=>/=.
 rewrite -(rely_loc' _ R1) in E1.

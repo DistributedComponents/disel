@@ -40,7 +40,9 @@ Notation W2 := (mkWorld cal2).
 Definition V := W1 \+ W2.
 Lemma validV : valid V.
 Proof.
-by rewrite /V gen_validPtUn/= gen_validPt/= gen_domPt inE/=.
+rewrite /V; apply/andP=>/=.
+split; first by rewrite gen_validPtUn/= gen_validPt/= gen_domPt inE/=.
+by rewrite unitR valid_unit.
 Qed.
 
 (* This server node *)
@@ -80,19 +82,47 @@ Definition delegating_body_spec :=
 Program Definition delegating_body :
   delegating_body_spec := fun (_ : unit) =>
   Do _ (
-    r <-- inject _ receive_msg;
+    r <-- uinject (receive_msg);
     let: (from, args) := r in
     (* Delegate computations *)
-    ans <-- inject _ (delegate_f args);
-    inject _ (send_ans from args ans);;
+    ans <-- uinject (delegate_f args);
+    uinject (send_ans from args ans);;
     ret sv V tt).
 
-Next Obligation. by apply: (injectL validV). Defined.
-Next Obligation. by apply: (injectR validV). Defined.
-Next Obligation. by apply: (injectL validV). Defined.
+Lemma hook_complete_unit (c : context) : hook_complete (c, Unit).
+Proof. by move=>????; rewrite dom0 inE. Qed.
+
+Lemma hooks_consistent_unit (c : context) : hooks_consistent c Unit.
+Proof. by move=>????; rewrite dom0 inE. Qed.
+
+
+Next Obligation.
+rewrite -(unitR V)/V.
+have V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
+apply: (injectL V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
+by move=>??????; rewrite dom0 inE.
+Defined.
+
+Next Obligation.
+rewrite -(unitR V)/V.
+have V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
+apply: (injectR V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
+by move=>??????; rewrite dom0 inE.
+Qed.
+
+Next Obligation.
+rewrite -(unitR V)/V.
+have V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
+apply: (injectL V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
+by move=>??????; rewrite dom0 inE.
+Defined.
+
+Lemma hcomp l : hook_complete (mkWorld l).
+Proof. by move=>????; rewrite dom0 inE. Qed.
+
 Next Obligation.
 move=>i/=[K1 L1]; apply: vrf_coh=>CD1; apply: step.
-move: (coh_split CD1)=>[i1[j1]][C1 D1 Z]; subst i.
+move: (coh_split CD1 (hcomp cal1) (hcomp cal2))=>[i1[j1]][C1 D1 Z]; subst i.
 apply: inject_rule=>//.
 have E1 : loc (i1 \+ j1) l1 = loc i1 l1
   by rewrite (locProjL CD1 _ C1)// gen_domPt inE/=.
@@ -119,11 +149,11 @@ rewrite -(rely_loc' _ R3) in L3; move: L3=>L4.
 apply: ret_rule=>m R _; rewrite (rely_loc' _ R).
 move/rely_coh: (R3)=>[]; rewrite injExtL ?(cohW CD2)//.
 move=>_ D4; clear R3; rewrite !(rely_loc' _ R); clear R.
-have X: l2 \in dom W2 by rewrite gen_domPt inE eqxx.
+have X: l2 \in dom W2.1 by rewrite gen_domPt inE eqxx.
 rewrite (@locProjR _ _ _ _ _ CD4 X D4); split=>//.
-have X': l1 \in dom W1 by rewrite gen_domPt inE eqxx.
+have X': l1 \in dom W1.1 by rewrite gen_domPt inE eqxx.
 rewrite /= eqxx in K4; rewrite (@locProjL _ _ _ _ _ CD4 X' _)//.
-by apply: (cohUnKL CD4 D4).
+by apply: (cohUnKL CD4 D4); apply: hook_complete_unit.
 Qed.
 
 Definition delegating_server_loop_cond (res : unit) := true.

@@ -468,6 +468,9 @@ Definition do' := DTbin_make do_has_spec.
 
 End Do.
 
+Notation iinject x := (@inject _ _ _ _ _ _ x).
+Notation uinject x := (@inject _ _ _ Unit _ _ x).
+
 Notation "'Do' e" := (@do' _ _ _ _ e _) (at level 80).
 
 Notation "x '<--' c1 ';' c2" := (bind c1 (fun x => c2)) 

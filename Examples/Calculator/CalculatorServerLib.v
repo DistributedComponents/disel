@@ -167,12 +167,14 @@ Next Obligation.
 apply: ghC=>i1 ps [L1]H1 H2 H3 C1.
 apply: act_rule=>i2 R1.
 move: (proj2 (rely_coh R1))=>C2.
-case: (C2)=>_ _ _/(_ l); rewrite prEq=>C.
+case: (C2)=>_ _ _ _/(_ l); rewrite prEq=>C.
 set d := (getStatelet i2 l).
 split=>//[|r i3 i4[Sf]St R3].
-- split=>//; last first.
+- split=>//; first 1 last.
   + by rewrite/Actions.can_send mem_cat Hs/=
        -(cohD C2)/= gen_domPt/= inE eqxx.
+  + rewrite/Actions.filter_hooks um_filt0=>???/sym/find_some.
+    by rewrite dom0 inE.
   split=>//; split=>//.
   exists C; rewrite -(rely_loc' _ R1) in L1; rewrite (getStK C L1).
   by apply/hasP; exists (to, sv, args)=>//=; rewrite H3 !eqxx.

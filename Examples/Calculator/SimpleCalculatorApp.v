@@ -60,7 +60,11 @@ Notation W2 := (mkWorld cal2).
 (* Composite world *)
 Definition V := W1 \+ W2.
 Lemma validV : valid V.
-Proof. by rewrite /V gen_validPtUn/= gen_validPt/= gen_domPt inE/=. Qed.
+Proof.
+rewrite /V; apply/andP=>/=.
+split; first by rewrite gen_validPtUn/= gen_validPt/= gen_domPt inE/=.
+by rewrite unitR valid_unit.
+Qed.
 
 (* This server node *)
 Definition sv : nid := 1.
