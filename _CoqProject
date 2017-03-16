@@ -45,3 +45,4 @@ Examples/TwoPhaseCommit/SimpleTPCApp.v
 Examples/TwoPhaseCommit/TwoPhaseExtraction.v
 Examples/TwoPhaseCommit/TwoPhaseInductiveInv.v
 Examples/TwoPhaseCommit/TwoPhaseInductiveProof.v 
+Examples/LockResource/LockProtocol.v
