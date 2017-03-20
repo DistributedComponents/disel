@@ -11,6 +11,7 @@ Require Import Actions Injection Process Always HoareTriples InferenceRules.
 Require Import InductiveInv.
 Require Import CalculatorProtocol CalculatorInvariant.
 Require Import CalculatorClientLib.
+Require Import SeqLib.
 
 Section CalculatorServerLib.
 

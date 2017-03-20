@@ -10,6 +10,7 @@ Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 Require Import InductiveInv.
 Require Import CalculatorProtocol CalculatorInvariant.
+Require Import SeqLib.
 
 Section CalculatorRecieve.
 

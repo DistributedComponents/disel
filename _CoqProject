@@ -29,6 +29,7 @@ Core/HoareTriples.v
 Core/InferenceRules.v
 Core/While.v 
 Core/DiSeLExtraction.v
+Examples/SeqLib.v
 Examples/Greeter/Greeter.v
 Examples/Calculator/CalculatorProtocol.v
 Examples/Calculator/CalculatorInvariant.v
