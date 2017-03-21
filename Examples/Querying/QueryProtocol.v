@@ -81,6 +81,14 @@ Definition QCoh := CohPred (CohPredMixin l1 l2 l3).
 (**********                Coherence lemmas                  *********)
 (*********************************************************************)
 
+Lemma send_soupCoh d m : 
+    soupCoh (dsoup d) -> cohMsg m -> soupCoh (post_msg (dsoup d) m).1.
+Proof.
+move=>[H1 H2]Cm; split=>[|i ms/=]; first by rewrite valid_fresh.
+rewrite findUnL; last by rewrite valid_fresh.
+case: ifP=>E; [by move/H2|by move/um_findPt_inv=>[Z G]; subst i m].
+Qed.
+
 Lemma consume_coh d m : QCoh d -> soupCoh (consume_msg (dsoup d) m).
 Proof.
 move=>C; split=>[|m' msg]; first by apply: consume_valid; rewrite (cohVs C).
@@ -103,6 +111,7 @@ Qed.
 (********* Getter lemmas for local state ************)
 (****************************************************)
 
+(************** TODO: Refactor this!!! **************)
 Lemma cohSt n d (C : QCoh d) s:
   find st (getLocal n d) = Some s ->
   idyn_tp s = qstate.
@@ -146,11 +155,193 @@ Qed.
 
 Notation coh := QCoh.
 
+Definition fresh_id (xs : seq (nid * nat)) : nat :=
+   (last 0 (sort oleq (unzip2 xs))).+1.      
+
+Lemma zip_in2 (A B : eqType) (a : A) (b : B) xs:
+  (a, b) \in xs -> b \in unzip2 xs.
+Proof.
+elim:xs=>//x xs Hi; rewrite inE.
+case/orP; last by move/Hi=>/=; rewrite inE=>->; rewrite orbC. 
+by case: x=>x y/=/eqP[]Z1 Z2; subst x y; rewrite inE eqxx.
+Qed.
+
+Lemma fresh_not_in z xs : (z, fresh_id xs) \notin xs.
+Proof.
+suff X: ~((z, fresh_id xs) \in xs) by apply/negP.
+rewrite /fresh_id=>H.
+move: (zip_in2 H)=>{H}X; set ls := (unzip2 xs) in X.
+have G: sorted oleq (sort oleq ls).
+- apply: (@sort_sorted [eqType of nat] oleq _).
+  by rewrite /oleq/=/ord/=; move=>a b; case: ltngtP.
+rewrite -(mem_sort oleq) in X.
+move: (sorted_last_key_max 0 G X).
+move: (last 0 (sort oleq ls))=>n.
+by rewrite /oleq/=/ord orbC -leq_eqVlt ltnn. 
+Qed.
+
+(*********************
+Takes:
+- initial state q
+- a recipient node to
+- a transition tag tag
+- a request id to be spent (in the case of response)
+
+Returns 
+- a new local state 
+**********************)
+Definition send_step_fun (q : qstate) (to : nid) (tag : nat) (rid: nat) : qstate :=
+  let: (xs, ys) := q in
+  if tag == treq then ((to, fresh_id xs) :: xs, ys)
+  else if (tag == tresp) && ((to, rid) \in ys)
+       then (xs, seq.rem (to, rid) ys)
+       else q.
+
+Lemma send_step_uniq q to tag rid:
+  uniq q.1 -> uniq q.2 ->
+  uniq (send_step_fun q to tag rid).1  /\ uniq (send_step_fun q to tag rid).2.
+Proof.
+case: q=>xs ys/= U1 U2; rewrite /send_step_fun; case: ifP=>_/=.
+- by rewrite U1 U2; rewrite fresh_not_in.
+by case: ifP=>_//=; rewrite U1 rem_uniq //.
+Qed.
+
+
+(*********************
+Takes:
+- initial state q
+- a sender node from
+- a transition tag tag
+- a request id to be processed (added or removed)
+
+Returns 
+- a new local state 
+**********************)
+Definition receive_step_fun (q : qstate) (from : nid) (tag : nat) (rid : nat) :=
+  let: (xs, ys) := q in
+  if (tag == treq) && ((from, rid) \notin ys)
+  then (xs, (from, rid) :: ys)
+  else if (tag == tresp) && ((from, rid) \in xs)
+       then (seq.rem (from, rid) xs, ys)
+       else q.
+
+Lemma receive_step_uniq q from tag rid:
+  uniq q.1 -> uniq q.2 ->
+  uniq (receive_step_fun q from tag rid).1  /\
+  uniq (receive_step_fun q from tag rid).2.
+Proof.
+case: q=>xs ys/= U1 U2; rewrite /receive_step_fun; case: ifP=>B/=.
+- by rewrite U1 U2 andbC/=; case/andP:B=>_->.
+by case:ifP=>///andP[_ B']/=; rewrite U2 rem_uniq.
+Qed.
+
+Section GenericQuerySendTransitions.
+
+Definition Hn this to := this \in nodes /\ to \in nodes.
+Definition mkLocal (q : qstate) := st :-> q.
+
+(* Send tag *)
+Variable stag : nat.
+
+(* Generic precondition *)
+
+Variable prec : qstate -> nid -> seq nat -> Prop.
+
+(* Making sure that the precondition is legit *)
+Definition prec_safe :=
+    forall this to q m, Hn this to -> prec q to m ->
+                      cohMsg (Msg (TMsg stag m) this to true).
+
+Hypothesis psafe : prec_safe.
+
+(* Generic send-safety *)
+Definition send_safe (this n : nid)
+           (d : dstatelet) (msg : seq nat) :=
+  Hn this n /\ exists (C : coh d), prec (getSt this C) n msg.
+
+Lemma send_safe_coh this to d m : send_safe this to d m -> coh d.
+Proof. by case=>_[]. Qed.
+
+Lemma send_this_in this to : Hn this to -> this \in nodes.
+Proof. by case. Qed.
+
+Lemma send_safe_in this to d m : send_safe this to d m ->
+                                 this \in nodes /\ to \in nodes.
+Proof. by case. Qed.
+
+Definition send_step (this to : nid) (d : dstatelet)
+           (msg : seq nat)
+           (pf : send_safe this to d msg) :=
+  let C := send_safe_coh pf in 
+  let q := getSt this C in
+  Some (mkLocal (send_step_fun q to stag (head 0 msg))). 
+
+Lemma send_step_coh : s_step_coh_t coh stag send_step.
+Proof.
+move=>this to d msg pf h[]->{h}.
+have C : (coh d) by case: pf=>?[].
+split=>/=.
+- apply: send_soupCoh; first by case:(send_safe_coh pf).
+  by case: (pf)=>H[C']P/=;move: (psafe H P).
+- by rewrite validU; apply: cohVl C.    
+- by apply: trans_updDom=>//; case: (send_safe_in pf).
+move=>n Ni. rewrite /localCoh/=.
+rewrite /getLocal/=findU; case: ifP=>B; rewrite domU inE B/= in Ni; last first.
+- by case: C=>_ _ _/(_ n Ni).  
+move/eqP: B=>Z; subst n; rewrite/= (cohVl C)/=.
+case: (send_safe_in pf); rewrite -(cohDom C)=>D _.
+case: C=>_ _ _/(_ this D); case=>q[H/andP[U1 U2]].
+exists (send_step_fun (getSt this (send_safe_coh pf)) to stag (head 0 msg)). 
+by split=>//; apply/andP; rewrite (getStK _ H); apply: send_step_uniq.
+Qed.
+
+Lemma send_safe_def this to d msg :
+      send_safe this to d msg <->
+      exists b pf, @send_step this to d msg pf = Some b.
+Proof.
+split=>[pf/=|]; last by case=>?[]. 
+set b := let C := send_safe_coh pf in 
+         let q := getSt this C in
+         mkLocal (send_step_fun q to stag (head 0 msg)). 
+by exists b, pf. 
+Qed.
+
+Definition qsend_trans :=
+  SendTrans send_safe_coh send_safe_in send_safe_def send_step_coh.
+
+End GenericQuerySendTransitions.
+
+Definition send_req_prec (q : qstate) (to : nid) (payload : seq nat) :=
+  payload = [::(fresh_id q.1)].
+
+(* Making sure that the precondition is legit *)
+Lemma send_req_prec_safe : prec_safe treq send_req_prec.
+Proof.
+by move=>this to q m Hn Hp; rewrite /cohMsg; exists (fresh_id q.1). 
+Qed.
+
+Definition send_resp_prec (q : qstate) (to : nid) (payload : seq nat) :=
+  exists rid d, payload = rid :: (serialize d) /\
+                (to, rid) \in q.2.
+
+Lemma send_resp_prec_safe : prec_safe tresp send_resp_prec.
+Proof.
+move=>this from q m Hn Hp; rewrite /cohMsg/=.
+by case: Hp=>rid[d][H1]H2; exists rid, (serialize d).
+Qed.
+
+
+(* Concrete send-transitions *)
+Definition qsend_req  := qsend_trans send_req_prec_safe.
+Definition qsend_resp := qsend_trans send_resp_prec_safe.
+
 (*
 TODOs:
 
 - Define send/receive transfer functions for qstate;
-- Prove inductive invariants of the protocol wrt. messages (linearity);
+
+- Prove inductive invariants of the protocol wrt. messages (linearity
+  of the );
 
 *)
 
