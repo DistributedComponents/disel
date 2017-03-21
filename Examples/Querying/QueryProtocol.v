@@ -335,6 +335,42 @@ Qed.
 Definition qsend_req  := qsend_trans send_req_prec_safe.
 Definition qsend_resp := qsend_trans send_resp_prec_safe.
 
+Section GenericQueryReceiveTransitions.
+
+(* Send-prepare *)
+Variable rtag : nat.
+Variable rc_wf : forall d, coh d -> nid -> nid -> TaggedMessage -> bool.
+
+Print Transitions.receive_step_t.
+
+Definition receive_step : receive_step_t coh :=
+  fun this (from : nid) (msg : seq nat) d (pf : coh d) (pt : this \in nodes) =>
+    let q := getSt this pf in
+    mkLocal (receive_step_fun q from rtag (head 0 msg)).
+
+Lemma receive_step_coh : r_step_coh_t rc_wf rtag receive_step.
+Proof.
+move=>d from this m C pf tms D F Wf T/=.
+rewrite /receive_step.
+- split=>/=; first by apply: consume_coh.
+  + by rewrite validU; apply: cohVl C.
+  + by apply: trans_updDom.
+move=>n Ni; rewrite /localCoh/=.
+rewrite /getLocal/=findU; case: ifP=>/=B; rewrite domU inE B/= in Ni; last first.
+- by case: (C)=>_ _ _/(_ n Ni).  
+rewrite Ni; exists (receive_step_fun (getSt this C) from rtag (head 0 tms)).
+split=>//; clear Wf.
+have X: forall n, n \in dom (dstate d) -> localCoh n (getLocal n d) by case: C.
+case:(X this D)=>q[H/andP[U1 U2]]; rewrite (getStK _ H).
+by apply/andP; apply: receive_step_uniq.  
+Qed.
+
+Definition qrecv_trans := ReceiveTrans receive_step_coh.
+
+End GenericQueryReceiveTransitions.
+
+
+
 (*
 TODOs:
 
