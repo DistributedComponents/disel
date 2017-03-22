@@ -15,6 +15,31 @@ Import Prenex Implicits.
 Definition left_inverse {A B : Type} (op: A -> B) (inv : B -> A) :=
   forall x, inv (op x) = x.
 
+Definition fresh_id (xs : seq (nid * nat)) : nat :=
+   (last 0 (sort oleq (unzip2 xs))).+1.      
+
+Lemma zip_in2 (A B : eqType) (a : A) (b : B) xs:
+  (a, b) \in xs -> b \in unzip2 xs.
+Proof.
+elim:xs=>//x xs Hi; rewrite inE.
+case/orP; last by move/Hi=>/=; rewrite inE=>->; rewrite orbC. 
+by case: x=>x y/=/eqP[]Z1 Z2; subst x y; rewrite inE eqxx.
+Qed.
+
+Lemma fresh_not_in z xs : (z, fresh_id xs) \notin xs.
+Proof.
+suff X: ~((z, fresh_id xs) \in xs) by apply/negP.
+rewrite /fresh_id=>H.
+move: (zip_in2 H)=>{H}X; set ls := (unzip2 xs) in X.
+have G: sorted oleq (sort oleq ls).
+- apply: (@sort_sorted [eqType of nat] oleq _).
+  by rewrite /oleq/=/ord/=; move=>a b; case: ltngtP.
+rewrite -(mem_sort oleq) in X.
+move: (sorted_last_key_max 0 G X).
+move: (last 0 (sort oleq ls))=>n.
+by rewrite /oleq/=/ord orbC -leq_eqVlt ltnn. 
+Qed.
+
 (* Simple protocol for querying a state *)
 
 Module QueryProtocol.
@@ -154,31 +179,6 @@ Qed.
 (****************************************************)
 
 Notation coh := QCoh.
-
-Definition fresh_id (xs : seq (nid * nat)) : nat :=
-   (last 0 (sort oleq (unzip2 xs))).+1.      
-
-Lemma zip_in2 (A B : eqType) (a : A) (b : B) xs:
-  (a, b) \in xs -> b \in unzip2 xs.
-Proof.
-elim:xs=>//x xs Hi; rewrite inE.
-case/orP; last by move/Hi=>/=; rewrite inE=>->; rewrite orbC. 
-by case: x=>x y/=/eqP[]Z1 Z2; subst x y; rewrite inE eqxx.
-Qed.
-
-Lemma fresh_not_in z xs : (z, fresh_id xs) \notin xs.
-Proof.
-suff X: ~((z, fresh_id xs) \in xs) by apply/negP.
-rewrite /fresh_id=>H.
-move: (zip_in2 H)=>{H}X; set ls := (unzip2 xs) in X.
-have G: sorted oleq (sort oleq ls).
-- apply: (@sort_sorted [eqType of nat] oleq _).
-  by rewrite /oleq/=/ord/=; move=>a b; case: ltngtP.
-rewrite -(mem_sort oleq) in X.
-move: (sorted_last_key_max 0 G X).
-move: (last 0 (sort oleq ls))=>n.
-by rewrite /oleq/=/ord orbC -leq_eqVlt ltnn. 
-Qed.
 
 (*********************
 Takes:
@@ -341,8 +341,6 @@ Section GenericQueryReceiveTransitions.
 Variable rtag : nat.
 Variable rc_wf : forall d, coh d -> nid -> nid -> TaggedMessage -> bool.
 
-Print Transitions.receive_step_t.
-
 Definition receive_step : receive_step_t coh :=
   fun this (from : nid) (msg : seq nat) d (pf : coh d) (pt : this \in nodes) =>
     let q := getSt this pf in
@@ -369,17 +367,32 @@ Definition qrecv_trans := ReceiveTrans receive_step_coh.
 
 End GenericQueryReceiveTransitions.
 
+Definition query_msg_wf d (C : coh d) (this from : nid) :=
+  [pred m : TaggedMessage | (tag m == treq) || (tag m == tresp)].
 
+(* Concrete receive-transitions *)
+Definition qrecv_req  := qrecv_trans treq query_msg_wf.
+Definition qrecv_resp := qrecv_trans tresp query_msg_wf.
 
-(*
-TODOs:
+Section Protocol.
 
-- Define send/receive transfer functions for qstate;
+(* All send-transitions *)
+Definition query_sends := [:: qsend_req; qsend_resp ].
 
-- Prove inductive invariants of the protocol wrt. messages (linearity
-  of the );
+(* All receive-transitions *)
+Definition query_receives := [:: qrecv_req; qrecv_resp ].
 
-*)
+(* Definint quety protocol *)
+Program Definition QueryProtocol l : protocol :=
+  @Protocol _ l _ query_sends query_receives _ _.
 
+End Protocol.
 End QueryProtocol.
+
+Module Exports.
+Section Exports.
+
+End Exports.
+End Exports.
+
 End QueryProtocol.
