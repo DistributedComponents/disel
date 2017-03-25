@@ -66,7 +66,7 @@ Definition qstate := (reqs * resp)%type.
 
 (* All responses and requests are unique per-node *)
 Definition localCoh (n : nid) : Pred heap :=
-  [Pred h | exists (s : qstate), h = st :-> s].
+  [Pred h | exists (s : qstate), h = st :-> s /\ (uniq s.1 && uniq s.2)].
 
 (* Tags *)
 Definition treq : nat := 0.
@@ -142,7 +142,7 @@ Lemma cohSt n d (C : QCoh d) s:
   idyn_tp s = qstate.
 Proof.
 case: (C)=>_ _ D G; case H: (n \in nodes); rewrite -D in H.
-- by move:(G _ H); case=>s'[]->; rewrite hfindPt//=; case=><-.
+- by move:(G _ H); case=>s'[]->_; rewrite hfindPt//=; case=><-.
 by rewrite /getLocal; case: dom_find H=>//->; rewrite find0E.
 Qed.
 
@@ -163,7 +163,7 @@ Lemma getStE n i j C C' (pf : n \in nodes) :
   @getSt n j C' = @getSt n i C.
 Proof.
 case: {-1}(C)=>_ _ D G; rewrite -D in pf; move:(G _ pf).
-by move=>[s][E]; rewrite (getStK C E) E; move/(getStK C' )->.
+by move=>[s][E]_; rewrite (getStK C E) E; move/(getStK C' )->.
 Qed.
 
 Lemma getStE' n i j C C' (pf : n \in nodes) :
@@ -171,9 +171,9 @@ Lemma getStE' n i j C C' (pf : n \in nodes) :
   getLocal n j = getLocal n i.
 Proof.
 case: {-1}(C)=>_ _ D G; rewrite -D in pf; move:(G _ pf).
-move=>[s][E]; rewrite (getStK C E) E=>H.
+move=>[s][E]_; rewrite (getStK C E) E=>H.
 case: {-1}(C')=>_ _ D'/(_ n)=>G'; rewrite D' in G'; rewrite D in pf.
-by move/G': pf=>[s'][E']; rewrite (getStK C' E') in H; subst s'. 
+by move/G': pf=>[s'][E']_; rewrite (getStK C' E') in H; subst s'. 
 Qed.
 
 (****************************************************)
@@ -290,7 +290,7 @@ rewrite /getLocal/=findU; case: ifP=>B; rewrite domU inE B/= in Ni; last first.
 - by case: C=>_ _ _/(_ n Ni).  
 move/eqP: B=>Z; subst n; rewrite/= (cohVl C)/=.
 case: (send_safe_in pf); rewrite -(cohDom C)=>D _.
-(* case: C=>_ _ _/(_ this D); case=>q[H/andP[U1 U2]]. *)
+case: C=>_ _ _/(_ this D); case=>q[H/andP[U1 U2]].
 exists (send_step_fun (getSt this (send_safe_coh pf)) to stag (head 0 msg)). 
 by split=>//; apply/andP; rewrite (getStK _ H); apply: send_step_uniq.
 Qed.
@@ -358,9 +358,9 @@ rewrite /getLocal/=findU; case: ifP=>/=B; rewrite domU inE B/= in Ni; last first
 - by case: (C)=>_ _ _/(_ n Ni).  
 rewrite Ni; exists (receive_step_fun (getSt this C) from rtag (head 0 tms)).
 split=>//; clear Wf.
-(* have X: forall n, n\in dom (dstate d) -> localCoh n (getLocal n d) by case: C. *)
-(* case:(X this D)=>q[H/andP[U1 U2]]; rewrite (getStK _ H). *)
-(* by apply/andP; apply: receive_step_uniq.   *)
+have X: forall n, n \in dom (dstate d) -> localCoh n (getLocal n d) by case: C.
+case:(X this D)=>q[H/andP[U1 U2]]; rewrite (getStK _ H).
+by apply/andP; apply: receive_step_uniq.  
 Qed.
 
 Definition qrecv_trans := ReceiveTrans receive_step_coh.

@@ -82,49 +82,64 @@ Notation getLc' s n := (getLocal n (getSc s)).
 Notation getSq s := (getStatelet s (plab pq)).
 Notation getLq s := (getLocal this (getSq s)).
 
-(* Query-specific predicate *)
+(* Describing the response-permissions of our recipient *)
+Definition holds_res_perms d n (pp : nat -> Prop) :=
+  exists (reqs resp : seq (nid * nat)),
+    getLocal n d = qst :-> (reqs, resp) /\
+    forall rn, (this, rn) \in resp -> pp rn.
+
+(************************************************)
+(*            Query-specific predicate          *)
+(************************************************)
+
+(* 1. We've just sent our stuff. *)
 Definition msg_just_sent d (reqs resp : seq (nid * nat)) req_num to :=
   [/\ getLocal this d = qst :-> (reqs, resp),
    no_msg_from_to to this (dsoup d), 
-   (to, req_num) \in reqs & 
-   msg_spec this to treq ([:: req_num]) (dsoup d)].
+   (to, req_num) \in reqs, 
+   msg_spec this to treq ([:: req_num]) (dsoup d) &
+   holds_res_perms d to (fun _ => false)].
 
+(* 2. Our request is received but not yet responded. *)
 Definition msg_received d (reqs resp : seq (nid * nat)) req_num to :=
   [/\ getLocal this d = qst :-> (reqs, resp),
    (to, req_num) \in reqs,
    no_msg_from_to this to (dsoup d), no_msg_from_to to this (dsoup d) &
-   exists (reqs' resp' : seq (nid * nat)),
-     getLocal to d = qst :-> (reqs', resp') /\ (this, req_num) \in resp'].
+   holds_res_perms d to (fun rn => rn == req_num)].
 
+(* 3. Our request is responded. *)
 Definition msg_responded d (reqs resp : seq (nid * nat)) req_num to data :=
   [/\ getLocal this d = qst :-> (reqs, resp),
    (to, req_num) \in reqs,
-   no_msg_from_to this to (dsoup d) &
-   msg_spec to this tresp (req_num :: serialize data) (dsoup d)].
+   no_msg_from_to this to (dsoup d),
+   msg_spec to this tresp (req_num :: serialize data) (dsoup d) &
+   holds_res_perms d to (fun _ => false)].
 
-(* Stability of the local state of a core protocol *)
+(* 4. Stability of the local state of a core protocol, 
+      to be proved separately *)
 Hypothesis core_state_stable : forall s data s' n,
   network_rely W this s s' ->
   n \in qnodes ->
   core_state_to_data (getLc s) = Some data -> 
   core_state_to_data (getLc' s' n) = Some data.           
 
+(***********************************************************)
 (* A rely-inductive predicate describing the message story *)
-Definition msg_story s req_num to data :=
+(***********************************************************)
+Definition msg_story s req_num to data reqs resp :=
   core_state_to_data (getLc s) = Some data /\
   let: d := getSq s in
-  exists reqs resp,
   [\/ msg_just_sent d reqs resp req_num to,
    msg_received d reqs resp req_num to |
    msg_responded d reqs resp req_num to data].
 
-Lemma msg_story_step req_num to data z s s' :
-  z \in qnodes -> this != z ->
-  msg_story s req_num to data ->
+Lemma msg_story_step req_num to data reqs resp z s s' :
+  this != z ->
+  msg_story s req_num to data reqs resp ->
   network_step W z s s' ->
-  msg_story s' req_num to data.
+  msg_story s' req_num to data reqs resp.
 Proof.
-move=> Hz N H S; split=>//.
+move=> N H S; split=>//.
 - case: H=>H _; apply: (core_state_stable s data s')=>//.
   by exists 1, z, s'; split=>//=; split=>//; case/step_coh: S. 
 (* TODO: figure out how not to consider transitions in othe worlds *)
@@ -138,30 +153,47 @@ case: S; [by case=>_<-; case: H|
 
 (* It's a send-transition *)
 set d := getStatelet s lq; move: prEqQ st H1 H2 H4 H5 H6.
-rewrite /get_st=>-> st H1 H2 H4 H5 H6.
+rewrite /get_st=>-> st H1/= H2 H4 H5 H6.
 rewrite /getStatelet findU eqxx/= (cohS C)/=.
+case: H1; [move|case=>//]; move=>Z; subst st.
+- admit. (* Boring transition *)
+- case B: ((z == to) && (to' == this)).
+  case/andP:B=>/eqP Z/eqP Z'; subst z to'.
+  case: H=>G1 G2.
+  case:G2; [by admit | | by admit].
 
+  rewrite /all_hooks_fire/query_hookz/query_hook in H5. 
+  
 
 admit.
+admit.
+
 (* It's a receive-transition *)
 set d := getStatelet s lq.
 move: prEqQ (coh_s lq C) rt pf H1 H2 H4 H5.
 rewrite /get_rt=>-> Cq rt pf H1 H2 H4 H5.
 rewrite /getStatelet findU eqxx/= (cohS C)/=.
+case: H1; [move|case=>//]; move=>Z; subst rt.
+
+Admitted.
+
 
 
 (*
 
-TODO:
+TODO (in arbitrary order):
+
+0. Refine no_msg_from_to for specific tags, otherwise the invariant 
+   doesn't hold.
 
 1. Finish showing that this property is preseverd by the joined rely;
-2. Strengthen the disjuncs, so no spurious messages would be sent
-(i.e., that the receiver holds no more response requests from us,
-perhaps, this should be a separate auxiliary predicate);
 
-3. Make sure that this is the property we actually need in order to
+2. Make sure that this is the property we actually need in order to
    verify the composite program; that is, write the program code and
    verify it.
+
+3. Check that core_state_stable indeed holds just like this in 2PC 
+   inductive invariant.
 
 *)
 
