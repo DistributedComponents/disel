@@ -195,6 +195,9 @@ TODO (in arbitrary order):
 3. Check that core_state_stable indeed holds just like this in 2PC 
    inductive invariant.
 
+4. Define the generic procedure and make sure that the injection rule 
+   works as it should with respect to the core protocol!!!
+
 *)
 
 
