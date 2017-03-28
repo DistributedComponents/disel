@@ -96,8 +96,35 @@ Proof. by case; case. Qed.
 Lemma l3 d: lock_coh d -> dom (dstate d) =i nodes.
 Proof. by case. Qed.
 
-(* Wrapping up the coherence predicate *)
 Definition LockCoh := CohPred (CohPredMixin l1 l2 l3).
+
+Definition server_send_step (ss : server_state) (to : nid) : server_state :=
+  if to \in clients
+  then if outstanding ss is _ :: out'
+       then ServerState out' (S (current_epoch ss)) (Some to)
+       else ss
+  else ss.
+
+Definition client_send_step (cs : client_state) : client_state :=
+  NotHeld. (* ! *)
+
+
+
+Definition server_recv_step (ss : server_state) (from : nid)
+           (mtag : nat) (mbody : seq nat) : server_state :=
+  if mtag == acquire_tag
+  then
+    ServerState (rcons (outstanding ss) from) (current_epoch ss) (current_holder ss)
+  else (* mtag == release_tag *)
+    ServerState (outstanding ss) (current_epoch ss) None.
+
+
+Definition client_recv_step (cs : client_state) (from : nid)
+           (mtag : nat) (mbody : seq nat) : client_state :=
+  if mbody is [:: e]
+  then Held e
+  else NotHeld.
+
 
 End LockProtocol.
 End LockProtocol.
