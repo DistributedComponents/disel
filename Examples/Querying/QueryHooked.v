@@ -9,6 +9,7 @@ Require Import Actions.
 Require Import SeqLib.
 Require Import QueryProtocol.
 Require Import StatePredicates.
+Require Import Actions Injection Process Always HoareTriples InferenceRules.
 
 Section QueryHooked.
 
@@ -176,6 +177,33 @@ rewrite /getStatelet findU eqxx/= (cohS C)/=.
 case: H1; [move|case=>//]; move=>Z; subst rt.
 
 Admitted.
+
+
+(* Send-wrapper for requesting data *)
+
+Program Definition send_req rid to :=
+  act (@send_action_wrapper W pq this (plab pq) prEqQ (qsend_req qnodes) _ [:: rid] to).
+Next Obligation. by rewrite !InE; left. Qed.
+
+Program Definition send_req_act (rid : nat) (to : nid) :
+  {rrd : seq (nid * nat) * seq (nid * nat) * Data}, DHT [this, W]
+   (fun i =>
+      [/\ getLq i = qst :-> (rrd.1.1, rrd.1.2),
+       (to, rid) \notin rrd.1.1 &
+       core_state_to_data (getLc i) = Some rrd.2],
+   fun (r : seq nat) m => 
+     [/\ getLq m = qst :-> ((to, rid) :: rrd.1.1, rrd.1.2),
+     r = [:: rid] &
+     msg_story m rid to rrd.2 ((to, rid) :: rrd.1.1) rrd.1.2])
+  := Do (send_req rid to).
+Next Obligation.
+apply: ghC=>s0[[reqs resp] d]/=[P1]P2 P3 C0.
+apply: act_rule=>i1 R0; split=>//=[|r i2 i3[Hs]St R2].
+- rewrite /Actions.send_act_safe/=.
+  admit. (* shouldn't be too difficult *)
+
+(* TODO: finish the proof for this action *)
+
 
 
 
