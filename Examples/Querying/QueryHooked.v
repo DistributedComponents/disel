@@ -183,6 +183,15 @@ move=> N H S; split=>//.
 
 Admitted.
 
+Lemma msg_story_rely req_num to data reqs resp s s2 :
+  msg_story s req_num to data reqs resp ->
+  network_rely W this s s2 ->
+  msg_story s2 req_num to data reqs resp.
+Proof.
+move=>H1 [n]H2; elim: n s H2 H1=>/=[s | n Hi s]; first by case=>Z _; subst s2.
+case=>z[s1][N]H1 H2 H3; apply: (Hi s1 H2).
+by apply: (msg_story_step _ _ _ _ _ _ _ _ N H3 H1).
+Qed.  
 
 (* Send-wrapper for requesting data *)
 
@@ -198,7 +207,9 @@ Program Definition send_req_act (rid : nat) (to : nid) :
       [/\ getLq i = qst :-> (reqs, resp),
        no_msg_from_to' to this response_msg (dsoup (getSq i)),
        to \in qnodes,
-       rid = fresh_id reqs &
+       rid = fresh_id reqs,
+       (* The recipient holds no pending response-permissions *)       
+       holds_res_perms (getSq i) to (fun _ => false)  &
        core_state_to_data (getLc' i to) = Some data],
    fun (r : seq nat) m => 
      let: (reqs, resp, data) := rrd in 
@@ -207,7 +218,7 @@ Program Definition send_req_act (rid : nat) (to : nid) :
      msg_story m rid to data ((to, rid) :: reqs) resp])
   := Do (send_req rid to).
 Next Obligation.
-apply: ghC=>s0[[reqs resp] d]/=[P1]P2 P3 P4 P5 C0.
+apply: ghC=>s0[[reqs resp] d]/=[P1]P2 P3 P4 P4' P5 C0.
 apply: act_rule=>i1 R0; split=>//=[|r i2 i3[Hs]St R2].
 (* Precondition *)
 - rewrite /Actions.send_act_safe/=.
@@ -233,21 +244,21 @@ rewrite Z' locE; last first.
 - by apply: cohVl Cq1.
 - by apply: cohS C1.
 - by rewrite -(cohD C1) W_dom !inE eqxx orbC//.
-split=>//; constructor 1.
+split=>//.
+apply: (msg_story_rely _ to d ((to, fresh_id reqs) :: reqs) resp i2 i3 _ R2).
+constructor 1.
+(* TODO: Factor out a generic lemma for this: the transitions in one
+  protocol cannot affect the local state with respect to the other protocol. *)
 - suff E: core_state_to_data (getLc' i1 to) = core_state_to_data (getLc' i2 to).
-  + move: (core_state_stable _ _ _ _ R0 P3 P5).
-    by rewrite E; move/(core_state_stable _ _ _ _ R2 P3).
+  + by move: (core_state_stable _ _ _ _ R0 P3 P5); rewrite E.
   case B: (to == this); [move/eqP:B=>Z; subst to | ]; last first.
   + by rewrite /getLocal (step_is_local _ N)=>//; move/negbT: B.
-  
-    
-    Check .
-    
-    move/(core_state_stable _ _ _ _ R2 P3).
-Check  P5
+  subst i2; rewrite ![getLc' _ _]/getLocal /getStatelet/=.
+  by rewrite findU; move/negbTE: Lab_neq; rewrite eq_sym=>->.
+subst i2; constructor 1; split; rewrite ?inE ?eqxx=>//=; last first.
+- exists ((to, fresh_id reqs) :: reqs), resp.
+  Check locE this.
 
-Search _ (getLocal) (getStatelet).
-  
 
 (* TODO: finish the proof for this action *)
 
