@@ -182,24 +182,44 @@ Admitted.
 (* Send-wrapper for requesting data *)
 
 Program Definition send_req rid to :=
-  act (@send_action_wrapper W pq this (plab pq) prEqQ (qsend_req qnodes) _ [:: rid] to).
+  act (@send_action_wrapper W pq this (plab pq) prEqQ
+                            (qsend_req qnodes) _ [:: rid] to).
 Next Obligation. by rewrite !InE; left. Qed.
 
 Program Definition send_req_act (rid : nat) (to : nid) :
   {rrd : seq (nid * nat) * seq (nid * nat) * Data}, DHT [this, W]
    (fun i =>
-      [/\ getLq i = qst :-> (rrd.1.1, rrd.1.2),
-       (to, rid) \notin rrd.1.1 &
-       core_state_to_data (getLc i) = Some rrd.2],
+      let: (reqs, resp, data) := rrd in 
+      [/\ getLq i = qst :-> (reqs, resp),
+       to \in qnodes,
+       rid = fresh_id reqs &
+       core_state_to_data (getLc i) = Some data],
    fun (r : seq nat) m => 
-     [/\ getLq m = qst :-> ((to, rid) :: rrd.1.1, rrd.1.2),
+     let: (reqs, resp, data) := rrd in 
+     [/\ getLq m = qst :-> ((to, rid) :: reqs, resp),
      r = [:: rid] &
-     msg_story m rid to rrd.2 ((to, rid) :: rrd.1.1) rrd.1.2])
+     msg_story m rid to data ((to, rid) :: reqs) resp])
   := Do (send_req rid to).
 Next Obligation.
-apply: ghC=>s0[[reqs resp] d]/=[P1]P2 P3 C0.
+apply: ghC=>s0[[reqs resp] d]/=[P1]P2 P3 P4 C0.
 apply: act_rule=>i1 R0; split=>//=[|r i2 i3[Hs]St R2].
+(* Precondition *)
 - rewrite /Actions.send_act_safe/=.
+  move/rely_coh: (R0)=>[_ C1]; rewrite -(rely_loc' _ R0) in P1.
+  move: (coh_coh lq C1); rewrite prEqQ=>Cq1; 
+  split=>//;[split=>//| | ].
+  + by exists Cq1; rewrite /QueryProtocol.send_req_prec (getStK _ P1)/= P3.
+  + by apply/andP; split=>//; rewrite -(cohD C1) W_dom !inE eqxx orbC.
+  move=>z lc hk; rewrite find_um_filt eqxx /query_hookz/==>/sym.
+  by move/find_some; rewrite um_domPt !inE=>/eqP. 
+(* Postcondition *)
+rewrite (rely_loc' _ R2).
+case: St=>->[h]/=[].
+rewrite /QueryProtocol.send_step/=.
+  
+  rewrite /Actions.can_send/=; 
+
+  
   admit. (* shouldn't be too difficult *)
 
 (* TODO: finish the proof for this action *)

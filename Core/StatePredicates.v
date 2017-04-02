@@ -27,9 +27,6 @@ The derived definition come next.
 
  *)
 
-(* TODO: Provide tailored lemmas for this definitions 
-   for the case when only a single fresh message is added *)
-
 Definition msg_in_soup (from to : nid) (criterion : nat -> seq nat -> bool)
            (d : soup) : Prop :=
   (exists! i, exists t c,
