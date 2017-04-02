@@ -157,6 +157,13 @@ case B: (l == k); rewrite /gets findU B //= (cohS C)/=.
 by move/negbTE: N; rewrite findU=>->/=; move/eqP: B=>->.
 Qed.
 
+Lemma step_one_label s1 s2 l: network_step s1 s2 ->
+  forall z l', l' != l ->
+  find z (dstate (gets s1 l')) = find z (dstate (gets s2 l')).
+Proof.
+move=>S z l' N; case: S; first by case=>_ Z; subst s2.
+Admitted.
+
 Lemma stepV1 s1 s2: network_step s1 s2 -> valid s1.
 Proof. by case/step_coh=>/cohS. Qed.
 

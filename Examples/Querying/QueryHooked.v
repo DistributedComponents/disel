@@ -93,10 +93,14 @@ Definition holds_res_perms d n (pp : nat -> Prop) :=
 (*            Query-specific predicate          *)
 (************************************************)
 
+(* TODO: define the channel criterion *)
+Definition request_msg (t: nat) (_ : seq nat) :=  t == treq.
+Definition response_msg (t: nat) (_ : seq nat) := t == tresp.
+
 (* 1. We've just sent our stuff. *)
 Definition msg_just_sent d (reqs resp : seq (nid * nat)) req_num to :=
   [/\ getLocal this d = qst :-> (reqs, resp),
-   no_msg_from_to to this (dsoup d), 
+   no_msg_from_to' to this response_msg (dsoup d), 
    (to, req_num) \in reqs, 
    msg_spec this to treq ([:: req_num]) (dsoup d) &
    holds_res_perms d to (fun _ => false)].
@@ -105,14 +109,15 @@ Definition msg_just_sent d (reqs resp : seq (nid * nat)) req_num to :=
 Definition msg_received d (reqs resp : seq (nid * nat)) req_num to :=
   [/\ getLocal this d = qst :-> (reqs, resp),
    (to, req_num) \in reqs,
-   no_msg_from_to this to (dsoup d), no_msg_from_to to this (dsoup d) &
+   no_msg_from_to' this to response_msg (dsoup d),
+   no_msg_from_to' to this request_msg (dsoup d) &
    holds_res_perms d to (fun rn => rn == req_num)].
 
 (* 3. Our request is responded. *)
 Definition msg_responded d (reqs resp : seq (nid * nat)) req_num to data :=
   [/\ getLocal this d = qst :-> (reqs, resp),
    (to, req_num) \in reqs,
-   no_msg_from_to this to (dsoup d),
+   no_msg_from_to' this to response_msg (dsoup d),
    msg_spec to this tresp (req_num :: serialize data) (dsoup d) &
    holds_res_perms d to (fun _ => false)].
 
@@ -121,14 +126,14 @@ Definition msg_responded d (reqs resp : seq (nid * nat)) req_num to data :=
 Hypothesis core_state_stable : forall s data s' n,
   network_rely W this s s' ->
   n \in qnodes ->
-  core_state_to_data (getLc s) = Some data -> 
+  core_state_to_data (getLc' s n) = Some data -> 
   core_state_to_data (getLc' s' n) = Some data.           
 
 (***********************************************************)
 (* A rely-inductive predicate describing the message story *)
 (***********************************************************)
 Definition msg_story s req_num to data reqs resp :=
-  core_state_to_data (getLc s) = Some data /\
+  core_state_to_data (getLc' s to) = Some data /\
   let: d := getSq s in
   [\/ msg_just_sent d reqs resp req_num to,
    msg_received d reqs resp req_num to |
@@ -144,37 +149,37 @@ move=> N H S; split=>//.
 - case: H=>H _; apply: (core_state_stable s data s')=>//.
   by exists 1, z, s'; split=>//=; split=>//; case/step_coh: S. 
 (* TODO: figure out how not to consider transitions in othe worlds *)
-case: S; [by case=>_<-; case: H|
- move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}|
- move=>l rt H1 i from pf H3 C msg H2/=[H4]H5->{s'}];
- rewrite -(cohD C) W_dom !inE in H3;
- case/orP:H3=>/eqP=>Z; subst l;
- try by rewrite /getStatelet findU (negbTE Lab_neq)/=; case: H. 
+(* case: S; [by case=>_<-; case: H| *)
+(*  move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}| *)
+(*  move=>l rt H1 i from pf H3 C msg H2/=[H4]H5->{s'}]; *)
+(*  rewrite -(cohD C) W_dom !inE in H3; *)
+(*  case/orP:H3=>/eqP=>Z; subst l; *)
+(*  try by rewrite /getStatelet findU (negbTE Lab_neq)/=; case: H.  *)
 (* Okay, now let's deal with interesting cases... *)
 
 (* It's a send-transition *)
-set d := getStatelet s lq; move: prEqQ st H1 H2 H4 H5 H6.
-rewrite /get_st=>-> st H1/= H2 H4 H5 H6.
-rewrite /getStatelet findU eqxx/= (cohS C)/=.
-case: H1; [move|case=>//]; move=>Z; subst st.
-- admit. (* Boring transition *)
-- case B: ((z == to) && (to' == this)).
-  case/andP:B=>/eqP Z/eqP Z'; subst z to'.
-  case: H=>G1 G2.
-  case:G2; [by admit | | by admit].
+(* set d := getStatelet s lq; move: prEqQ st H1 H2 H4 H5 H6. *)
+(* rewrite /get_st=>-> st H1/= H2 H4 H5 H6. *)
+(* rewrite /getStatelet findU eqxx/= (cohS C)/=. *)
+(* case: H1; [move|case=>//]; move=>Z; subst st. *)
+(* - admit. (* Boring transition *) *)
+(* - case B: ((z == to) && (to' == this)). *)
+(*   case/andP:B=>/eqP Z/eqP Z'; subst z to'. *)
+(*   case: H=>G1 G2. *)
+(*   case:G2; [by admit | | by admit]. *)
 
-  rewrite /all_hooks_fire/query_hookz/query_hook in H5. 
+(*   rewrite /all_hooks_fire/query_hookz/query_hook in H5.  *)
   
 
-admit.
-admit.
+(* admit. *)
+(* admit. *)
 
-(* It's a receive-transition *)
-set d := getStatelet s lq.
-move: prEqQ (coh_s lq C) rt pf H1 H2 H4 H5.
-rewrite /get_rt=>-> Cq rt pf H1 H2 H4 H5.
-rewrite /getStatelet findU eqxx/= (cohS C)/=.
-case: H1; [move|case=>//]; move=>Z; subst rt.
+(* (* It's a receive-transition *) *)
+(* set d := getStatelet s lq. *)
+(* move: prEqQ (coh_s lq C) rt pf H1 H2 H4 H5. *)
+(* rewrite /get_rt=>-> Cq rt pf H1 H2 H4 H5. *)
+(* rewrite /getStatelet findU eqxx/= (cohS C)/=. *)
+(* case: H1; [move|case=>//]; move=>Z; subst rt. *)
 
 Admitted.
 
@@ -191,9 +196,10 @@ Program Definition send_req_act (rid : nat) (to : nid) :
    (fun i =>
       let: (reqs, resp, data) := rrd in 
       [/\ getLq i = qst :-> (reqs, resp),
+       no_msg_from_to' to this response_msg (dsoup (getSq i)),
        to \in qnodes,
        rid = fresh_id reqs &
-       core_state_to_data (getLc i) = Some data],
+       core_state_to_data (getLc' i to) = Some data],
    fun (r : seq nat) m => 
      let: (reqs, resp, data) := rrd in 
      [/\ getLq m = qst :-> ((to, rid) :: reqs, resp),
@@ -201,26 +207,45 @@ Program Definition send_req_act (rid : nat) (to : nid) :
      msg_story m rid to data ((to, rid) :: reqs) resp])
   := Do (send_req rid to).
 Next Obligation.
-apply: ghC=>s0[[reqs resp] d]/=[P1]P2 P3 P4 C0.
+apply: ghC=>s0[[reqs resp] d]/=[P1]P2 P3 P4 P5 C0.
 apply: act_rule=>i1 R0; split=>//=[|r i2 i3[Hs]St R2].
 (* Precondition *)
 - rewrite /Actions.send_act_safe/=.
   move/rely_coh: (R0)=>[_ C1]; rewrite -(rely_loc' _ R0) in P1.
   move: (coh_coh lq C1); rewrite prEqQ=>Cq1; 
   split=>//;[split=>//| | ].
-  + by exists Cq1; rewrite /QueryProtocol.send_req_prec (getStK _ P1)/= P3.
+  + by exists Cq1; rewrite /QueryProtocol.send_req_prec (getStK _ P1)/= P4.
   + by apply/andP; split=>//; rewrite -(cohD C1) W_dom !inE eqxx orbC.
   move=>z lc hk; rewrite find_um_filt eqxx /query_hookz/==>/sym.
   by move/find_some; rewrite um_domPt !inE=>/eqP. 
 (* Postcondition *)
+have N: network_step W this i1 i2. by admit.
 rewrite (rely_loc' _ R2).
+rewrite -(rely_loc' _ R0) in P1.
+move/rely_coh: (R0)=>[_]C1; move: (coh_coh lq C1);rewrite prEqQ=>Cq1.
 case: St=>->[h]/=[].
-rewrite /QueryProtocol.send_step/=.
+rewrite/QueryProtocol.send_step/QueryProtocol.send_step_fun/=.
+rewrite (proof_irrelevance (QueryProtocol.send_safe_coh _) Cq1).
+rewrite (getStK _ P1); case=>Z Z'; subst h rid.
+rewrite Z' locE; last first.
+- by apply: cohVl Cq1.
+- by apply: cohS C1.
+- by rewrite -(cohD C1) W_dom !inE eqxx orbC//.
+split=>//; constructor 1.
+- suff E: core_state_to_data (getLc' i1 to) = core_state_to_data (getLc' i2 to).
+  + move: (core_state_stable _ _ _ _ R0 P3 P5).
+    by rewrite E; move/(core_state_stable _ _ _ _ R2 P3).
+  case B: (to == this); [move/eqP:B=>Z; subst to | ]; last first.
+  + by rewrite /getLocal (step_is_local _ N)=>//; move/negbT: B.
   
-  rewrite /Actions.can_send/=; 
+    
+    Check .
+    
+    move/(core_state_stable _ _ _ _ R2 P3).
+Check  P5
 
+Search _ (getLocal) (getStatelet).
   
-  admit. (* shouldn't be too difficult *)
 
 (* TODO: finish the proof for this action *)
 
