@@ -219,7 +219,11 @@ apply: act_rule=>i1 R0; split=>//=[|r i2 i3[Hs]St R2].
   move=>z lc hk; rewrite find_um_filt eqxx /query_hookz/==>/sym.
   by move/find_some; rewrite um_domPt !inE=>/eqP. 
 (* Postcondition *)
-have N: network_step W this i1 i2. by admit.
+have N: network_step W this i1 i2.
+
+Check SendMsg _.
+
+    by admit.
 rewrite (rely_loc' _ R2).
 rewrite -(rely_loc' _ R0) in P1.
 move/rely_coh: (R0)=>[_]C1; move: (coh_coh lq C1);rewrite prEqQ=>Cq1.

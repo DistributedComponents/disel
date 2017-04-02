@@ -157,12 +157,19 @@ case B: (l == k); rewrite /gets findU B //= (cohS C)/=.
 by move/negbTE: N; rewrite findU=>->/=; move/eqP: B=>->.
 Qed.
 
-Lemma step_one_label s1 s2 l: network_step s1 s2 ->
-  forall z l', l' != l ->
-  find z (dstate (gets s1 l')) = find z (dstate (gets s2 l')).
-Proof.
-move=>S z l' N; case: S; first by case=>_ Z; subst s2.
-Admitted.
+(* Lemma step_other_label s1 s2 l: network_step s1 s2 -> *)
+(*   forall z l', l' != l -> *)
+(*   find z (dstate (gets s1 l')) = find z (dstate (gets s2 l')). *)
+(* Proof. *)
+(* move=>S z l' N; case: S; first by case=>_ Z; subst s2. *)
+(* (* Send-transition *) *)
+(* move=>k st ? to a b pf D C S Ph Spf Z; subst s2. *)
+(* case B: (l' == k); rewrite /gets !findU B ?(cohS C)//=. *)
+(* move/eqP: B=>B; subst l'. *)
+(* case: dom_find D=>//d -> E _. rewrite findU. *)
+(* Search _ (dom_find_spec). *)
+(* (* Receive-transition *) *)
+(* Qed. *)
 
 Lemma stepV1 s1 s2: network_step s1 s2 -> valid s1.
 Proof. by case/step_coh=>/cohS. Qed.
