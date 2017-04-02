@@ -220,10 +220,8 @@ apply: act_rule=>i1 R0; split=>//=[|r i2 i3[Hs]St R2].
   by move/find_some; rewrite um_domPt !inE=>/eqP. 
 (* Postcondition *)
 have N: network_step W this i1 i2.
-
-Check SendMsg _.
-
-    by admit.
+- apply: (Actions.send_act_step_sem _ _ St)=>//; first by rewrite prEqQ.
+  by rewrite !InE; left.
 rewrite (rely_loc' _ R2).
 rewrite -(rely_loc' _ R0) in P1.
 move/rely_coh: (R0)=>[_]C1; move: (coh_coh lq C1);rewrite prEqQ=>Cq1.
