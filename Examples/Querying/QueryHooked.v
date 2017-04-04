@@ -89,13 +89,50 @@ Definition holds_res_perms d n (pp : nat -> Prop) :=
     getLocal n d = qst :-> (reqs, resp) /\
     forall rn, (this, rn) \in resp -> pp rn.
 
-(************************************************)
-(*            Query-specific predicate          *)
-(************************************************)
-
 (* TODO: define the channel criterion *)
 Definition request_msg (t: nat) (_ : seq nat) :=  t == treq.
 Definition response_msg (t: nat) (_ : seq nat) := t == tresp.
+
+(************************************************)
+(*        Predicate for initial state           *)
+(************************************************)
+
+Definition query_init_state to s :=
+  [/\ to \in qnodes,
+      holds_res_perms (getSq s) to (fun _ : nat => false) &
+      no_msg_from_to' to this response_msg (dsoup (getSq s))].    
+
+Lemma query_init_step z to s s' :
+  this != z -> query_init_state to s ->
+  network_step W z s s' -> query_init_state to s'.
+Proof.
+move=> N H S; case: (step_coh S)=>C1 _.
+case: S; [by case=>_<- |
+  move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}|
+  move=>l rt H1 i from pf H3 C msg H2/=[H4]H5->{s'}];
+rewrite -(cohD C) W_dom !inE in H3;
+case/orP:H3=>/eqP=>Z; subst l;
+(* Get rid of irrelevant cases: by means of a tactic *)                     
+rewrite /query_init_state/getStatelet ?findU ?(negbTE Lab_neq) ?eqxx//= (cohS C1).
+case B: (to == z); last first.
+(* rewrite /query_init_state/holds_res_perms/no_msg_from_to'/getLocal/=. *)
+(* rewrite findU B/=. *)
+(* case: H. *)
+(* - rewrite /query_init_state/holds_res_perms/no_msg_from_to'/getStatelet ?findU ?eqxx ?(negbTE Lab_neq)/=. *)
+Admitted.
+
+Lemma query_init_rely to s s' :
+  query_init_state to s ->
+  network_rely W this s s' -> query_init_state to s'.
+Proof.
+move=>H1 [n]H2; elim: n s H2 H1=>/=[s | n Hi s]; first by case=>Z _; subst s'.
+case=>z[s1][N]H1 H2 H3; apply: (Hi s1 H2).
+by apply: (query_init_step _ _ _ _ N H3 H1).
+Qed.  
+
+(************************************************)
+(*            Query-specific predicate          *)
+(************************************************)
 
 (* 1. We've just sent our stuff. *)
 Definition msg_just_sent d (reqs resp : seq (nid * nat)) req_num to :=
@@ -123,11 +160,21 @@ Definition msg_responded d (reqs resp : seq (nid * nat)) req_num to data :=
 
 (* 4. Stability of the local state of a core protocol, 
       to be proved separately *)
-Hypothesis core_state_stable : forall s data s' n,
-  network_rely W this s s' ->
+Hypothesis core_state_stable_step : forall z s data s' n,
+  this != z ->  network_step (plab pc \\-> pc, Unit) z s s' ->
   n \in qnodes ->
   core_state_to_data (getLc' s n) = Some data -> 
   core_state_to_data (getLc' s' n) = Some data.           
+
+Lemma core_state_stable s data s' z :
+  network_rely W this s s' ->
+  z \in qnodes ->
+  core_state_to_data (getLc' s z) = Some data -> 
+  core_state_to_data (getLc' s' z) = Some data.
+Proof.
+move=>[n]H2 G H1; elim: n s H2 H1=>/=[s | n Hi s]; first by case=>Z _; subst s'.
+case=>y[s1][N]H1 H2 H3; case: H1; first by case=>_ Z; subst s1; apply: (Hi s).
+Admitted.
 
 (***********************************************************)
 (* A rely-inductive predicate describing the message story *)
@@ -148,7 +195,7 @@ Proof.
 move=> N H S; split=>//.
 - case: H=>H _; apply: (core_state_stable s data s')=>//.
   by exists 1, z, s'; split=>//=; split=>//; case/step_coh: S. 
-(* TODO: figure out how not to consider transitions in othe worlds *)
+(* TODO: figure out how not to consider transitions in other worlds *)
 (* case: S; [by case=>_<-; case: H| *)
 (*  move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}| *)
 (*  move=>l rt H1 i from pf H3 C msg H2/=[H4]H5->{s'}]; *)
@@ -205,11 +252,8 @@ Program Definition send_req_act (rid : nat) (to : nid) :
    (fun i =>
       let: (reqs, resp, data) := rrd in 
       [/\ getLq i = qst :-> (reqs, resp),
-       no_msg_from_to' to this response_msg (dsoup (getSq i)),
-       to \in qnodes,
        rid = fresh_id reqs,
-       (* The recipient holds no pending response-permissions *)       
-       holds_res_perms (getSq i) to (fun _ => false)  &
+       query_init_state to i &
        core_state_to_data (getLc' i to) = Some data],
    fun (r : seq nat) m => 
      let: (reqs, resp, data) := rrd in 
@@ -218,14 +262,14 @@ Program Definition send_req_act (rid : nat) (to : nid) :
      msg_story m rid to data ((to, rid) :: reqs) resp])
   := Do (send_req rid to).
 Next Obligation.
-apply: ghC=>s0[[reqs resp] d]/=[P1]P2 P3 P4 P4' P5 C0.
+apply: ghC=>s0[[reqs resp] d]/=[P1]P2 Q P3 C0.
 apply: act_rule=>i1 R0; split=>//=[|r i2 i3[Hs]St R2].
 (* Precondition *)
 - rewrite /Actions.send_act_safe/=.
   move/rely_coh: (R0)=>[_ C1]; rewrite -(rely_loc' _ R0) in P1.
   move: (coh_coh lq C1); rewrite prEqQ=>Cq1; 
-  split=>//;[split=>//| | ].
-  + by exists Cq1; rewrite /QueryProtocol.send_req_prec (getStK _ P1)/= P4.
+  split=>//; [split=>//; try by case:Q| | ].
+  + by exists Cq1; rewrite /QueryProtocol.send_req_prec (getStK _ P1)/= P2.
   + by apply/andP; split=>//; rewrite -(cohD C1) W_dom !inE eqxx orbC.
   move=>z lc hk; rewrite find_um_filt eqxx /query_hookz/==>/sym.
   by move/find_some; rewrite um_domPt !inE=>/eqP. 
@@ -240,22 +284,30 @@ case: St=>->[h]/=[].
 rewrite/QueryProtocol.send_step/QueryProtocol.send_step_fun/=.
 rewrite (proof_irrelevance (QueryProtocol.send_safe_coh _) Cq1).
 rewrite (getStK _ P1); case=>Z Z'; subst h rid.
-rewrite Z' locE; last first.
-- by apply: cohVl Cq1.
-- by apply: cohS C1.
-- by rewrite -(cohD C1) W_dom !inE eqxx orbC//.
-split=>//.
-apply: (msg_story_rely _ to d ((to, fresh_id reqs) :: reqs) resp i2 i3 _ R2).
-constructor 1.
-(* TODO: Factor out a generic lemma for this: the transitions in one
-  protocol cannot affect the local state with respect to the other protocol. *)
-- suff E: core_state_to_data (getLc' i1 to) = core_state_to_data (getLc' i2 to).
-  + by move: (core_state_stable _ _ _ _ R0 P3 P5); rewrite E.
-  case B: (to == this); [move/eqP:B=>Z; subst to | ]; last first.
+rewrite Z' locE; last first;
+[by apply: cohVl Cq1| by apply: cohS C1|
+   by rewrite -(cohD C1) W_dom !inE eqxx orbC|].
+(* Massaging the hypotheses. *)
+split=>//; apply: (msg_story_rely _ _ _ _ _ i2)=>//.
+have E: core_state_to_data (getLc' i1 to) = core_state_to_data (getLc' i2 to).
+- case B: (to == this); [move/eqP:B=>Z; subst to | ]; last first.
   + by rewrite /getLocal (step_is_local _ N)=>//; move/negbT: B.
   subst i2; rewrite ![getLc' _ _]/getLocal /getStatelet/=.
   by rewrite findU; move/negbTE: Lab_neq; rewrite eq_sym=>->.
-subst i2; constructor 1; split; rewrite ?inE ?eqxx=>//=; last first.
+move: (query_init_rely _ s0 i1 Q R0)=>{Q}Q; subst i2.
+move: (Q)=>[Q1 Q2 Q3].
+move: (core_state_stable _ _ _ _ R0 Q1 P3); rewrite E=>{E}E.
+clear N R2 Q R0 core_state_stable C0 i3 P3 s0.
+split=>//; constructor 1. 
+split=>//; rewrite ?inE ?eqxx=>//=.
+- rewrite locE=>//;
+  [by rewrite -(cohD C1) W_dom !inE eqxx orbC|
+   apply: cohS C1|by apply: cohVl Cq1].
+(* Prove the interesting transition *)
+
+exists ((to, fresh_id reqs) :: reqs), resp.
+
+subst i2; constructor 1; split
 - exists ((to, fresh_id reqs) :: reqs), resp.
   Check locE this.
 
