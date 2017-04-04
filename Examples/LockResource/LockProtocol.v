@@ -188,7 +188,8 @@ End GetterLemmas.
 
 Section ServerGenericSendTransitions.
 
-Definition HCn this to := (this == server /\ to \in clients).
+
+Definition HServ this to := (this == server /\ to \in clients).
 
 Variable the_tag : nat.
 
@@ -196,7 +197,7 @@ Variable prec : server_state -> nid -> seq nid -> Prop.
 
 Hypothesis prec_safe :
   forall this to s m,
-    HCn this to ->
+    HServ this to ->
     prec s to m ->
     coh_msg (Msg (TMsg the_tag m) this to true) (current_epoch s).
 
@@ -204,16 +205,16 @@ Notation coh := LockCoh.
 
 Definition server_send_safe (this n : nid)
            (d : dstatelet) (msg : seq nat) :=
-  HCn this n /\
+  HServ this n /\
   exists (C : coh d), prec (getSt_server C) n msg.
 
 Lemma server_send_safe_coh this to d m : server_send_safe this to d m -> coh d.
 Proof. by case=>_[]. Qed.
 
-Lemma server_send_this_in this to : HCn this to -> this \in nodes.
+Lemma server_send_this_in this to : HServ this to -> this \in nodes.
 Proof. by case=>/eqP->; rewrite inE eqxx. Qed.
 
-Lemma server_send_to_in this to : HCn this to -> to \in nodes.
+Lemma server_send_to_in this to : HServ this to -> to \in nodes.
 Proof. by case=>_; rewrite /nodes inE/= orbC=>->. Qed.
 
 Lemma server_send_safe_in this to d m : server_send_safe this to d m ->
