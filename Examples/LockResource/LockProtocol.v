@@ -298,5 +298,67 @@ Qed.
 
 End ServerSendTransitions.
 
+Section ServerGenericReceiveTransitions.
+
+Notation coh := LockCoh.
+
+Variable the_tag : nat.
+Variable server_recv_wf : forall d, coh d -> nid -> nid -> TaggedMessage -> bool.
+
+Definition rs_step : receive_step_t coh :=
+  fun this (from : nid) (m : seq nat) d (pf : coh d) (pt : this \in nodes) =>
+    if (this == server)
+    then let s := getSt_server pf in
+         st :-> server_recv_step s from the_tag m
+    else getLocal this d.
+
+Lemma consume_coh d m : coh d -> soup_coh (consume_msg (dsoup d) m).
+Proof.
+move=>C; split=>[|m' msg]; first by apply: consume_valid; rewrite (cohVs C).
+case X: (m == m');[move/eqP: X=><-{m'}|].
+- case/(find_mark (cohVs C))=>tms[E]->{msg}.
+  by case:(C); case=>_/(_ m tms E).
+rewrite eq_sym in X.
+rewrite (mark_other (cohVs C) X)=>E.
+by case:(C); case=>_; move/(_ m' msg E).
+Qed.
+
+Lemma rs_step_coh : r_step_coh_t server_recv_wf the_tag rs_step.
+Proof.
+move=>d from this m C pf tms D F Wf T/=.
+rewrite /rs_step; case X: (this == server); last first.
+- split=>/=; first by apply: consume_coh.
+  + by apply: coh_dom_upd.
+  + by rewrite validU; apply: cohVl C.
+  by move=>n Ni/=; case: (C)=>_ _ _/(_ n Ni)=>L; rewrite -(getLocalU)// (cohVl C).
+split=>/=; first by apply: consume_coh.
+- by apply: coh_dom_upd.
+- by rewrite validU; apply: cohVl C.
+move=>n Ni/=; rewrite /local_coh/=.
+rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni).
+move/eqP: B X=>Z/eqP X; subst n this; rewrite eqxx (cohVl C)/=.
+split; first by rewrite hvalidPt.
+by eexists.
+Qed.
+
+Definition rs_recv_trans := ReceiveTrans rs_step_coh.
+
+End ServerGenericReceiveTransitions.
+
+Section ServerReceiveTransitions.
+
+Definition s_matches_tag (ss : server_state) from t :=
+  (t == acquire_tag) ||
+  ((t == release_tag) && (current_holder ss == Some from)).
+
+Definition server_msg_wf d (C : LockCoh d) (this from : nid) :=
+  [pred m : TaggedMessage | s_matches_tag (getSt_server C) from (tag m)].
+
+Definition s_recv_acquire := rs_recv_trans acquire_tag server_msg_wf.
+
+Definition s_recv_release := rs_recv_trans release_tag server_msg_wf.
+
+End ServerReceiveTransitions.
+
 End LockProtocol.
 End LockProtocol.
