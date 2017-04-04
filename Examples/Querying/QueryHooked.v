@@ -99,7 +99,8 @@ Definition response_msg (t: nat) (_ : seq nat) := t == tresp.
 
 Definition query_init_state to s :=
   [/\ to \in qnodes,
-      holds_res_perms (getSq s) to (fun _ : nat => false) &
+      holds_res_perms (getSq s) to (fun _ : nat => false),
+      no_msg_from_to' this to request_msg (dsoup (getSq s)) &
       no_msg_from_to' to this response_msg (dsoup (getSq s))].    
 
 Lemma query_init_step z to s s' :
@@ -139,7 +140,7 @@ Definition msg_just_sent d (reqs resp : seq (nid * nat)) req_num to :=
   [/\ getLocal this d = qst :-> (reqs, resp),
    no_msg_from_to' to this response_msg (dsoup d), 
    (to, req_num) \in reqs, 
-   msg_spec this to treq ([:: req_num]) (dsoup d) &
+   msg_spec' this to treq ([:: req_num]) (dsoup d) &
    holds_res_perms d to (fun _ => false)].
 
 (* 2. Our request is received but not yet responded. *)
@@ -155,7 +156,7 @@ Definition msg_responded d (reqs resp : seq (nid * nat)) req_num to data :=
   [/\ getLocal this d = qst :-> (reqs, resp),
    (to, req_num) \in reqs,
    no_msg_from_to' this to response_msg (dsoup d),
-   msg_spec to this tresp (req_num :: serialize data) (dsoup d) &
+   msg_spec' to this tresp (req_num :: serialize data) (dsoup d) &
    holds_res_perms d to (fun _ => false)].
 
 (* 4. Stability of the local state of a core protocol, 
@@ -295,16 +296,30 @@ have E: core_state_to_data (getLc' i1 to) = core_state_to_data (getLc' i2 to).
   subst i2; rewrite ![getLc' _ _]/getLocal /getStatelet/=.
   by rewrite findU; move/negbTE: Lab_neq; rewrite eq_sym=>->.
 move: (query_init_rely _ s0 i1 Q R0)=>{Q}Q; subst i2.
-move: (Q)=>[Q1 Q2 Q3].
+move: (Q)=>[Q1 Q2 Q3 Q4].
 move: (core_state_stable _ _ _ _ R0 Q1 P3); rewrite E=>{E}E.
-clear N R2 Q R0 core_state_stable C0 i3 P3 s0.
+clear N R2 Q R0 C0 i3 P3 s0.
 split=>//; constructor 1. 
 split=>//; rewrite ?inE ?eqxx=>//=.
-- rewrite locE=>//;
+- rewrite locE=>//; 
   [by rewrite -(cohD C1) W_dom !inE eqxx orbC|
    apply: cohS C1|by apply: cohVl Cq1].
 (* Prove the interesting transition *)
-
+- move=>m t c; rewrite /getStatelet findU eqxx (cohS C1)/=.
+  set ds := (dsoup _); rewrite findUnR; last first.
+  by rewrite valid_fresh; apply: cohVs Cq1.
+  rewrite gen_domPt !inE/=; case:ifP=>[/eqP<-|_]; last by apply: Q4.
+  by rewrite um_findPt; case=><-. 
+- rewrite /getStatelet findU eqxx (cohS C1)/=.
+  set ds := (dsoup _). split. split. =>[|m t c]; last first.
+  + rewrite findUnR; last by rewrite valid_fresh; apply: cohVs Cq1.
+  rewrite gen_domPt !inE/=; case:ifP=>[/eqP<-|_]; last first.
+  + move/(Q3 m t c)=>/=. 
+    case B: (request_msg t c); last first.
+   
+    
+  exists (fresh ds). simpl.
+  
 exists ((to, fresh_id reqs) :: reqs), resp.
 
 subst i2; constructor 1; split
