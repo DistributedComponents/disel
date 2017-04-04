@@ -32,6 +32,11 @@ Qed.
 
 Definition nodes := [:: server] ++ clients.
 
+Lemma client_nodes n : n \in clients -> n \in nodes.
+Proof.
+  by rewrite inE orbC/= =>->.
+Qed.
+
 Notation epoch := nat (only parsing).
 
 Record server_state :=
@@ -83,6 +88,15 @@ Definition soup_coh : Pred soup :=
     valid s /\
     forall m ms, find m s = Some ms -> active ms -> exists e, coh_msg ms e].
 
+Lemma soup_coh_post_msg d m:
+    soup_coh (dsoup d) -> (exists e, coh_msg m e) -> soup_coh (post_msg (dsoup d) m).1.
+Proof.
+move=>[H1 H2][y]Cm; split=>[|i ms/=]; first by rewrite valid_fresh.
+rewrite findUnL; last by rewrite valid_fresh.
+case: ifP=>E; first by move/H2.
+by move/um_findPt_inv=>[Z G]; subst i m; exists y.
+Qed.
+
 Definition state_coh d :=
   forall n, n \in nodes -> local_coh n (getLocal n d).
 
@@ -104,6 +118,13 @@ Lemma l3 d: lock_coh d -> dom (dstate d) =i nodes.
 Proof. by case. Qed.
 
 Definition LockCoh := CohPred (CohPredMixin l1 l2 l3).
+
+Lemma coh_dom_upd this d s :
+  this \in nodes -> LockCoh d -> dom (upd this s (dstate d)) =i nodes.
+Proof.
+move=>D C z; rewrite -(cohDom C) domU inE/=.
+by case: ifP=>///eqP->{z}; rewrite (cohDom C) D; apply: cohVl C.
+Qed.
 
 Definition server_send_step (ss : server_state) (to : nid) : server_state :=
   if to \in clients
@@ -184,10 +205,26 @@ move: (getLocal_server_st_tp C); rewrite !E=>/= H.
 by apply: ieqc.
 Qed.
 
+Program Definition getSt_client c d (C : LockCoh d) (pf : c \in nodes) : client_state.
+case X: (c \in clients); last by exact: NotHeld.
+exact: (match find st (getLocal c d) as f return _ = f -> _ with
+    Some v => fun epf => icoerce id (idyn_val v) (getLocal_client_st_tp C X epf)
+  | _ => fun epf => NotHeld
+  end (erefl _)).
+Defined.
+
+Lemma getSt_client_K c d (C : LockCoh d) (pf : c \in nodes) m :
+  c \in clients -> getLocal c d = st :-> m -> getSt_client C pf = m.
+Proof.
+move=>X E; rewrite /getSt_client/=.
+have V: valid (getLocal c d) by case: (getLocal_coh C pf).
+move: (getLocal_client_st_tp C); rewrite X !E=>/= H.
+by apply: ieqc.
+Qed.
+
 End GetterLemmas.
 
 Section ServerGenericSendTransitions.
-
 
 Definition HServ this to := (this == server /\ to \in clients).
 
@@ -230,22 +267,6 @@ Definition server_step (this to : nid) (d : dstatelet)
   let C := server_send_safe_coh pf in
   let s := getSt_server C in
   Some (st :-> server_send_step s to).
-
-Lemma soup_coh_post_msg d m:
-    soup_coh (dsoup d) -> (exists e, coh_msg m e) -> soup_coh (post_msg (dsoup d) m).1.
-Proof.
-move=>[H1 H2][y]Cm; split=>[|i ms/=]; first by rewrite valid_fresh.
-rewrite findUnL; last by rewrite valid_fresh.
-case: ifP=>E; first by move/H2.
-by move/um_findPt_inv=>[Z G]; subst i m; exists y.
-Qed.
-
-Lemma coh_dom_upd this d s :
-  this \in nodes -> coh d -> dom (upd this s (dstate d)) =i nodes.
-Proof.
-move=>D C z; rewrite -(cohDom C) domU inE/=.
-by case: ifP=>///eqP->{z}; rewrite (cohDom C) D; apply: cohVl C.
-Qed.
 
 Lemma server_step_coh : s_step_coh_t coh the_tag server_step.
 Proof.
@@ -360,6 +381,93 @@ Definition s_recv_acquire := rs_recv_trans acquire_tag server_msg_wf.
 Definition s_recv_release := rs_recv_trans release_tag server_msg_wf.
 
 End ServerReceiveTransitions.
+
+
+Section ClientGenericSendTransitions.
+
+Definition HClient this to := (this \in clients /\ to == server).
+
+Variable the_tag : nat.
+
+Variable prec : client_state -> nid -> seq nid -> Prop.
+
+Hypothesis prec_safe :
+  forall this to s m,
+    HClient this to ->
+    prec s to m ->
+    msg_from_client (TMsg the_tag m).
+
+Notation coh := LockCoh.
+
+Lemma client_send_this_in this to : HClient this to -> this \in nodes.
+Proof. case=>H _. by apply /client_nodes. Qed.
+
+Definition client_send_safe (this n : nid)
+           (d : dstatelet) (msg : seq nat) :=
+  HClient this n /\
+  exists (HC : HClient this n) (C : coh d), prec (getSt_client C (client_send_this_in HC)) n msg.
+
+Lemma client_send_safe_coh this to d m : client_send_safe this to d m -> coh d.
+Proof. by case => _[?][C]. Qed.
+
+Lemma client_send_to_in this to : HClient this to -> to \in nodes.
+Proof. by case=>_ /eqP->; rewrite /nodes inE/= eqxx. Qed.
+
+Lemma client_send_safe_in this to d m : client_send_safe this to d m ->
+                                  this \in nodes /\ to \in nodes.
+Proof.
+case=>_[HC][C]_.
+split.
+- exact: (client_send_this_in HC).
+exact: (client_send_to_in HC).
+Qed.
+
+Definition client_step (this to : nid) (d : dstatelet)
+           (msg : seq nat)
+           (pf : client_send_safe this to d msg) :=
+  let C := client_send_safe_coh pf in
+  let s := getSt_client C (client_send_this_in (proj1 pf)) in
+  Some (st :-> client_send_step s).
+
+Lemma client_step_coh : s_step_coh_t coh the_tag client_step.
+Proof.
+move=>this to d msg pf h[]->{h}.
+have C : (coh d) by exact: (client_send_safe_coh pf).
+have E: this \in clients by case: pf=>_[][].
+split=>/=.
+- apply: soup_coh_post_msg; first by case:(client_send_safe_coh pf).
+  case: (pf)=>_[H][C']P/=.
+  exists 0.
+  rewrite/coh_msg/= client_not_server// E.
+  split; first by case: (H).
+  by apply: (prec_safe H P).
+- by apply: coh_dom_upd=>//; case: (client_send_safe_in pf).
+- by rewrite validU; apply: cohVl C.
+move=>n Ni. rewrite /local_coh/=.
+rewrite /getLocal/=findU; case: ifP=>B; last by case: C=>_ _ _/(_ n Ni).
+move/eqP: B=>Z; subst n.
+rewrite client_not_server// (cohVl C)/=.
+split.
+- by rewrite hvalidPt.
+split=>//.
+by eexists.
+Qed.
+
+Lemma client_step_def this to d msg :
+      client_send_safe this to d msg <->
+      exists b pf, @client_step this to d msg pf = Some b.
+Proof.
+split=>[pf/=|]; last by case=>?[].
+set b := let C := client_send_safe_coh pf in
+         let s := getSt_client C (client_send_this_in (proj1 pf)) in
+         st :-> (client_send_step s).
+by exists b, pf.
+Qed.
+
+Definition client_send_trans :=
+  SendTrans client_send_safe_coh client_send_safe_in client_step_def client_step_coh.
+
+End ClientGenericSendTransitions.
 
 End LockProtocol.
 End LockProtocol.
