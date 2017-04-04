@@ -46,3 +46,4 @@ Examples/TwoPhaseCommit/TwoPhaseExtraction.v
 Examples/TwoPhaseCommit/TwoPhaseInductiveInv.v
 Examples/TwoPhaseCommit/TwoPhaseInductiveProof.v 
 Examples/LockResource/LockProtocol.v
+Examples/LockResource/ResourceProtocol.v
