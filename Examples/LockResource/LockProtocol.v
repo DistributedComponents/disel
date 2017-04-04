@@ -119,6 +119,17 @@ Proof. by case. Qed.
 
 Definition LockCoh := CohPred (CohPredMixin l1 l2 l3).
 
+Lemma consume_coh d m : LockCoh d -> soup_coh (consume_msg (dsoup d) m).
+Proof.
+move=>C; split=>[|m' msg]; first by apply: consume_valid; rewrite (cohVs C).
+case X: (m == m');[move/eqP: X=><-{m'}|].
+- case/(find_mark (cohVs C))=>tms[E]->{msg}.
+  by case:(C); case=>_/(_ m tms E).
+rewrite eq_sym in X.
+rewrite (mark_other (cohVs C) X)=>E.
+by case:(C); case=>_; move/(_ m' msg E).
+Qed.
+
 Lemma coh_dom_upd this d s :
   this \in nodes -> LockCoh d -> dom (upd this s (dstate d)) =i nodes.
 Proof.
@@ -334,17 +345,6 @@ Definition rs_step : receive_step_t coh :=
          st :-> server_recv_step s from the_tag m
     else getLocal this d.
 
-Lemma consume_coh d m : coh d -> soup_coh (consume_msg (dsoup d) m).
-Proof.
-move=>C; split=>[|m' msg]; first by apply: consume_valid; rewrite (cohVs C).
-case X: (m == m');[move/eqP: X=><-{m'}|].
-- case/(find_mark (cohVs C))=>tms[E]->{msg}.
-  by case:(C); case=>_/(_ m tms E).
-rewrite eq_sym in X.
-rewrite (mark_other (cohVs C) X)=>E.
-by case:(C); case=>_; move/(_ m' msg E).
-Qed.
-
 Lemma rs_step_coh : r_step_coh_t server_recv_wf the_tag rs_step.
 Proof.
 move=>d from this m C pf tms D F Wf T/=.
@@ -376,9 +376,9 @@ Definition s_matches_tag (ss : server_state) from t :=
 Definition server_msg_wf d (C : LockCoh d) (this from : nid) :=
   [pred m : TaggedMessage | s_matches_tag (getSt_server C) from (tag m)].
 
-Definition s_recv_acquire := rs_recv_trans acquire_tag server_msg_wf.
+Definition server_recv_acquire_trans := rs_recv_trans acquire_tag server_msg_wf.
 
-Definition s_recv_release := rs_recv_trans release_tag server_msg_wf.
+Definition server_recv_release_trans := rs_recv_trans release_tag server_msg_wf.
 
 End ServerReceiveTransitions.
 
@@ -469,5 +469,118 @@ Definition client_send_trans :=
 
 End ClientGenericSendTransitions.
 
+Section ClientSendTransitions.
+
+Definition client_send_acquire_prec (cs : client_state) (to : nid) (m : seq nat) :=
+  cs = NotHeld /\
+  m = [::].
+
+Program Definition client_send_acquire_trans : send_trans LockCoh :=
+  @client_send_trans acquire_tag client_send_acquire_prec _.
+Next Obligation.
+apply/andP=>/=.
+split=>//.
+by case: H0=>_/eqP.
+Qed.
+
+Definition client_send_release_prec (cs : client_state) (to : nid) (m : seq nat) :=
+  (exists e, cs = Held e) /\
+  m = [::].
+
+Program Definition client_send_release_trans : send_trans LockCoh :=
+  @client_send_trans release_tag client_send_release_prec _.
+Next Obligation.
+apply/andP=>/=.
+split=>//.
+by case: H0=>_/eqP.
+Qed.
+
+End ClientSendTransitions.
+
+Section ClientGenericReceiveTransitions.
+
+Notation coh := LockCoh.
+
+Variable the_tag : nat.
+Variable client_recv_wf : forall d, coh d -> nid -> nid -> TaggedMessage -> bool.
+
+Definition rc_step : receive_step_t coh :=
+  fun this (from : nid) (m : seq nat) d (pf : coh d) (pt : this \in nodes) =>
+    if (this \in clients)
+    then let s := getSt_client pf pt in
+         st :-> client_recv_step s from the_tag m
+    else getLocal this d.
+
+Lemma rc_step_coh : r_step_coh_t client_recv_wf the_tag rc_step.
+Proof.
+move=>d from this m C pf tms D F Wf T/=.
+rewrite /rc_step; case X: (this \in clients); last first.
+- split=>/=; first by apply: consume_coh.
+  + by apply: coh_dom_upd.
+  + by rewrite validU; apply: cohVl C.
+  have Y: forall z : nat_eqType, z \in nodes -> local_coh z (getLocal z d)
+      by case: (C).
+  by move=>n Ni/=; move: (Y n Ni)=>L; rewrite -(getLocalU)// (cohVl C).
+split=>/=; first by apply: consume_coh.
+- by apply: coh_dom_upd.
+- by rewrite validU; apply: cohVl C.
+move=>n Ni/=; rewrite /local_coh/=.
+rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni).
+move/eqP: B X=>Z/eqP X/= ;rewrite !(cohVl C); subst n.
+split; first done.
+move/eqP: X => X.
+rewrite client_not_server X//.
+split=>//.
+by eexists _.
+Qed.
+
+Definition rc_recv_trans := ReceiveTrans rc_step_coh.
+
+End ClientGenericReceiveTransitions.
+
+Section ClientReceiveTransitions.
+
+Definition client_msg_wf d (_ : LockCoh d) (this from : nid) :=
+  [pred m : TaggedMessage | true].
+
+Definition client_receive_grant_trans := rc_recv_trans grant_tag client_msg_wf.
+
+End ClientReceiveTransitions.
+
+Section Protocol.
+
+Variable l : Label.
+
+(* All send-transitions *)
+Definition lock_sends :=
+  [::
+     server_send_grant_trans;
+     client_send_acquire_trans;
+     client_send_release_trans
+  ].
+
+(* All receive-transitions *)
+Definition lock_receives :=
+  [::
+     server_recv_acquire_trans;
+     server_recv_release_trans;
+     client_receive_grant_trans
+  ].
+
+Program Definition LockProtocol : protocol :=
+  @Protocol _ l _ lock_sends lock_receives _ _.
+
+End Protocol.
 End LockProtocol.
+
+Module Exports.
+Section Exports.
+
+Definition LockProtocol := LockProtocol.
+
+End Exports.
+End Exports.
+
 End LockProtocol.
+
+Export LockProtocol.Exports.
