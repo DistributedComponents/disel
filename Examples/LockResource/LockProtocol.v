@@ -311,7 +311,7 @@ Definition server_send_grant_prec (ss : server_state) to m :=
     ss = ServerState (to :: rest) e None /\
     m = [:: e].
 
-Program Definition cn_send_grant_trans : send_trans LockCoh :=
+Program Definition server_send_grant_trans : send_trans LockCoh :=
   @server_send_trans grant_tag server_send_grant_prec _.
 Next Obligation.
 case: H=>/eqP->H; rewrite /coh_msg eqxx; split=>//=.
