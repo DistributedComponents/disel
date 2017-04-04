@@ -282,5 +282,21 @@ Definition server_send_trans :=
 
 End ServerGenericSendTransitions.
 
+Section ServerSendTransitions.
+
+Definition server_send_grant_prec (ss : server_state) to m :=
+  exists rest e,
+    ss = ServerState (to :: rest) e None /\
+    m = [:: e].
+
+Program Definition cn_send_prep_trans : send_trans LockCoh :=
+  @server_send_trans grant_tag server_send_grant_prec _.
+Next Obligation.
+case: H=>/eqP->H; rewrite /coh_msg eqxx; split=>//=.
+case: H0=>[rest] [e] []-> ->/=. by rewrite /msg_from_server /= eqxx.
+Qed.
+
+End ServerSendTransitions.
+
 End LockProtocol.
 End LockProtocol.
