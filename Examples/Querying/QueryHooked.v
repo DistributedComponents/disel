@@ -147,15 +147,15 @@ Definition msg_just_sent d (reqs resp : seq (nid * nat)) req_num to :=
 Definition msg_received d (reqs resp : seq (nid * nat)) req_num to :=
   [/\ getLocal this d = qst :-> (reqs, resp),
    (to, req_num) \in reqs,
-   no_msg_from_to' this to response_msg (dsoup d),
-   no_msg_from_to' to this request_msg (dsoup d) &
+   no_msg_from_to' this to request_msg (dsoup d),
+   no_msg_from_to' to this response_msg (dsoup d) &
    holds_res_perms d to (fun rn => rn == req_num)].
 
 (* 3. Our request is responded. *)
 Definition msg_responded d (reqs resp : seq (nid * nat)) req_num to data :=
   [/\ getLocal this d = qst :-> (reqs, resp),
    (to, req_num) \in reqs,
-   no_msg_from_to' this to response_msg (dsoup d),
+   no_msg_from_to' this to request_msg (dsoup d),
    msg_spec' to this tresp (req_num :: serialize data) (dsoup d) &
    holds_res_perms d to (fun _ => false)].
 
@@ -172,6 +172,7 @@ Hypothesis core_state_stable_step : forall z s data s' n,
   core_state_to_data (getLc' s n) = Some data -> 
   core_state_to_data (getLc' s' n) = Some data.           
 
+(* Showing that the core assertion is stable *)
 Lemma core_state_stable s data s' z :
   network_rely W this s s' ->
   z \in qnodes ->
@@ -179,7 +180,7 @@ Lemma core_state_stable s data s' z :
   core_state_to_data (getLc' s z) = Some data -> 
   core_state_to_data (getLc' s' z) = Some data.
 Proof.
-move=>[n]H2 G L H1; elim: n s H2 H1 L=>/=[s | n Hi s]; first by case=>Z _; subst s'.
+move=>[n]H2 G L H1; elim: n s H2 H1 L=>/=[s|n Hi s]; first by case=>Z; subst s'.
 case=>y[s1][N]H1 H2 H3 L; case: H1; first by case=>_ Z; subst s1; apply: (Hi s).
 
 
@@ -304,9 +305,8 @@ rewrite Z' locE; last first;
 [by apply: cohVl Cq1| by apply: cohS C1|
    by rewrite -(cohD C1) W_dom !inE eqxx orbC|].
 have X : getLc i3 = getLc s0.
-(* TODO: finish me!!! *)
-admit.
-
+- rewrite (rely_loc' _ R2) -(rely_loc' _ R0) Z'.
+  by rewrite /getStatelet findU; move/negbTE: Lab_neq; rewrite eq_sym=>->.
 (* Massaging the hypotheses. *)
 split=>//; try by rewrite X//.
 apply: (msg_story_rely _ _ _ _ _ i2)=>//.
@@ -318,10 +318,10 @@ have E: core_state_to_data (getLc' i1 to) = core_state_to_data (getLc' i2 to).
 move: (query_init_rely _ s0 i1 Q R0)=>{Q}Q; subst i2.
 move: (Q)=>[Q1 Q2 Q3 Q4].
 move: (core_state_stable _ _ _ _ R0 Q1 Pi P3); rewrite E=>{E}E.
-clear N R2 Q R0 C0 Pi X i3 P3 s0.
+clear N R2 Q C0 X i3 P3.
 split=>//.
-- (* TODO: finish me! *) admit.
-
+- rewrite /getStatelet findU; move/negbTE: Lab_neq; rewrite eq_sym=>->//=.
+  by rewrite (rely_loc' _ R0).
 constructor 1. 
 split=>//; rewrite ?inE ?eqxx=>//=.
 - rewrite locE=>//; 
@@ -356,7 +356,7 @@ case X: (to == this).
 exists reqs', resp'; split=>//.
 rewrite /getStatelet findU eqxx (cohS C1)/=.
 by rewrite /getLocal findU X. 
-Admitted.
+Qed.
 
 (******************** Receiving request *********************)
 
@@ -364,6 +364,16 @@ Admitted.
 (*
 
 TODO (in arbitrary order):
+
+1. Prove injective "core_state_stable".
+
+2. Prove quasi-inductive property "query_init_step"
+
+3. Prove quasi-inductive property "msg_story_step"
+
+------------------------------------
+
+Old TODO
 
 0. Refine no_msg_from_to for specific tags, otherwise the invariant 
    doesn't hold.
