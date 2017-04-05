@@ -8,7 +8,7 @@ Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
 Require Import Actions.
 Require Import SeqLib.
 Require Import QueryProtocol.
-Require Import StatePredicates.
+Require Import NewStatePredicates.
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 
 Section QueryHooked.
@@ -131,9 +131,9 @@ case=>z[s1][N]H1 H2 H3; apply: (Hi s1 H2).
 by apply: (query_init_step _ _ _ _ N H3 H1).
 Qed.  
 
-(************************************************)
-(*            Query-specific predicate          *)
-(************************************************)
+(***************************************************)
+(*  Query-specific intermediate predicate          *)
+(***************************************************)
 
 (* 1. We've just sent our stuff. *)
 Definition msg_just_sent d (reqs resp : seq (nid * nat)) req_num to :=
@@ -161,31 +161,40 @@ Definition msg_responded d (reqs resp : seq (nid * nat)) req_num to data :=
 
 (* 4. Stability of the local state of a core protocol, 
       to be proved separately *)
+
+(* A local assertion ensuring stability of the core_state_to_data *)
+Variable local_indicator : Pred heap.
+
 Hypothesis core_state_stable_step : forall z s data s' n,
-  this != z ->  network_step (plab pc \\-> pc, Unit) z s s' ->
+  this != z -> network_step (plab pc \\-> pc, Unit) z s s' ->
   n \in qnodes ->
+  local_indicator (getLc s) ->
   core_state_to_data (getLc' s n) = Some data -> 
   core_state_to_data (getLc' s' n) = Some data.           
 
 Lemma core_state_stable s data s' z :
   network_rely W this s s' ->
   z \in qnodes ->
+  local_indicator (getLc s) ->
   core_state_to_data (getLc' s z) = Some data -> 
   core_state_to_data (getLc' s' z) = Some data.
 Proof.
-move=>[n]H2 G H1; elim: n s H2 H1=>/=[s | n Hi s]; first by case=>Z _; subst s'.
-case=>y[s1][N]H1 H2 H3; case: H1; first by case=>_ Z; subst s1; apply: (Hi s).
+move=>[n]H2 G L H1; elim: n s H2 H1 L=>/=[s | n Hi s]; first by case=>Z _; subst s'.
+case=>y[s1][N]H1 H2 H3 L; case: H1; first by case=>_ Z; subst s1; apply: (Hi s).
+
+
 Admitted.
 
 (***********************************************************)
 (* A rely-inductive predicate describing the message story *)
 (***********************************************************)
 Definition msg_story s req_num to data reqs resp :=
-  core_state_to_data (getLc' s to) = Some data /\
-  let: d := getSq s in
-  [\/ msg_just_sent d reqs resp req_num to,
-   msg_received d reqs resp req_num to |
-   msg_responded d reqs resp req_num to data].
+  [/\ core_state_to_data (getLc' s to) = Some data,
+     local_indicator (getLc s) & 
+     let: d := getSq s in
+     [\/ msg_just_sent d reqs resp req_num to,
+      msg_received d reqs resp req_num to |
+      msg_responded d reqs resp req_num to data]].
 
 Lemma msg_story_step req_num to data reqs resp z s s' :
   this != z ->
@@ -194,8 +203,8 @@ Lemma msg_story_step req_num to data reqs resp z s s' :
   msg_story s' req_num to data reqs resp.
 Proof.
 move=> N H S; split=>//.
-- case: H=>H _; apply: (core_state_stable s data s')=>//.
-  by exists 1, z, s'; split=>//=; split=>//; case/step_coh: S. 
+(* - case: H=>H _; apply: (core_state_stable s data s')=>//. *)
+(*   by exists 1, z, s'; split=>//=; split=>//; case/step_coh: S.  *)
 (* TODO: figure out how not to consider transitions in other worlds *)
 (* case: S; [by case=>_<-; case: H| *)
 (*  move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}| *)
@@ -215,13 +224,9 @@ move=> N H S; split=>//.
 (*   case/andP:B=>/eqP Z/eqP Z'; subst z to'. *)
 (*   case: H=>G1 G2. *)
 (*   case:G2; [by admit | | by admit]. *)
-
 (*   rewrite /all_hooks_fire/query_hookz/query_hook in H5.  *)
-  
-
 (* admit. *)
 (* admit. *)
-
 (* (* It's a receive-transition *) *)
 (* set d := getStatelet s lq. *)
 (* move: prEqQ (coh_s lq C) rt pf H1 H2 H4 H5. *)
@@ -241,7 +246,13 @@ case=>z[s1][N]H1 H2 H3; apply: (Hi s1 H2).
 by apply: (msg_story_step _ _ _ _ _ _ _ _ N H3 H1).
 Qed.  
 
-(* Send-wrapper for requesting data *)
+
+(**************************************************************)
+(*********************  Query Programs ************************)
+(**************************************************************)
+
+
+(********************** Sending request ***********************)
 
 Program Definition send_req rid to :=
   act (@send_action_wrapper W pq this (plab pq) prEqQ
@@ -253,17 +264,21 @@ Program Definition send_req_act (rid : nat) (to : nid) :
    (fun i =>
       let: (reqs, resp, data) := rrd in 
       [/\ getLq i = qst :-> (reqs, resp),
+       local_indicator (getLc i),
        rid = fresh_id reqs,
        query_init_state to i &
        core_state_to_data (getLc' i to) = Some data],
    fun (r : seq nat) m => 
      let: (reqs, resp, data) := rrd in 
      [/\ getLq m = qst :-> ((to, rid) :: reqs, resp),
-     r = [:: rid] &
-     msg_story m rid to data ((to, rid) :: reqs) resp])
-  := Do (send_req rid to).
+      local_indicator (getLc m),
+      r = [:: rid] &
+      msg_story m rid to data ((to, rid) :: reqs) resp])
+  :=
+    Do (send_req rid to).
+
 Next Obligation.
-apply: ghC=>s0[[reqs resp] d]/=[P1]P2 Q P3 C0.
+apply: ghC=>s0[[reqs resp] d]/=[P1] Pi P2 Q P3 C0.
 apply: act_rule=>i1 R0; split=>//=[|r i2 i3[Hs]St R2].
 (* Precondition *)
 - rewrite /Actions.send_act_safe/=.
@@ -288,8 +303,13 @@ rewrite (getStK _ P1); case=>Z Z'; subst h rid.
 rewrite Z' locE; last first;
 [by apply: cohVl Cq1| by apply: cohS C1|
    by rewrite -(cohD C1) W_dom !inE eqxx orbC|].
+have X : getLc i3 = getLc s0.
+(* TODO: finish me!!! *)
+admit.
+
 (* Massaging the hypotheses. *)
-split=>//; apply: (msg_story_rely _ _ _ _ _ i2)=>//.
+split=>//; try by rewrite X//.
+apply: (msg_story_rely _ _ _ _ _ i2)=>//.
 have E: core_state_to_data (getLc' i1 to) = core_state_to_data (getLc' i2 to).
 - case B: (to == this); [move/eqP:B=>Z; subst to | ]; last first.
   + by rewrite /getLocal (step_is_local _ N)=>//; move/negbT: B.
@@ -297,9 +317,12 @@ have E: core_state_to_data (getLc' i1 to) = core_state_to_data (getLc' i2 to).
   by rewrite findU; move/negbTE: Lab_neq; rewrite eq_sym=>->.
 move: (query_init_rely _ s0 i1 Q R0)=>{Q}Q; subst i2.
 move: (Q)=>[Q1 Q2 Q3 Q4].
-move: (core_state_stable _ _ _ _ R0 Q1 P3); rewrite E=>{E}E.
-clear N R2 Q R0 C0 i3 P3 s0.
-split=>//; constructor 1. 
+move: (core_state_stable _ _ _ _ R0 Q1 Pi P3); rewrite E=>{E}E.
+clear N R2 Q R0 C0 Pi X i3 P3 s0.
+split=>//.
+- (* TODO: finish me! *) admit.
+
+constructor 1. 
 split=>//; rewrite ?inE ?eqxx=>//=.
 - rewrite locE=>//; 
   [by rewrite -(cohD C1) W_dom !inE eqxx orbC|
@@ -310,26 +333,32 @@ split=>//; rewrite ?inE ?eqxx=>//=.
   by rewrite valid_fresh; apply: cohVs Cq1.
   rewrite gen_domPt !inE/=; case:ifP=>[/eqP<-|_]; last by apply: Q4.
   by rewrite um_findPt; case=><-. 
+(* TODO: refactor this into a separate lemma about those state predicates *)
 - rewrite /getStatelet findU eqxx (cohS C1)/=.
-  set ds := (dsoup _). split. split. =>[|m t c]; last first.
-  + rewrite findUnR; last by rewrite valid_fresh; apply: cohVs Cq1.
-  rewrite gen_domPt !inE/=; case:ifP=>[/eqP<-|_]; last first.
-  + move/(Q3 m t c)=>/=. 
-    case B: (request_msg t c); last first.
-   
-    
-  exists (fresh ds). simpl.
-  
-exists ((to, fresh_id reqs) :: reqs), resp.
+  set ds := (dsoup _).
+  exists (fresh ds); split=>//.
+  + exists QueryProtocol.treq, [:: fresh_id reqs].
+    rewrite findUnR; last by rewrite valid_fresh; apply: cohVs Cq1.
+    by rewrite um_domPt inE eqxx um_findPt !eqxx/=. 
+  move=>x[t][c].
+  rewrite findUnR; last by rewrite valid_fresh; apply: cohVs Cq1.
+  case:ifP=>[|_[]]; first by rewrite um_domPt inE=>/eqP->.
+  by move/(Q3 x t c)=>X/andP[/eqP]Z; subst t. 
+set ds := (dsoup _).
+case: Q2=>reqs'[resp'][G1 G2].
+case X: (to == this).
+- exists ((this, fresh_id reqs) :: reqs), resp; move/eqP:X=>X; subst to.
+  rewrite P1 in G1; have V: valid (qst :-> (reqs, resp)) by [].
+  case: (hcancelPtV V G1)=>Z1 Z2; subst reqs' resp'=>{G1}.
+  split=>//; rewrite locE//; last first;
+    [by apply: cohVl Cq1| by apply: cohS C1|
+       by rewrite -(cohD C1) W_dom !inE eqxx orbC].
+exists reqs', resp'; split=>//.
+rewrite /getStatelet findU eqxx (cohS C1)/=.
+by rewrite /getLocal findU X. 
+Admitted.
 
-subst i2; constructor 1; split
-- exists ((to, fresh_id reqs) :: reqs), resp.
-  Check locE this.
-
-
-(* TODO: finish the proof for this action *)
-
-
+(******************** Receiving request *********************)
 
 
 (*
