@@ -61,7 +61,35 @@ move=>z/=; rewrite domUn !inE/=; case/andP: W_valid=>->/=_.
 by rewrite !um_domPt !inE; rewrite -!(eq_sym z).
 Qed.
 
-Lemma prEqQ : (getProtocol W lq) = pq.
+Lemma eqW : 
+  W = (plab pc \\-> pc, Unit) \+ (plab pq \\-> pq, Unit) \+ (Unit, query_hookz).
+Proof. by rewrite /PCM.join/=/W !unitL !unitR. Qed.
+
+Lemma eqW' : 
+  W = (plab pc \\-> pc, Unit) \+ ((plab pq \\-> pq, Unit) \+ (Unit, query_hookz)).
+Proof. by rewrite eqW joinA. Qed.
+
+
+Lemma injW : injects (plab pc \\-> pc, Unit) W query_hookz.
+Proof.
+rewrite eqW; apply:injectL=>//; try by move=>????/=; rewrite dom0 inE.
+- by rewrite -eqW W_valid.
+- move=>z lc ls t; rewrite um_domPt inE.
+  case/eqP=>Z1 Z2 Z3 Z4; subst ls z lc t.
+  rewrite !domUn !inE !um_domPt !inE !eqxx/=.
+  by case/andP:W_valid=>/=->_/=; rewrite orbC.
+move=>l; rewrite um_domPt inE=>/eqP=><-.
+move=>z lc ls t; rewrite um_domPt inE=>/eqP[]_ _<-_.  
+apply/negbT; apply/eqP=>Z; subst lq; move/negbTE: Lab_neq.
+by rewrite eqxx.
+Qed.
+
+Lemma prEqC : getProtocol W (plab pc) = pc.
+rewrite /getProtocol/W/= findUnL; last by case/andP: W_valid.
+by rewrite um_domPt inE eqxx um_findPt.
+Qed.
+
+Lemma prEqQ : getProtocol W lq = pq.
 Proof.
 rewrite /getProtocol/W/= findUnR; last by case/andP: W_valid.
 by rewrite um_domPt inE eqxx um_findPt.
@@ -170,9 +198,32 @@ Hypothesis core_state_stable_step : forall z s data s' n,
   n \in qnodes ->
   local_indicator (getLc s) ->
   core_state_to_data (getLc' s n) = Some data -> 
-  core_state_to_data (getLc' s' n) = Some data.           
+  core_state_to_data (getLc' s' n) = Some data.
 
+Lemma prEqC' : (getProtocol (plab pc \\-> pc, Unit) (plab pc)) = pc.
+Proof. by rewrite /getProtocol gen_findPt/=. Qed.
+
+  
 (* Showing that the core assertion is stable *)
+Lemma core_state_stable_step_W s data s' z :
+  this != z ->
+  network_step W z s s' ->
+  z \in qnodes ->
+  local_indicator (getLc s) ->
+  core_state_to_data (getLc' s z) = Some data -> 
+  core_state_to_data (getLc' s' z) = Some data.
+Proof.
+move=>N H2 G L H1; move:(step_coh H2)=>[C1 C2].
+rewrite eqW' in C1 C2.
+move: (projectSE C1)(projectSE C2)=>E1 E2.
+move: (C1) (C2) =>C1' C2'.
+rewrite E1 E2 in H2 C1' C2'.
+case: (sem_split injW _ _ H2).
+- apply: (@projectS_cohL (plab pc \\-> pc, Unit)
+                         ((plab pq \\-> pq, Unit) \+ (Unit, query_hookz)))=>//.
+  by move=>????; rewrite dom0 inE.
+Admitted.
+  
 Lemma core_state_stable s data s' z :
   network_rely W this s s' ->
   z \in qnodes ->
@@ -180,9 +231,13 @@ Lemma core_state_stable s data s' z :
   core_state_to_data (getLc' s z) = Some data -> 
   core_state_to_data (getLc' s' z) = Some data.
 Proof.
-move=>[n]H2 G L H1; elim: n s H2 H1 L=>/=[s|n Hi s]; first by case=>Z; subst s'.
-case=>y[s1][N]H1 H2 H3 L; case: H1; first by case=>_ Z; subst s1; apply: (Hi s).
-
+(* move=>[n]H2 H1; elim: n s H2=>/=[s | n Hi s]; first by case=>Z _; subst s'. *)
+(* case=>y[s1][N]G1 G2 G3 G4. *)
+(* have X: local_indicator (getLc' s1 this). admit. *)
+(* apply: (Hi s1 G2 X). *)
+(* Check (core_state_stable_step_W _ _ _ _ N G1). *)
+(* apply: core_state_stable_step_W=>//. *)
+(* by apply: (query_init_step _ _ _ _ N H3 H1). *)
 
 Admitted.
 
@@ -370,6 +425,8 @@ TODO (in arbitrary order):
 2. Prove quasi-inductive property "query_init_step"
 
 3. Prove quasi-inductive property "msg_story_step"
+
+4. Specify and verify the read-action. 
 
 ------------------------------------
 
