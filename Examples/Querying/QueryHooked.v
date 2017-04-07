@@ -440,7 +440,9 @@ TODO (in arbitrary order):
 
 3. Prove quasi-inductive property "msg_story_step"
 
-4. Specify and verify the read-action. 
+4. Specify and verify the read-action for getting the fresh request id. 
+
+5. Specify and verify receiving the response.
 
 ------------------------------------
 
