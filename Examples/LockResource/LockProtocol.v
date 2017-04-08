@@ -389,7 +389,7 @@ Definition HClient this to := (this \in clients /\ to == server).
 
 Variable the_tag : nat.
 
-Variable prec : client_state -> nid -> seq nid -> Prop.
+Variable prec : client_state -> nid -> seq nat -> Prop.
 
 Hypothesis prec_safe :
   forall this to s m,
