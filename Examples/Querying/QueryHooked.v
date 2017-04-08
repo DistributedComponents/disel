@@ -444,6 +444,8 @@ TODO (in arbitrary order):
 
 5. Specify and verify receiving the response.
 
+6. Combine with the TPC procedure.
+
 ------------------------------------
 
 Old TODO
