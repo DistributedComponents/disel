@@ -113,7 +113,6 @@ Qed.
 Export TPCProtocol.
 
 (* Ending condition *)
-
 Definition rp_prep_req_cond (res : option data) := res == None.
 
 (* Invariant relates the argument and the shape of the state *)
