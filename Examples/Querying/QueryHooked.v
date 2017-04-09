@@ -488,9 +488,49 @@ by split=>//; apply: (msg_story_rely _ _ _ _ _ _ _ H3 H0).
 Defined.
   
 Next Obligation.
+rename H into d.
+apply: ghC=>i0 [[reqs resp] data][G0 H0] C0; apply: step.
+apply: act_rule=>i1 R1/=; split; first by case: (rely_coh R1).
+case=>[[[from tg] body] i2 i3|i2 i3]; last first.
+- case=>S/=[]C1; case; last by case=>?[?][?][?][?][?][].
+  case=>_ _ Z; subst i2=>R3; apply: ret_rule=>i4 R4/=.
+  case: d G0 H0=>//=_[H1 H2 H3].
+  rewrite !(rely_loc' _ R4)!(rely_loc' _ R3)!(rely_loc' _ R1); split=>//.
+  by apply: (msg_story_rely _ _ _ _ _ _ _ _ R4);
+    apply: (msg_story_rely _ _ _ _ _ _ _ _ R3);
+    apply: (msg_story_rely _ _ _ _ _ _ _ _ R1).
+case=>Sf[]C1[]=>[|[l'][mid][tms][from'][rt][pf][][E]Hin E2 Hw/=]; first by case. 
+case/andP=>/eqP Z1/andP[/eqP Z2]/eqP Z3->{i2}[Z4] Z5 Z6 R3.
+subst l' from' tg body rid.
+move: rt pf (coh_s (w:=W) lq (s:=i1) C1) Hin R3 E2 Hw Z2 E; rewrite !prEqQ.
+move=>/=rt pf C1' Hin R E2 Hw G E.
+have D: rt = qrecv_resp _ by move: Hin G; do![case=>/=; first by move=>->].  
+subst rt=>{G}; simpl in E2.
+set i2 := (upd _ _ _) in R.
+apply: ret_rule=>i4 R3/=; rewrite !(rely_loc' _ R3)!(rely_loc' _ R).
+suff X : [/\ getLocal this (getStatelet i2 lq) = qst :-> (reqs, resp),
+          local_indicator (getLc' i2 this), query_init_state to i2 &
+          deserialize (behead tms) = data].
+- case: X=>X1 X2 X3 X4; split=>//.
+  by apply: (query_init_rely _ _ _ _ R3); apply: (query_init_rely _ _ _ _ R).
+clear R i4 R3.  
+case: d G0 H0=>//=_[Q1 Q2 Q3]; rewrite -!(rely_loc' _ R1) in Q1 Q2.
+move: (msg_story_rely _ _ _ _ _ _ _ Q3 R1)=>{Q3}Q3.
+have P1: valid (dstate (getSq i1)) by case: (C1')=>P1 P2 P3 P4.
+have P2: valid i1 by apply: (cohS C1).
+have P3: lq \in dom i1.
+- rewrite -(cohD C1) domUn inE !um_domPt !inE/= eqxx orbC andbC/=.
+  by case/andP: W_valid.
+clear Hin R1 C0 i0 i3 Hw. 
+(* Consider different cases for msg_story. *)
+move/sym:E2=>F.
+case: Q3=>Q3 Q4 [].
+(* Now dismiss two first disjuncts. *)
+- case=>_. move/(_ mid (tag tms) (tms_cont tms) E).
 
+  rewrite /no_msg_from_to'.
 
-Admitted.
+Qed.
 
 Next Obligation.
 apply:ghC=>i1[[reqs resp] d][L1 I1 M1] C1.
