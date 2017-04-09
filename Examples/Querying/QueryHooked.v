@@ -191,12 +191,12 @@ Definition msg_responded d (reqs resp : seq (nid * nat)) req_num to data :=
       to be proved separately *)
 
 (* A local assertion ensuring stability of the core_state_to_data *)
-Variable local_indicator : Pred heap.
+Variable local_indicator : Data -> Pred heap.
 
 Hypothesis core_state_stable_step : forall z s data s' n,
   this != z -> network_step (plab pc \\-> pc, Unit) z s s' ->
   n \in qnodes ->
-  local_indicator (getLc s) ->
+  local_indicator data (getLc s) ->
   core_state_to_data (getLc' s n) = Some data -> 
   core_state_to_data (getLc' s' n) = Some data.
 
@@ -208,7 +208,7 @@ Lemma core_state_stable_step_W s data s' z :
   this != z ->
   network_step W z s s' ->
   z \in qnodes ->
-  local_indicator (getLc s) ->
+  local_indicator data (getLc s) ->
   core_state_to_data (getLc' s z) = Some data -> 
   core_state_to_data (getLc' s' z) = Some data.
 Proof.
@@ -239,7 +239,7 @@ Qed.
 Lemma core_state_stable s data s' z :
   network_rely W this s s' ->
   z \in qnodes ->
-  local_indicator (getLc s) ->
+  local_indicator data (getLc s) ->
   core_state_to_data (getLc' s z) = Some data -> 
   core_state_to_data (getLc' s' z)  = Some data.
 Proof.
@@ -260,7 +260,7 @@ Qed.
 (***********************************************************)
 Definition msg_story s req_num to data reqs resp :=
   [/\ core_state_to_data (getLc' s to) = Some data,
-     local_indicator (getLc s) & 
+     local_indicator data (getLc s) & 
      let: d := getSq s in
      [\/ msg_just_sent d reqs resp req_num to,
       msg_received d reqs resp req_num to |
@@ -334,14 +334,14 @@ Program Definition send_req_act (rid : nat) (to : nid) :
    (fun i =>
       let: (reqs, resp, data) := rrd in 
       [/\ getLq i = qst :-> (reqs, resp),
-       local_indicator (getLc i),
+       local_indicator data (getLc i),
        rid = fresh_id reqs,
        query_init_state to i &
        core_state_to_data (getLc' i to) = Some data],
    fun (r : seq nat) m => 
      let: (reqs, resp, data) := rrd in 
      [/\ getLq m = qst :-> ((to, rid) :: reqs, resp),
-      local_indicator (getLc m),
+      local_indicator data (getLc m),
       r = [:: rid] &
       msg_story m rid to data ((to, rid) :: reqs) resp])
   := Do (send_req rid to).
@@ -450,10 +450,10 @@ Definition recv_resp_inv (rid : nat) to
     let: (reqs, resp, data) := rrd in
     if res is Some d
     then [/\ getLq i = qst :-> (reqs, resp),
-          local_indicator (getLc i),
+          local_indicator data (getLc i),
           query_init_state to i & d = data]
     else [/\ getLq i = qst :-> ((to, rid) :: reqs, resp),
-          local_indicator (getLc i) &
+          local_indicator data (getLc i) &
           msg_story i rid to data ((to, rid) :: reqs) resp].
 
 Require Import While.
@@ -462,13 +462,13 @@ Program Definition receive_resp_loop (rid : nat) to :
   {(rrd : (seq (nid * nat) * seq (nid * nat) * Data))}, DHT [this, W]
   (fun i => let: (reqs, resp, data) := rrd in
     [/\ getLq i = qst :-> ((to, rid) :: reqs, resp),
-     local_indicator (getLc i) &
+     local_indicator data (getLc i) &
      msg_story i rid to data ((to, rid) :: reqs) resp],
   fun res m =>
     let: (reqs, resp, data) := rrd in
     exists d, res = Some d /\
      [/\ getLq m = qst :-> (reqs, resp),
-         local_indicator (getLc m),
+         local_indicator data (getLc m),
          query_init_state to m & d = data]) := 
   Do _ (@while this W _ _ recv_resp_cond (recv_resp_inv rid to) _
          (fun _ => Do _ (
@@ -509,7 +509,8 @@ subst rt=>{G}; simpl in E2.
 set i2 := (upd _ _ _) in R.
 apply: ret_rule=>i4 R3/=; rewrite !(rely_loc' _ R3)!(rely_loc' _ R).
 suff X : [/\ getLocal this (getStatelet i2 lq) = qst :-> (reqs, resp),
-          local_indicator (getLc' i2 this), query_init_state to i2 &
+          local_indicator data (getLc' i2 this),
+          query_init_state to i2 &
           deserialize (behead tms) = data].
 - case: X=>X1 X2 X3 X4; split=>//.
   by apply: (query_init_rely _ _ _ _ R3); apply: (query_init_rely _ _ _ _ R).
