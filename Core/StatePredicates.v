@@ -35,16 +35,9 @@ Definition msg_in_soup (from to : nid) (criterion : nat -> seq nat -> bool)
     find i d = Some (Msg (TMsg t c) from to true) ->
     criterion t c.
 
-Definition msg_in_soup' from to (cond : nat -> seq nat -> bool) (d : soup) :=
-    exists! i, exists t c,
-        find i d = Some (Msg (TMsg t c) from to true) /\ cond t c.
-
 (* Fix specific tag and content *)
 Definition msg_spec from to tg cnt :=
   msg_in_soup from to (fun x y => (x == tg) && (y == cnt)).
-
-Definition msg_spec' from to tg cnt :=
-  msg_in_soup' from to (fun x y => (x == tg) && (y == cnt)).
 
 Definition no_msg_from (from : nid) (d : soup) : Prop :=
   forall i to tms b, find i d = Some (Msg tms from to b) -> b = false.

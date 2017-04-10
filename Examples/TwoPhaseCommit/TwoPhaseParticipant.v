@@ -33,7 +33,7 @@ Section ParticipantImplementation.
 
 (* This action actually encompasses two receive-transitions *)
 Program Definition tryrecv_prep_req := act (@tryrecv_action_wrapper W p
-      (fun k t b => (k == l) && (t == prep_req)) _).
+      (fun k _ t b => (k == l) && (t == prep_req)) _).
 (* TODO: automate these kinds of proofs *)
 Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom gen_domPt inE/=. Qed.
 
@@ -56,7 +56,7 @@ be of this shape. However, we decided to postpone this proof and do it separatel
 
 Program Definition tryrecv_commabrt_req c :=
   act (@tryrecv_action_wrapper W p
-  (fun k t b => (k == l) &&
+  (fun k _ t b => (k == l) &&
   (if c then (t == commit_req) || (t == abort_req) else (t == abort_req))) _).
 Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom gen_domPt inE/=. Qed.
 

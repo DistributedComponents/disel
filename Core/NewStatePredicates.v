@@ -20,18 +20,18 @@ Section NewSoupPredicates.
 (*****************************************************)
 
 
-Definition msg_in_soup' from to (cond : nat -> seq nat -> bool) (d : soup) :=
-    exists! i, exists t c,
-        find i d = Some (Msg (TMsg t c) from to true) /\ cond t c.
+Definition msg_in_soup' from to t (cond : seq nat -> bool) (d : soup) :=
+  (exists! i, exists c,
+        find i d = Some (Msg (TMsg t c) from to true)) /\
+  forall i c, find i d = Some (Msg (TMsg t c) from to true) -> cond c.
 
 Definition msg_spec' from to tg cnt :=
-  msg_in_soup' from to (fun x y => (x == tg) && (y == cnt)).
+  msg_in_soup' from to tg (fun y => (y == cnt)).
 
 Definition no_msg_from_to' from to
            (criterion : nat -> seq nat -> bool) (d : soup) :=
   forall i t c,
-    find i d = Some (Msg (TMsg t c) from to true) ->
-    ~~criterion t c.
+    find i d = Some (Msg (TMsg t c) from to true) -> ~~criterion t c.
 
 Lemma no_msg_from_to_consume' from to cond s i:
   valid s ->
@@ -45,21 +45,23 @@ move=>ms; case B: (m == i).
 by rewrite findU B/==>/(H m t c).
 Qed.
 
-(* Lemma msg_spec_consume' s from to tg cnt cond i : *)
-(*   valid s ->  *)
-(*   find i s = Some {| content := TMsg tg cnt; *)
-(*                      from := from; to := to; active := true |} -> *)
-(*   msg_in_soup from to cond s -> *)
-(*   no_msg_from_to' from to cond (consume_msg s i). *)
-(* Proof. *)
-(* move=>V E[][j][[t][c]]F H1 H2.  *)
-(* move=>m t' c'; rewrite /consume_msg; move: (find_some E). *)
-(* case: dom_find=>// msg->_ _; case B: (m == i). *)
-(* - by move/eqP: B=>B; subst m; rewrite findU eqxx/= V. *)
-(* have X: j = i by apply: (H1 i); exists tg, cnt. *)
-(* subst j; rewrite findU B/=. case: b=>// E' _. *)
-(* suff X: i = m by subst i; rewrite eqxx in B. *)
-(* by apply: (H1 m); exists t', c'.  *)
-(* Qed. *)
+Lemma msg_spec_consume' s from to tg cnt cond i :
+  valid s ->
+  find i s = Some {| content := TMsg tg cnt;
+                     from := from; to := to; active := true |} ->
+  msg_in_soup' from to tg cond s ->
+  no_msg_from_to' from to (fun x y => (x == tg)) (consume_msg s i).
+Proof.
+move=>V F[][j][[c]]F' H1 H2.
+move=>m t' c'; rewrite /consume_msg; move: (find_some F).
+case: dom_find=>// msg->_ _; case B: (m == i).
+- by move/eqP: B=>B; subst m; rewrite findU eqxx/= V.
+have X: j = i by apply: (H1 i); exists cnt.
+subst j; rewrite findU B/==>H.
+case X: (t' == tg)=>//=.
+move/eqP: X=>X; subst t'. 
+suff X: i = m by subst i; rewrite eqxx in B.
+by apply: (H1 m); exists c'.  
+Qed.
 
 End NewSoupPredicates.

@@ -403,15 +403,17 @@ split=>//; rewrite ?inE ?eqxx=>//=.
   by rewrite um_findPt; case=><-. 
 (* TODO: refactor this into a separate lemma about those state predicates *)
 - rewrite /getStatelet findU eqxx (cohS C1)/=.
-  set ds := (dsoup _).
+  set ds := (dsoup _); split=>//.
   exists (fresh ds); split=>//.
-  + exists QueryProtocol.treq, [:: fresh_id reqs].
+  + exists [:: fresh_id reqs].
     rewrite findUnR; last by rewrite valid_fresh; apply: cohVs Cq1.
-    by rewrite um_domPt inE eqxx um_findPt !eqxx/=. 
-  move=>x[t][c].
-  rewrite findUnR; last by rewrite valid_fresh; apply: cohVs Cq1.
-  case:ifP=>[|_[]]; first by rewrite um_domPt inE=>/eqP->.
-  by move/(Q3 x t c)=>X/andP[/eqP]Z; subst t. 
+    by rewrite um_domPt inE eqxx um_findPt. 
+  + move=>x[c]; rewrite findUnR; last by rewrite valid_fresh; apply: cohVs Cq1.
+    case:ifP=>[|_[]]; first by rewrite um_domPt inE=>/eqP->.
+    by move/(Q3 x treq c).
+  move=>x c ; rewrite findUnR; last by rewrite valid_fresh; apply: cohVs Cq1.
+  case:ifP=>[|_[]]; last by move/(Q3 x treq c).
+  by rewrite um_domPt inE=>/eqP->; rewrite um_findPt;case=>->.
 set ds := (dsoup _).
 case: Q2=>reqs'[resp'][G1 G2].
 case X: (to == this).
@@ -428,9 +430,10 @@ Qed.
 
 (***************** Receiving request in a loop ******************)
 
-Program Definition tryrecv_resp (rid : nat) :=
+Program Definition tryrecv_resp (rid : nat) (to : nid) :=
   act (@tryrecv_action_wrapper W this
-      (fun k t (b : seq nat) => [&& k == lq, t == tresp & head 0 b == rid]) _).
+      (fun k n t (b : seq nat) => [&& k == lq, n == to, t == tresp,
+                                   head 0 b == rid & to \in qnodes]) _).
 Next Obligation.
 case/andP:H=>/eqP=>->_; rewrite joinC domUn inE um_domPt inE eqxx andbC/=.
 case: validUn=>//=; rewrite ?um_validPt//.
@@ -472,7 +475,7 @@ Program Definition receive_resp_loop (rid : nat) to :
          query_init_state to m & d = data]) := 
   Do _ (@while this W _ _ recv_resp_cond (recv_resp_inv rid to) _
          (fun _ => Do _ (
-           r <-- tryrecv_resp rid;
+           r <-- tryrecv_resp rid to;
              match r with
              | Some (from, tg, body) =>
                ret _ _ (Some (deserialize (behead body)))             
@@ -500,9 +503,9 @@ case=>[[[from tg] body] i2 i3|i2 i3]; last first.
     apply: (msg_story_rely _ _ _ _ _ _ _ _ R3);
     apply: (msg_story_rely _ _ _ _ _ _ _ _ R1).
 case=>Sf[]C1[]=>[|[l'][mid][tms][from'][rt][pf][][E]Hin E2 Hw/=]; first by case. 
-case/andP=>/eqP Z1/andP[/eqP Z2]/eqP Z3->{i2}[Z4] Z5 Z6 R3.
-subst l' from' tg body rid.
-move: rt pf (coh_s (w:=W) lq (s:=i1) C1) Hin R3 E2 Hw Z2 E; rewrite !prEqQ.
+case/andP=>/eqP Z1/andP[/eqP Z2]/andP[/eqP Z3]/andP[/eqP Z4]Qn->{i2}[Z5] Z6 Z7 R3.
+subst l' from' from tg body rid.
+move: rt pf (coh_s (w:=W) lq (s:=i1) C1) Hin R3 E2 Hw Z3 E; rewrite !prEqQ.
 move=>/=rt pf C1' Hin R E2 Hw G E.
 have D: rt = qrecv_resp _ by move: Hin G; do![case=>/=; first by move=>->].  
 subst rt=>{G}; simpl in E2.
@@ -524,13 +527,42 @@ have P3: lq \in dom i1.
   by case/andP: W_valid.
 clear Hin R1 C0 i0 i3 Hw. 
 (* Consider different cases for msg_story. *)
-move/sym:E2=>F.
 case: Q3=>Q3 Q4 [].
 (* Now dismiss two first disjuncts. *)
-- case=>_. move/(_ mid (tag tms) (tms_cont tms) E).
-
-  rewrite /no_msg_from_to'.
-
+- case=>_/(_ mid (tag tms) (tms_cont tms)); rewrite -E.
+  by case: (tms)E2=>t c/=E2=>/(_ (erefl _))/=; subst t. 
+- case=>_ _ _/(_ mid (tag tms) (tms_cont tms)); rewrite -E.
+  by case: (tms)E2=>t c/=E2=>/(_ (erefl _))/=; subst t. 
+(* The interesting part *)
+case=>X1 _ X2 X3 X4; rewrite /query_init_state.
+subst i2.
+rewrite /receive_step/=/QueryProtocol.receive_step !(getStK C1' X1)/=!inE!eqxx/=.
+rewrite !locE ?Qn/=;[|by case: C1'|by apply: cohS C1|by case: C1'].
+move/sym:E=>E; split=>//; last 1 first.
+- case:X3; case=>m'[[c]]E'/(_ mid) H.
+  have Z: m' = mid by apply: H; exists (tms_cont tms);
+    rewrite E; case: (tms) E2=>/=t c'->.
+  subst m'; clear H; rewrite E in E'.
+  case: (tms) E' E=>t c'[]Z1 Z2; subst c' t=>E.
+  by move/(_ _ _ E)=>/eqP->/=; apply: ds_inverse.
+- by rewrite /getStatelet findU eq_sym; move/negbTE:Lab_neq=>->.
+split=>//.
+- case B: (to == this); last first. 
+  + rewrite /getStatelet findU eqxx/= (cohS C1)/=.
+    rewrite /holds_res_perms in X4.
+    case: X4=> rq[rs][G1 G2]; exists rq, rs; split=>//.
+    by rewrite /getLocal/= findU; case:ifP=>//=/eqP Z; subst to; rewrite eqxx in B.
+  move/eqP:B=>B; subst to; case: X4=> rq[rs][G1 G2].
+  rewrite G1 in X1.
+  have V: valid (qst :-> (rq, rs)) by apply: hvalidPt.
+  case: (hcancelPtV V X1)=>Z1 Z2; subst rq rs; exists reqs, resp; split=>//.
+  rewrite /getStatelet/= findU eqxx (cohS C1)/=/getLocal/=findU eqxx/=. 
+  by case: C1'=>_->. 
+- rewrite /getStatelet/= findU eqxx/= (cohS C1)/=.
+  by apply: (no_msg_from_to_consume' _ X2); case: C1'; case.
+rewrite /getStatelet/= findU eqxx/= (cohS C1)/=.
+case: (tms) E2 E=>t c/=-> E;apply: (msg_spec_consume' _ E X3).
+by case: C1'; case.
 Qed.
 
 Next Obligation.
@@ -551,11 +583,14 @@ TODO (in arbitrary order):
 
 4. Specify and verify the read-action for getting the fresh request id. 
 
-5. Specify and verify receiving the response.
+[5]. Specify and verify receiving the response. -- done
 
-6. Combine with the TPC procedure.
+6. Write the full request program.
 
-------------------------------------
+7. Combine with the TPC procedure.
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 
 Old TODO
 

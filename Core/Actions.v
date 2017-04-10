@@ -130,11 +130,11 @@ Filter for specific
  - message tags
  - message bodies
  *)
-Variable filter : Label -> nat -> pred (seq nat).
+Variable filter : Label -> nid -> nat -> pred (seq nat).
 
 (* Necessary validity lemmas *)
-Variable f_valid_label : forall l t m ,
-    filter l t m -> l \in dom (getc W).
+Variable f_valid_label : forall l n t m ,
+    filter l n t m -> l \in dom (getc W).
 
 (* Variable f_valid_tags : forall l t m , *)
 (*     filter l t m -> t \in rcv_tags (getP l). *)
@@ -156,7 +156,7 @@ Definition tryrecv_act_step s1 s2 (r : option (nid * nat * seq nat)) :=
           (* This is required for safety *)
           msg_wf rt (coh_s l pf) this from tms ->
           (* The filter applies *)   
-          filter l (t_rcv rt) (tms_cont tms) ->
+          filter l from (t_rcv rt) (tms_cont tms) ->
           ~~b),
     r = None & s2 = s1] \/
    (* There is a message to receive and the transition can be executed *)
@@ -168,7 +168,7 @@ Definition tryrecv_act_step s1 s2 (r : option (nid * nat * seq nat)) :=
           (* This is required for safety *)
           msg_wf rt (coh_s l pf) this from tms &
           (* The filter applies *)   
-          filter l (t_rcv rt) (tms_cont tms)],
+          filter l from (t_rcv rt) (tms_cont tms)],
       let loc' := receive_step rt from tms (coh_s l pf) pf' in
       let: f' := upd this loc' (dstate d) in
       let: s' := consume_msg (dsoup d) m in
@@ -187,7 +187,7 @@ case: (classic (exists l m tms from rt (pf' : this \in nodes (getP l) (getS s l)
                     rt \In (rcv_trans (getP l)),
                     tag tms = (t_rcv rt),
                     msg_wf rt (coh_s l C) this from tms &
-                    filter l (t_rcv rt) (tms_cont tms)])); last first.
+                    filter l from (t_rcv rt) (tms_cont tms)])); last first.
 - move=>H; exists s, None, C; left; split=>//l m tms from rt b T E1 E2 E3 E M.
   apply/negP=>Z; rewrite Z in E1; clear Z b; apply: H.
   by exists l, m, tms, from, rt.
