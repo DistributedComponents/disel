@@ -13,8 +13,11 @@ Require Import TwoPhaseProtocol TwoPhaseCoordinator TwoPhaseParticipant.
 Require TwoPhaseInductiveProof.
 Require Import QueryProtocol QueryHooked.
 
-
 Section QueryPlusTPC.
+
+(* Querying on behalf of the coordinator (it's easier this way, thanks *)
+(* to cn_agreement lemma). In order to query on behald of the *)
+(* participan, a different invariant-based fact should be proven. *)
 
 (****************************************************************)
 (*************         Basic definitions       ******************)
@@ -45,7 +48,7 @@ Definition local_indicator (d : Data) :=
 Definition core_state_to_data h (d : Data)  :=
   exists T (s : T), h = st :-> (d.1, s) \+ log :-> d.2.
 
-Lemma this_in_qnodes : cn \in qnodes.
+Lemma cn_in_qnodes : cn \in qnodes.
 Proof. by rewrite inE eqxx. Qed.
 
 Notation getLc s n := (getLocal n (getStatelet s lc)).
@@ -81,10 +84,28 @@ Qed.
 (* rewrite E1 in V E2. *)
 (* move: (hcancelT V E2).  *)
 
+(***************  Intermediate definitions **********************)
+
+(* Composite world *)
+Definition W := QueryHooked.W lq pc Data qnodes serialize core_state_to_data.
+
+Definition cn_request_log :=
+  request_data_program _ pc _ _ _ _ ds_inverse _ Lab_neq _ cn_in_qnodes
+                       local_indicator core_state_stable_step.
+
+(* Coordinator loop *)
+Definition coordinator ds :=
+  coordinator_loop_zero lc cn pts [::] Hnin Puniq PtsNonEmpty ds.
+
+(* TODO: finish this *)
+
 
 (****************************************************************)
 (*************   Overall program combining the two  *************)
 (****************************************************************)
+
+Program Definition 
+
 
 (* TODO *)
 
