@@ -317,11 +317,44 @@ by apply: (msg_story_step _ _ _ _ _ _ _ _ N H3 H1).
 Qed.  
 
 
+
+
 (**************************************************************)
 (*********************  Query Programs ************************)
 (**************************************************************)
 
+(****************** Reading a request number *******************)
 
+Program Definition read_request_id to :
+  {rrd : seq (nid * nat) * seq (nid * nat) * Data}, DHT [this, W]
+   (fun i =>
+      let: (reqs, resp, data) := rrd in 
+      [/\ getLq i = qst :-> (reqs, resp),
+       local_indicator data (getLc i),
+       query_init_state to i &
+       core_state_to_data (getLc' i to) = Some data],
+   fun (r : nat) m => 
+     let: (reqs, resp, data) := rrd in 
+     [/\ getLq m = qst :-> (reqs, resp),
+       local_indicator data (getLc m),
+       query_init_state to m,
+       core_state_to_data (getLc' m to) = Some data &                                              
+       r = fresh_id reqs]) :=
+  Do _ (act (@skip_action_wrapper W this lq pq prEqQ _
+                                (fun s pf => fresh_id (getSt this pf).1))).
+Next Obligation.
+apply: ghC=>i0 [[rq rs] d][P1] P2 P3 P4 C1.
+apply: act_rule=>i1 R1; split=>[|r i2 i3]; first by case: (rely_coh R1).
+case=>/=H1[Cj]Z; subst i1=>->R2.
+rewrite !(rely_loc' _ R2) !(rely_loc' _ R1); split=>//.
+- by apply: (query_init_rely _ _ _ _ R2); apply: (query_init_rely _ _ _ _ R1).
+- apply: (core_state_stable _ _ _ _ R2); [by case: P3|by rewrite !(rely_loc' _ R1)|].
+  by apply: (core_state_stable _ _ _ _ R1)=>//; case: P3.
+rewrite -(rely_loc' _ R1) in P1.
+suff X: getSt this (Actions.safe_local prEqQ H1) = (rq, rs) by rewrite X. 
+by move: (getStK (Actions.safe_local prEqQ H1) P1)=>/=.
+Qed.
+    
 (********************** Sending request ***********************)
 
 Program Definition send_req rid to :=
@@ -342,8 +375,9 @@ Program Definition send_req_act (rid : nat) (to : nid) :
      let: (reqs, resp, data) := rrd in 
      [/\ getLq m = qst :-> ((to, rid) :: reqs, resp),
       local_indicator data (getLc m),
-      r = [:: rid] &
-      msg_story m rid to data ((to, rid) :: reqs) resp])
+      r = [:: rid],
+      msg_story m rid to data ((to, rid) :: reqs) resp &
+      core_state_to_data (getLc' m to) = Some data])
   := Do (send_req rid to).
 
 Next Obligation.
@@ -423,9 +457,16 @@ case X: (to == this).
   split=>//; rewrite locE//; last first;
     [by apply: cohVl Cq1| by apply: cohS C1|
        by rewrite -(cohD C1) W_dom !inE eqxx orbC].
-exists reqs', resp'; split=>//.
-rewrite /getStatelet findU eqxx (cohS C1)/=.
-by rewrite /getLocal findU X. 
+- exists reqs', resp'; split=>//.
+  rewrite /getStatelet findU eqxx (cohS C1)/=.
+  by rewrite /getLocal findU X. 
+case: (Q)=>Nq _ _ _.
+move: (core_state_stable _ _ _ _ R0 Nq Pi P3)=>H1.
+rewrite -(rely_loc' _ R0) in Pi.
+have Pi': local_indicator d (getLc' i2 this).
+- by rewrite Z'/getStatelet findU/= eq_sym; move/negbTE:Lab_neq->. 
+apply: (core_state_stable _ _ _ _ R2 Nq Pi').
+by rewrite Z'/getStatelet findU/= eq_sym; move/negbTE:Lab_neq->. 
 Qed.
 
 (***************** Receiving request in a loop ******************)
@@ -454,7 +495,9 @@ Definition recv_resp_inv (rid : nat) to
     if res is Some d
     then [/\ getLq i = qst :-> (reqs, resp),
           local_indicator data (getLc i),
-          query_init_state to i & d = data]
+          query_init_state to i,
+          core_state_to_data (getLc' i to) = Some data &
+          d = data]
     else [/\ getLq i = qst :-> ((to, rid) :: reqs, resp),
           local_indicator data (getLc i) &
           msg_story i rid to data ((to, rid) :: reqs) resp].
@@ -465,14 +508,17 @@ Program Definition receive_resp_loop (rid : nat) to :
   {(rrd : (seq (nid * nat) * seq (nid * nat) * Data))}, DHT [this, W]
   (fun i => let: (reqs, resp, data) := rrd in
     [/\ getLq i = qst :-> ((to, rid) :: reqs, resp),
-     local_indicator data (getLc i) &
-     msg_story i rid to data ((to, rid) :: reqs) resp],
+     local_indicator data (getLc i),
+     msg_story i rid to data ((to, rid) :: reqs) resp &
+     core_state_to_data (getLc' i to) = Some data],
   fun res m =>
     let: (reqs, resp, data) := rrd in
     exists d, res = Some d /\
      [/\ getLq m = qst :-> (reqs, resp),
-         local_indicator data (getLc m),
-         query_init_state to m & d = data]) := 
+      local_indicator data (getLc m),
+      query_init_state to m,
+      core_state_to_data (getLc' m to) = Some data &
+      d = data]) := 
   Do _ (@while this W _ _ recv_resp_cond (recv_resp_inv rid to) _
          (fun _ => Do _ (
            r <-- tryrecv_resp rid to;
@@ -486,8 +532,9 @@ Program Definition receive_resp_loop (rid : nat) to :
 Next Obligation. by apply: with_spec x. Defined.
 Next Obligation.
 case: b H=>[b|]; rewrite /recv_resp_inv !(rely_loc' _ H0); case=>H1 H2 H3.
-- move=>->; split=>//; last by apply: (query_init_rely _ _ _ H3 H0).
-by split=>//; apply: (msg_story_rely _ _ _ _ _ _ _ H3 H0).
+- move=>H4 ->; split=>//; try by apply: (query_init_rely _ _ _ H3 H0).
+- by apply: (core_state_stable _ _ _ _ H0 _ H2)=>//; case: H3. 
+split=>//; try apply: (msg_story_rely _ _ _ _ _ _ _ H3 H0).
 Defined.
   
 Next Obligation.
@@ -517,6 +564,12 @@ suff X : [/\ getLocal this (getStatelet i2 lq) = qst :-> (reqs, resp),
           deserialize (behead tms) = data].
 - case: X=>X1 X2 X3 X4; split=>//.
   by apply: (query_init_rely _ _ _ _ R3); apply: (query_init_rely _ _ _ _ R).
+- case: d G0 H0=>//=_[_ H2][H3]_ _; case: X3=>Nq _ _ _.
+  move: (X2); rewrite -(rely_loc' _ R)=>X3.
+  apply: (core_state_stable _ _ _ _ R3 Nq X3).  
+  apply: (core_state_stable _ _ _ _ R Nq X2).  
+  move: (core_state_stable _ _ _ _ R1 Nq H2 H3)=>{H2 H3 X3 X4}Y.
+  by subst i2; rewrite /getStatelet findU eq_sym; move/negbTE:Lab_neq=>->.  
 clear R i4 R3.  
 case: d G0 H0=>//=_[Q1 Q2 Q3]; rewrite -!(rely_loc' _ R1) in Q1 Q2.
 move: (msg_story_rely _ _ _ _ _ _ _ Q3 R1)=>{Q3}Q3.
@@ -566,10 +619,45 @@ by case: C1'; case.
 Qed.
 
 Next Obligation.
-apply:ghC=>i1[[reqs resp] d][L1 I1 M1] C1.
+apply:ghC=>i1[[reqs resp] d][L1 I1 M1 S1] C1.
 apply: (gh_ex (g:=(reqs, resp, d))); apply: call_rule=>// res i2[Q1 Q2] C2.
 by case: res Q1 Q2=>//=data _ [Q1 Q2 Z]; exists data.
 Qed.
+
+(*****************************************************************)
+(*********           Full request program            *************)
+(*****************************************************************)
+
+Program Definition request_data_program to :
+  {rrd : seq (nid * nat) * seq (nid * nat) * Data}, DHT [this, W]
+   (fun i =>
+      let: (reqs, resp, data) := rrd in 
+      [/\ getLq i = qst :-> (reqs, resp),
+       local_indicator data (getLc i),
+       query_init_state to i &
+       core_state_to_data (getLc' i to) = Some data],
+    fun res m =>
+      let: (reqs, resp, data) := rrd in
+      exists d, res = Some d /\
+      [/\ getLq m = qst :-> (reqs, resp),
+       local_indicator data (getLc m),
+       query_init_state to m,
+       core_state_to_data (getLc' m to) = Some data &
+       d = data]) :=
+  Do _ (
+     rid <-- read_request_id to;
+     send_req_act rid to;;
+     receive_resp_loop rid to).
+Next Obligation.
+apply:ghC=>i1[[reqs resp] d][L1 I1 M1 S1] C1.
+apply: step; apply: (gh_ex (g:=(reqs, resp, d))).
+apply: call_rule=>//r i2[P1 P2 P3 P4->{r}] C2.
+apply: step; apply: (gh_ex (g:=(reqs, resp, d))).
+apply: call_rule=>//r i3[Q1 Q2 _ Q3 Q4]C3.
+by apply: (gh_ex (g:=(reqs, resp, d))); apply: call_rule.
+Qed.
+
+(*****************************************************************)
 
 (*
 
@@ -585,7 +673,7 @@ TODO (in arbitrary order):
 
 [5]. Specify and verify receiving the response. -- done
 
-6. Write the full request program.
+[6]. Write the full request program.
 
 7. Combine with the TPC procedure.
 
