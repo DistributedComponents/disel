@@ -17,8 +17,75 @@ Require Import QueryProtocol QueryHooked.
 Section QueryPlusTPC.
 
 (****************************************************************)
+(*************         Basic definitions       ******************)
+(****************************************************************)
+
+Variables (lc lq : Label).
+Variables (cn : nid) (pts : seq nid).
+Hypothesis Lab_neq: lq != lc.
+Hypothesis Hnin : cn \notin pts.
+Hypothesis Puniq : uniq pts.
+Hypothesis PtsNonEmpty : pts != [::].
+
+(* Core protocol *)
+Definition pc : protocol := TwoPhaseInductiveProof.tpc_with_inv lc [::] Hnin.
+Definition Data : Type := (nat * Log).
+Definition qnodes := cn :: pts.
+
+(* Serialization of logs *)
+Variable serialize : Data -> seq nat.
+Variable deserialize : seq nat -> Data.
+Hypothesis ds_inverse : left_inverse serialize deserialize.
+
+(* This one is in the init state *)
+Definition local_indicator (d : Data) :=
+  [Pred h | exists (r : nat) (l : Log), h = st :-> (d.1, CInit) \+ log :-> d.2].
+
+(* Data is just a log *)
+Definition core_state_to_data h (d : Data)  :=
+  exists T (s : T), h = st :-> (d.1, s) \+ log :-> d.2.
+
+Lemma this_in_qnodes : cn \in qnodes.
+Proof. by rewrite inE eqxx. Qed.
+
+Notation getLc s n := (getLocal n (getStatelet s lc)).
+Notation cn_agree := TwoPhaseInductiveInv.cn_log_agreement.
+
+(****************************************************************)
 (*************   Necessary properties of TPC   ******************)
 (****************************************************************)
 
+Lemma core_state_stable_step z s d s' n :
+  cn != z -> network_step (mkWorld pc) z s s' ->
+  n \in qnodes ->
+  local_indicator d (getLc s cn) ->
+  core_state_to_data (getLc s n) d  -> 
+  core_state_to_data (getLc s' n) d.
+Proof.
+move=>N S Qn L H0; case: (step_coh S)=>C1 C2.
+have R: network_rely (plab pc \\-> pc, Unit) cn s s' by exists 1, z, s'. 
+rewrite -(rely_loc' _ R) in L; case: L=>r[lg]L.
+case: C2=>V1 V2 _ D /(_ lc)/=; rewrite prEq=>/=[[C2] Inv].
+case/orP: Qn=>[|P]; first by move/eqP=>Z; subst n; exists _, CInit. 
+move: (@cn_agree lc cn pts [::] Hnin (getStatelet s' lc) d.1 d.2 n C2 L Inv P)=>H. 
+by exists _, PInit.
+Qed.
+
+(* Lemma core_data_injective h d d' : *)
+(*   valid h -> *)
+(*   core_state_to_data h d  ->  *)
+(*   core_state_to_data h d' -> *)
+(*   d = d'. *)
+(* Proof. *)
+(* case=>V [T1][t1]E1[T2][t2]E2. *)
+(* rewrite E1 in V E2. *)
+(* move: (hcancelT V E2).  *)
+
+
+(****************************************************************)
+(*************   Overall program combining the two  *************)
+(****************************************************************)
+
+(* TODO *)
 
 End QueryPlusTPC.
