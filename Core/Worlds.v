@@ -80,6 +80,9 @@ Definition hooks_consistent (c : context) (h : hooks) : Prop :=
 
 Definition hook_complete w := hooks_consistent (getc w) (geth w).
 
+Lemma hook_complete0 c : hook_complete (c, Unit).
+Proof. by move=>????; rewrite dom0 inE. Qed.
+
 Definition Coh (w : world) : Pred state := fun s =>
   let: c := fst w in
   let: h := snd w in                                           

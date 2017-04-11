@@ -385,6 +385,9 @@ move: ((coh_prec (cohS E2)) E C1 C')=>Z; subst t1.
 by rewrite (joinfK (cohS E2) E).
 Qed.
 
+
+
+
 Lemma alw_inject (p : proc this V A)
       (P : state -> proc this V A -> Prop) i j :
         i \+ j \In Coh W ->

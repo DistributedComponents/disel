@@ -67,7 +67,6 @@ Lemma eqW' :
   W = (plab pc \\-> pc, Unit) \+ ((plab pq \\-> pq, Unit) \+ (Unit, query_hookz)).
 Proof. by rewrite eqW joinA. Qed.
 
-
 Lemma injW : injects (plab pc \\-> pc, Unit) W query_hookz.
 Proof.
 rewrite eqW; apply:injectL=>//; try by move=>????/=; rewrite dom0 inE.
@@ -80,6 +79,22 @@ move=>l; rewrite um_domPt inE=>/eqP=><-.
 move=>z lc ls t; rewrite um_domPt inE=>/eqP[]_ _<-_.  
 apply/negbT; apply/eqP=>Z; subst lq; move/negbTE: Lab_neq.
 by rewrite eqxx.
+Qed.
+
+Lemma injWQ : inj_ext injW = (lq \\-> pq, Unit).
+Proof.
+move: (W_valid)=>V; move: (cohK injW).
+rewrite {1}eqW/mkWorld/= -!joinA /PCM.join/= in V.
+case/andP: V=>/=V V'.
+rewrite {1}eqW/mkWorld/= -!joinA /PCM.join/=; case=>H K.
+case: (um_cancel V H)=>_; rewrite !unitR=>_{H}H1.
+rewrite [inj_ext _]surjective_pairing -H1{H1}; congr (_, _).
+rewrite !unitL joinC/=/query_hookz/= in V' K.
+rewrite -[_ \\-> _]unitR in V'.
+have Z:  (1, plab pc, (lq, tresp)) \\-> query_hook \+ Unit =
+         (1, plab pc, (lq, tresp)) \\-> query_hook \+ (inj_ext injW).2
+  by rewrite unitR.
+by case: (um_cancel V' Z).
 Qed.
 
 Lemma prEqC : getProtocol W (plab pc) = pc.
@@ -129,7 +144,7 @@ Definition query_init_state (to : nid) s :=
       no_msg_from_to' this to request_msg (dsoup (getSq s)) &
       no_msg_from_to' to this response_msg (dsoup (getSq s))].    
 
-(* This is the serious one *)
+(* This is the first serious one. *)
 Lemma query_init_step' z to s s' :
   this != z -> query_init_state to s ->
   network_step (lq \\-> pq, Unit) z s s' -> query_init_state to s'.
@@ -159,24 +174,27 @@ case=>z[s1][N]H1 H2 H3; apply: (Hi s1 H2).
 by apply: (query_init_step' _ _ _ _ N H3 H1).
 Qed.  
 
-(* TODO: generalize this for the big world *)
-
-Lemma query_init_step z to s s' :
-  this != z -> query_init_state to s ->
-  network_step W z s s' -> query_init_state to s'.
-Proof.
-(* TODO: This should be provable our of query_init_step' *)
-
-Admitted.
-
-Lemma query_init_rely to s s' :
+(* Proving a large-footprint predicate out of a small-footprint
+predicate, spanning only the query world. *)
+(* TODO: this is a good candidate for a general lemma in the
+framework. *)
+Lemma query_init_rely to s s2 :
   query_init_state to s ->
-  network_rely W this s s' -> query_init_state to s'.
+  network_rely W this s s2 -> query_init_state to s2.
 Proof.
-move=>H1 [n]H2; elim: n s H2 H1=>/=[s | n Hi s]; first by case=>Z _; subst s'.
-case=>z[s1][N]H1 H2 H3; apply: (Hi s1 H2).
-by apply: (query_init_step _ _ _ _ N H3 H1).
-Qed.  
+move=>Q R; case:(rely_coh R)=>CD CD'.
+rewrite eqW in CD; move: (coh_hooks CD)=>{CD}CD.
+rewrite eqW in CD'; move: (coh_hooks CD')=>{CD'}CD'.
+case: (coh_split CD _ _); try apply: hook_complete0.
+move=>i1[j1][C1 D1 Z]; subst s.
+case: (coh_split CD' _ _); try apply: hook_complete0.
+move=>i2[j2][C2 D2 Z]; subst s2.
+rewrite /query_init_state in Q *.
+rewrite (locProjR CD _ D1) in Q; last by rewrite gen_domPt inE andbC eqxx.
+rewrite (locProjR CD' _ D2); last by rewrite gen_domPt inE andbC eqxx.
+case: (rely_split injW C1 C2 R)=>Rc Rq; rewrite injWQ in Rq.
+by apply: (query_init_rely' _ _ _ Q Rq).
+Qed.
 
 (***************************************************)
 (*  Query-specific intermediate predicate          *)
@@ -695,13 +713,13 @@ TODO (in arbitrary order):
 
 3. Prove quasi-inductive property "msg_story_step"
 
-4. Specify and verify the read-action for getting the fresh request id. 
+[4]. Specify and verify the read-action for getting the fresh request id. 
 
 [5]. Specify and verify receiving the response. -- done
 
 [6]. Write the full request program.
 
-7. Combine with the TPC procedure.
+[7]. Combine with the TPC procedure.
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------

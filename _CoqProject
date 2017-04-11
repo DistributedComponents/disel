@@ -32,6 +32,8 @@ Core/While.v
 Core/DiSeLExtraction.v
 Examples/SeqLib.v
 Examples/Greeter/Greeter.v
+Examples/Querying/QueryProtocol.v
+Examples/Querying/QueryHooked.v
 Examples/Calculator/CalculatorProtocol.v
 Examples/Calculator/CalculatorInvariant.v
 Examples/Calculator/CalculatorClientLib.v
@@ -47,7 +49,5 @@ Examples/TwoPhaseCommit/SimpleTPCApp.v
 Examples/TwoPhaseCommit/TwoPhaseExtraction.v
 Examples/TwoPhaseCommit/TwoPhaseInductiveInv.v
 Examples/TwoPhaseCommit/TwoPhaseInductiveProof.v 
-Examples/Querying/QueryProtocol.v
-Examples/Querying/QueryHooked.v
 Examples/Querying/QueryPlusTPC.v
 Examples/LockResource/LockProtocol.v
