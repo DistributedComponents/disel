@@ -108,6 +108,9 @@ rewrite /getProtocol/W/= findUnR; last by case/andP: W_valid.
 by rewrite um_domPt inE eqxx um_findPt.
 Qed.
 
+Lemma prEqQ' : getProtocol (lq \\-> pq, Unit) lq = pq.
+Proof. by rewrite /getProtocol um_findPt. Qed.
+
 (* Finished constructing the composite world *)
 
 Variable this : nid.
@@ -149,20 +152,49 @@ Lemma query_init_step' z to s s' :
   this != z -> query_init_state to s ->
   network_step (lq \\-> pq, Unit) z s s' -> query_init_state to s'.
 Proof.
-(* (* TODO: reuse query_init_step' *) *)
-(* move=> N H S; case: (step_coh S)=>C1 _. *)
-(* case: S; [by case=>_<- | *)
-(*   move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}| *)
-(*   move=>l rt H1 i from pf H3 C msg H2/=[H4]H5->{s'}]; *)
-(* rewrite -(cohD C) W_dom !inE in H3; *)
-(* case/orP:H3=>/eqP=>Z; subst l; *)
-(* (* Get rid of irrelevant cases: by means of a tactic *)                      *)
-(* rewrite /query_init_state/getStatelet ?findU ?(negbTE Lab_neq) ?eqxx//= (cohS C1). *)
-(* case B: (to == z); last first. *)
-(* (* rewrite /query_init_state/holds_res_perms/no_msg_from_to'/getLocal/=. *) *)
-(* (* rewrite findU B/=. *) *)
-(* (* case: H. *) *)
-(* (* - rewrite /query_init_state/holds_res_perms/no_msg_from_to'/getStatelet ?findU ?eqxx ?(negbTE Lab_neq)/=. *) *)
+move=> N H S; case: (step_coh S)=>C1 _.
+case: S; [by case=>_<- |
+  move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}|
+  move=>l rt H1 i from pf H3 C msg H2/=[H4]_->{s'}];
+rewrite -(cohD C) um_domPt inE in H3; move/eqP: H3=>H3; subst l;
+(* TODO: Get rid of irrelevant cases: by means of a tactic *)
+rewrite /query_init_state/getStatelet !findU !eqxx (cohS C1)/=;
+have Cq: coh pq (getStatelet s lq) by move: (coh_coh lq C1); rewrite /getProtocol um_findPt.
+(* Send-transitions. *)
+- case:H=>G1 G2 G3 G4.
+  move: st H1 H4 H5 H6; rewrite /get_st prEqQ'=>st H1 H4 H5 H6.
+  case B: (to == z); rewrite /holds_res_perms/getLocal findU B/=; last first.
+  + split=>//.
+    move=>m t c; rewrite findUnR ?valid_fresh ?(cohVs Cq)//; case: ifP; last by move=>_/G3.
+    rewrite um_domPt inE=>/eqP<-{m}; rewrite um_findPt; case=>_ _ Z; subst z.
+    by move/negbTE: N; rewrite eqxx.
+  + move=>m t c; rewrite findUnR ?valid_fresh ?(cohVs Cq)//; case: ifP; last by move=>_/G4.
+    rewrite um_domPt inE=>/eqP<-{m}; rewrite um_findPt; case=>_ _ Z; subst z.
+    by rewrite eqxx in B.
+  move/eqP: B=>B; subst z; split=>//; first 1 last.
+  + move=>m t c; rewrite findUnR ?valid_fresh ?(cohVs Cq)//; case: ifP; last by move=>_/G3.  
+    rewrite um_domPt inE=>/eqP<-{m}; rewrite um_findPt; case=>_ _ Z; subst to.
+    by move/negbTE: N; rewrite eqxx.
+  (* Now two interesting assertions. *)  
+  + move=>m t c; rewrite findUnR ?valid_fresh ?(cohVs Cq)//; case: ifP; last by move=>_/G4.
+    rewrite um_domPt inE=>/eqP<-{m}; rewrite um_findPt; case=>Z' Z2 Z; subst to' t c.
+    (* Consider two possible send-transitions. *)
+    case: H1;[|case=>//]; move=>Z; subst st=>//. 
+    case: (H4)=>_[C']/=[rid][d][_]; case: G2=>rq[rs][E]H.
+    by rewrite (getStK _ E)/==>/H.
+  rewrite (cohVl Cq); case: G2=>rq[rs][E]H.  
+  case: H1;[|case=>//]; move=>Z; subst st=>//; last first.
+  + case: (H4)=>_[C']/=[rid][d][H']; subst msg.
+    rewrite (getStK _ E)/==>G.
+    rewrite /=/QueryProtocol.send_step/=!(getStK _ E)/= G/= in H6; case: H6=>Z.
+    subst n; eexists rq, (seq.rem (to', rid) rs); split=>//.
+    by move=>rn; move/mem_rem; apply/H.
+    case: (H4)=>_[C']/==>Z.
+    rewrite/QueryProtocol.send_req_prec (getStK _ E) in Z; subst msg. 
+    rewrite /=/QueryProtocol.send_step/=!(getStK _ E)/= in H6; case: H6=>Z; subst n.
+    by exists ((to', fresh_id rq) :: rq), rs.
+(* Receive-transitions *)
+
 Admitted.
 
 Lemma query_init_rely' to s s' :
@@ -174,10 +206,11 @@ case=>z[s1][N]H1 H2 H3; apply: (Hi s1 H2).
 by apply: (query_init_step' _ _ _ _ N H3 H1).
 Qed.  
 
-(* Proving a large-footprint predicate out of a small-footprint
-predicate, spanning only the query world. *)
 (* TODO: this is a good candidate for a general lemma in the
 framework. *)
+
+(* Proving a large-footprint predicate out of a small-footprint
+predicate, spanning only the query world. *)
 Lemma query_init_rely to s s2 :
   query_init_state to s ->
   network_rely W this s s2 -> query_init_state to s2.
@@ -352,8 +385,6 @@ move=>H1 [n]H2; elim: n s H2 H1=>/=[s | n Hi s]; first by case=>Z _; subst s2.
 case=>z[s1][N]H1 H2 H3; apply: (Hi s1 H2).
 by apply: (msg_story_step _ _ _ _ _ _ _ _ N H3 H1).
 Qed.  
-
-
 
 
 (**************************************************************)
