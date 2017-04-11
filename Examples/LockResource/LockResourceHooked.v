@@ -240,4 +240,14 @@ by rewrite eq_sym; apply/negbTE/this_not_resource_server.
 Qed.
 
 
+(* TODO *)
+
+(* Write program to receive update response and prove postcondition that
+   guarantees update has occurred. (This will require a strengthened joint
+   coherence fact about epoch numbers. Or we could allow for failure, in which
+   case we still prove "noninterference". For that we'll still need to show that
+   all update messages in the network have strictly smaller epochs.) *)
+
+(* Prove stability lemmas. *)
+
 End LockResourceHooked.
