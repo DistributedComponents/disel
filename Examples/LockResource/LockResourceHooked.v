@@ -7,7 +7,7 @@ Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding dom
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
 Require Import Actions.
 Require Import SeqLib.
-Require Import NewStatePredicates.
+Require Import StatePredicates.
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 
 Require Import LockProtocol ResourceProtocol.
@@ -66,6 +66,13 @@ move=>z/=; rewrite domUn !inE/=; case/andP: W_valid=>->/=_.
 by rewrite !um_domPt !inE; rewrite -!(eq_sym z).
 Qed.
 
+Lemma plab_lockE : plab lock_protocol = lock_label.
+Proof. done. Qed.
+
+Lemma plab_resourceE : plab resource_protocol = resource_label.
+Proof. done. Qed.
+
+
 Lemma eqW : 
   W = (plab lock_protocol \\-> lock_protocol, Unit) \+
       (plab resource_protocol \\-> resource_protocol, Unit) \+
@@ -122,31 +129,44 @@ Definition is_update_response_msg (t : nat) (_ : seq nat) := t == R.update_respo
 
 Definition resource_init_state s :=
   [/\ no_outstanding_updates (getSR s),
-     no_msg_from_to' this resource_server is_update_msg (dsoup (getSR s)) &
-     no_msg_from_to' resource_server this is_update_response_msg (dsoup (getSR s))].
+     no_msg_from_to this resource_server (dsoup (getSR s)) &
+     no_msg_from_to resource_server this (dsoup (getSR s))].
 
 Definition lock_held e s :=
   getLL s = L.st :-> L.Held e.
 
 Definition update_just_sent e v d :=
-  [/\ msg_spec' this resource_server R.update_tag [:: e; v] (dsoup d),
+  [/\ msg_spec this resource_server R.update_tag [:: e; v] (dsoup d),
      no_outstanding_updates d &
-     no_msg_from_to' resource_server this is_update_response_msg (dsoup d)].
+     no_msg_from_to resource_server this (dsoup d)].
 
 Definition update_at_server e v d :=
-  [/\ no_msg_from_to' this resource_server is_update_msg (dsoup d),
+  [/\ no_msg_from_to this resource_server (dsoup d),
      outstanding_update e v d &
-     no_msg_from_to' resource_server this is_update_response_msg (dsoup d)].
+     no_msg_from_to resource_server this (dsoup d)].
 
 Definition update_response_sent e v d :=
-  [/\ no_msg_from_to' this resource_server is_update_msg (dsoup d),
+  [/\ no_msg_from_to this resource_server (dsoup d),
      no_outstanding_updates d &
-     exists b : nat, msg_spec' this resource_server R.update_response_tag [:: e; v; b] (dsoup d)].
+     exists b : nat, msg_spec this resource_server R.update_response_tag [:: e; v; b] (dsoup d)].
 
 Definition update_in_flight e v d :=
   [\/ update_just_sent e v d,
      update_at_server e v d |
      update_response_sent e v d].
+
+(* Stability Lemmas *)
+Lemma resource_init_state_rely s1 s2 :
+  network_rely W this s1 s2 ->
+  resource_init_state s1 ->
+  resource_init_state s2.
+Admitted.
+
+Lemma update_in_flight_rely e v s1 s2 :
+  network_rely W this s1 s2 ->
+  update_in_flight e v (getSR s1) ->
+  update_in_flight e v (getSR s2).
+Admitted.
 
 (* Resource Programs *)
 
@@ -158,6 +178,15 @@ Program Definition send_update_act e v :=
         resource_server).
 Next Obligation.
 by rewrite !InE; right; right; left.
+Qed.
+
+Lemma this_not_resource_server :
+  resource_server != this.
+Proof.
+  case X: (resource_server == this)=>//.
+  move/eqP in X.
+  move: (this_in_resource_clients) (resource_server_not_client).
+  rewrite X=>H. by rewrite H.
 Qed.
 
 Program Definition send_update e v :
@@ -182,7 +211,33 @@ apply: act_rule=>s1 Rely01; split=>//=.
   by rewrite (rely_loc' _ Rely01); exists e.
 
 (* postcondition: *)
-admit.
-Admitted.
+move=>m s2 s3 [Safe] Step Rely23 _.
+have Held2: lock_held e s2.
+- move: Held0.
+  rewrite /lock_held -(rely_loc' _ Rely01).
+  case: Step=>_ [h'][]_ s2def.
+  by rewrite s2def /getStatelet findU/= (negbTE lock_resource_label_neq).
+split; last first.
+- by move: Held2; rewrite /lock_held (rely_loc' _ Rely23).
+apply/(update_in_flight_rely _ _ s2 s3)=>//.
+constructor 1.
+move: (resource_init_state_rely _ _ Rely01 Init0).
+rewrite /update_just_sent/resource_init_state=>-[]Out1 From1 To1.
+case: Step=>_[] h' [] _ s2def.
+have C1 := (rely_coh Rely01).2.
+have CR1 := (coh_coh resource_label C1).
+rewrite s2def /getStatelet findU eqxx/= (cohS C1) /= getsE;
+    last by rewrite -(cohD C1) W_dom !inE/= eqxx orbC.
+split.
+- apply /msg_specE=>//.
+  by apply /(cohVs CR1).
+- move: Out1.
+  rewrite /no_outstanding_updates/resource_perms.
+  by rewrite /getLocal/= findU (negbTE this_not_resource_server).
+apply /no_msg_from_toE'=>//.
+by apply /(cohVs CR1).
+by rewrite eq_sym; apply/negbTE/this_not_resource_server.
+Qed.
+
 
 End LockResourceHooked.
