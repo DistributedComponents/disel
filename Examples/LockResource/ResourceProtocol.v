@@ -566,6 +566,8 @@ Section Exports.
 
 Definition ResourceProtocol := ResourceProtocol.
 
+Canonical request_eqType := request_eqType.
+
 End Exports.
 End Exports.
 

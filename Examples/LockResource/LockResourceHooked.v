@@ -89,4 +89,62 @@ apply/negbT; apply/eqP=>/=Z. move/negbTE: lock_resource_label_neq.
 by rewrite Z eqxx.
 Qed.
 
+Lemma W_resource_protocol : getProtocol W resource_label = resource_protocol.
+Proof.
+  rewrite /getProtocol/W/= findUnR; last by case/andP: W_valid.
+  by rewrite um_domPt inE eqxx um_findPt.
+Qed.
+
+Variable this : nid.
+Hypothesis this_in_lock_clients: this \in lock_clients.
+Hypothesis this_in_resource_clients: this \in resource_clients.
+
+Notation getSL s := (getStatelet s (plab lock_protocol)).
+Notation getLL s := (getLocal this (getSL s)).
+
+Notation getSR s := (getStatelet s (plab resource_protocol)).
+Notation getLR s := (getLocal resource_server (getSR s)).
+
+Definition resource_perms d (p : seq R.request -> Prop) :=
+  exists s : R.server_state,
+    getLocal resource_server d = R.st :-> s /\
+    p (R.outstanding s).
+
+Definition no_outstanding_updates d :=
+  resource_perms d (fun out => forall n e v, R.Update (n, e, v) \in out -> n != this).
+
+Definition outstanding_update e v d :=
+  resource_perms d (fun out => (forall e' v', R.Update (this, e', v') \in out -> e' = e /\ v' = v) /\
+                            count_mem (R.Update (this, e, v)) out = 1).
+
+Definition is_update_msg (t : nat) (_ : seq nat) := t == R.update_tag.
+Definition is_update_response_msg (t : nat) (_ : seq nat) := t == R.update_response_tag.
+
+Definition resource_init_state s :=
+  [/\ no_outstanding_updates (getSR s),
+     no_msg_from_to' this resource_server is_update_msg (dsoup (getSR s)) &
+     no_msg_from_to' resource_server this is_update_response_msg (dsoup (getSR s))].
+
+Definition lock_held e s :=
+  getLL s = L.st :-> L.Held e.
+
+Definition update_just_sent e v d :=
+  [/\ msg_spec' this resource_server R.update_tag [:: e; v] (dsoup d),
+     no_outstanding_updates d &
+     no_msg_from_to' resource_server this is_update_response_msg (dsoup d)].
+
+Definition update_at_server e v d :=
+  [/\ no_msg_from_to' this resource_server is_update_msg (dsoup d),
+     outstanding_update e v d &
+     no_msg_from_to' resource_server this is_update_response_msg (dsoup d)].
+
+Definition update_response_sent e v d :=
+  [/\ no_msg_from_to' this resource_server is_update_msg (dsoup d),
+     no_outstanding_updates d &
+     exists b : nat, msg_spec' this resource_server R.update_response_tag [:: e; v; b] (dsoup d)].
+
+Definition update_in_flight e v d :=
+  [\/ update_just_sent e v d,
+     update_at_server e v d |
+     update_response_sent e v d].
 End LockResourceHooked.
