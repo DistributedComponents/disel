@@ -81,6 +81,18 @@ apply/negbT; apply/eqP=>Z; subst lq; move/negbTE: Lab_neq.
 by rewrite eqxx.
 Qed.
 
+Lemma labC : plab pc \in dom W.1.
+Proof.
+case/andP: W_valid=>V1 V2.
+by rewrite domUn !inE V1/= um_domPt inE eqxx.
+Qed.
+
+Lemma labQ : lq \in dom W.1.
+Proof.
+case/andP: W_valid=>V1 V2.
+by rewrite domUn !inE V1/= !um_domPt !inE eqxx orbC.
+Qed.
+
 Lemma injWQ : inj_ext injW = (lq \\-> pq, Unit).
 Proof.
 move: (W_valid)=>V; move: (cohK injW).
@@ -357,48 +369,100 @@ Definition msg_story s req_num to data reqs resp :=
       msg_responded d reqs resp req_num to data]].
 
 (* This lemma employs hooking -= it's better hold!.. :-s *)
+Lemma msg_story_step' req_num data reqs resp to s s' :
+  this != to ->
+  msg_story s req_num to data reqs resp ->
+  network_step W to s s' ->
+  msg_story s' req_num to data reqs resp.
+Proof.
+move=> N H S; case: H=> Qn H L M; split=>//.
+- apply: (core_state_stable s data s')=>//.
+  by exists 1, to, s'; split=>//=; split=>//; case/step_coh: S.
+- suff R : (network_rely W this s s') by rewrite -(rely_loc' _ R) in L.
+  by exists 1, to, s'; split=>//=; split=>//; case/step_coh: S.
+case: S; [by case=>_<- |
+  move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}|
+  move=>l rt H1 i from pf H3 C msg H2/=[H4]_->{s'}];
+  rewrite -(cohD C) domUn !inE !um_domPt !inE in H3;
+  case/andP:H3=>_ H3; case/orP: H3=>/eqP H3; subst l; first 1 last.
+
+(* Something sending in lq, this is where the interesting stuff happens! *)
+- move: st H1 H4 H5 H6; rewrite /get_st prEqQ=>st H1 H4 H5 H6.
+  case: M; first 1 last.
+  + (* now he can send us the message, this is the crucial step. *)
+    case=>G1 G2 G3 G4 [rq][rs][E]Np.
+    case B : (to' == this);
+      (* boring case : sending to someone else*) last by admit. 
+    move/eqP:B=>B; subst to'.
+    case: H1;[|case=>//]; move=>Z; subst st=>//; simpl in H5, H6.
+    - (* sending request (not response) -- this is boring *) admit.
+    (* Sending response to us!!! *)                                          
+    case: (H4)=>_[C']/=[rid][d][Zm]Tr; subst msg.
+    rewrite  (getStK _ E)/= in Tr.
+    rewrite /QueryProtocol.send_step (getStK _ E) in H6.                                          
+    case: H6=>H6; subst n; rewrite Tr.
+    constructor 3.
+    (* Now exploit the hook! *)
+    move: (H5 1 (plab pc) query_hook); rewrite um_findPt -!(cohD C).
+    move/(_ (erefl _) labC labQ data H)=>[rid'][]Z Ed; subst rid'.
+    split=>//; first 3 last.
+    + rewrite /getStatelet findU eqxx(cohS C)/=.
+      exists (rq), (seq.rem (this, rid) rs).
+      rewrite /getLocal findU eqxx/= (cohVl C'); split=>// rn R.
+      move/Np/eqP: (mem_rem R)=>Zr; subst rn.
+      move/Np:Tr=>/eqP=>Zr; subst rid.
+      case: (C')=>_ _ _/(_ to); rewrite E (cohDom C')=>/(_ Qn). 
+      case=>[[x1 x2]][]/(hcancelPtV _); rewrite hvalidPt/==>/(_ is_true_true).
+      case=>Z1 Z2; subst x1 x2=>/andP[_]G.
+      by rewrite (rem_filter (this, req_num) G) mem_filter/= eqxx/= in R.
+    + by rewrite /getStatelet findU eqxx(cohS C)/getLocal findU (negbTE N). 
+    + rewrite /getStatelet findU eqxx (cohS C)/==>z t c.
+      rewrite findUnR ?(valid_fresh) ?(cohVs C')//.
+      case: ifP=>[|_]; last by apply: G3.
+      by rewrite um_domPt inE=>/eqP<-{z}; rewrite um_findPt; case=><-.
+    (* Here's the big hooking moment *)  
+      split=>[|i m]; rewrite Ed in H4 H5 *; clear Ed d;
+      rewrite /getStatelet findU eqxx/= (cohS C)/=; last first.
+    + rewrite findUnR ?(valid_fresh) ?(cohVs C')//; case: ifP=>[|_]; last by move/G4. 
+      rewrite um_domPt inE=>/eqP<-; rewrite um_findPt; case=><-.
+      by move/Np/eqP: Tr=>->; rewrite eqxx.
+    exists (fresh (dsoup (getStatelet s lq))); split.
+    + exists (rid :: serialize data).
+      by rewrite findUnR ?(valid_fresh)?(cohVs C')// um_domPt inE eqxx um_findPt.
+    move=>i[c]; rewrite findUnR ?(valid_fresh)?(cohVs C')//.
+    case: ifP=>[|_]; last by move/G4. 
+    by rewrite um_domPt inE=>/eqP<-; rewrite um_findPt. 
+
+(***********************************************************************)
+    
+  + (* already responded to our request, should be boring *) admit.
+  + (* not yet received our request, should be boring *) admit.
+
+  (* Something sending in lc, should be irrelevant. *)
+- admit.
+  
+(* Something is receiving in lc, should be irrelevant. *)
+- admit.
+
+(* Something receiving in lq, requires proving. *)
+- admit.
+
+Admitted.
+
 Lemma msg_story_step req_num to data reqs resp z s s' :
   this != z ->
   msg_story s req_num to data reqs resp ->
   network_step W z s s' ->
   msg_story s' req_num to data reqs resp.
 Proof.
-move=> N H S; split=>//; first by case H.
-- case: H=> Qn H L _; apply: (core_state_stable s data s')=>//.
+case A: (to == z); first by move/eqP: A=>A; subst to; apply: msg_story_step'.
+move=> N H S; case: H=> Qn H L M; split=>//.
+- apply: (core_state_stable s data s')=>//.
   by exists 1, z, s'; split=>//=; split=>//; case/step_coh: S.
-
+- suff R : (network_rely W this s s') by rewrite -(rely_loc' _ R) in L.
+  by exists 1, z, s'; split=>//=; split=>//; case/step_coh: S.
+(* TODO: prove for the case when it's *not( our responder is stepping. *)
 Admitted.
-
-(* - case: H=>H _; apply: (core_state_stable s data s')=>//. *)
-(*   by exists 1, z, s'; split=>//=; split=>//; case/step_coh: S.  *)
-(* TODO: figure out how not to consider transitions in other worlds *)
-(* case: S; [by case=>_<-; case: H| *)
-(*  move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}| *)
-(*  move=>l rt H1 i from pf H3 C msg H2/=[H4]H5->{s'}]; *)
-(*  rewrite -(cohD C) W_dom !inE in H3; *)
-(*  case/orP:H3=>/eqP=>Z; subst l; *)
-(*  try by rewrite /getStatelet findU (negbTE Lab_neq)/=; case: H.  *)
-(* Okay, now let's deal with interesting cases... *)
-
-(* It's a send-transition *)
-(* set d := getStatelet s lq; move: prEqQ st H1 H2 H4 H5 H6. *)
-(* rewrite /get_st=>-> st H1/= H2 H4 H5 H6. *)
-(* rewrite /getStatelet findU eqxx/= (cohS C)/=. *)
-(* case: H1; [move|case=>//]; move=>Z; subst st. *)
-(* - admit. (* Boring transition *) *)
-(* - case B: ((z == to) && (to' == this)). *)
-(*   case/andP:B=>/eqP Z/eqP Z'; subst z to'. *)
-(*   case: H=>G1 G2. *)
-(*   case:G2; [by admit | | by admit]. *)
-(*   rewrite /all_hooks_fire/query_hookz/query_hook in H5.  *)
-(* admit. *)
-(* admit. *)
-(* (* It's a receive-transition *) *)
-(* set d := getStatelet s lq. *)
-(* move: prEqQ (coh_s lq C) rt pf H1 H2 H4 H5. *)
-(* rewrite /get_rt=>-> Cq rt pf H1 H2 H4 H5. *)
-(* rewrite /getStatelet findU eqxx/= (cohS C)/=. *)
-(* case: H1; [move|case=>//]; move=>Z; subst rt. *)
 
 Lemma msg_story_rely req_num to data reqs resp s s2 :
   msg_story s req_num to data reqs resp ->
