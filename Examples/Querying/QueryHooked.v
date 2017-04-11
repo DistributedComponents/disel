@@ -159,7 +159,7 @@ case: S; [by case=>_<- |
 rewrite -(cohD C) um_domPt inE in H3; move/eqP: H3=>H3; subst l;
 (* TODO: Get rid of irrelevant cases: by means of a tactic *)
 rewrite /query_init_state/getStatelet !findU !eqxx (cohS C1)/=;
-have Cq: coh pq (getStatelet s lq) by move: (coh_coh lq C1); rewrite /getProtocol um_findPt;
+have Cq: coh pq (getStatelet s lq) by move: (coh_coh lq C1); rewrite /getProtocol um_findPt.
 (* Send-transitions. *)
 - case:H=>G1 G2 G3 G4.
   move: st H1 H4 H5 H6; rewrite /get_st prEqQ'=>st H1 H4 H5 H6.
@@ -343,24 +343,32 @@ case B' : (z == y); [move/eqP: B'=>B' | move/negbT: B'=>B'].
 by rewrite /getLocal -(step_is_local (plab pc) G1 B').
 Qed.
 
+
 (***********************************************************)
 (* A rely-inductive predicate describing the message story *)
 (***********************************************************)
 Definition msg_story s req_num to data reqs resp :=
-  [/\ core_state_to_data (getLc' s to) data,
+  [/\ to \in qnodes,
+     core_state_to_data (getLc' s to) data,
      local_indicator data (getLc s) & 
      let: d := getSq s in
      [\/ msg_just_sent d reqs resp req_num to,
       msg_received d reqs resp req_num to |
       msg_responded d reqs resp req_num to data]].
 
+(* This lemma employs hooking -= it's better hold!.. :-s *)
 Lemma msg_story_step req_num to data reqs resp z s s' :
   this != z ->
   msg_story s req_num to data reqs resp ->
   network_step W z s s' ->
   msg_story s' req_num to data reqs resp.
 Proof.
-move=> N H S; split=>//.
+move=> N H S; split=>//; first by case H.
+- case: H=> Qn H L _; apply: (core_state_stable s data s')=>//.
+  by exists 1, z, s'; split=>//=; split=>//; case/step_coh: S.
+
+Admitted.
+
 (* - case: H=>H _; apply: (core_state_stable s data s')=>//. *)
 (*   by exists 1, z, s'; split=>//=; split=>//; case/step_coh: S.  *)
 (* TODO: figure out how not to consider transitions in other worlds *)
@@ -391,8 +399,6 @@ move=> N H S; split=>//.
 (* rewrite /get_rt=>-> Cq rt pf H1 H2 H4 H5. *)
 (* rewrite /getStatelet findU eqxx/= (cohS C)/=. *)
 (* case: H1; [move|case=>//]; move=>Z; subst rt. *)
-
-Admitted.
 
 Lemma msg_story_rely req_num to data reqs resp s s2 :
   msg_story s req_num to data reqs resp ->
@@ -650,7 +656,7 @@ suff X : [/\ getLocal this (getStatelet i2 lq) = qst :-> (reqs, resp),
           deserialize (behead tms) = data].
 - case: X=>X1 X2 X3 X4; split=>//.
   by apply: (query_init_rely _ _ _ _ R3); apply: (query_init_rely _ _ _ _ R).
-- case: d G0 H0=>//=_[_ H2][H3]_ _; case: X3=>Nq _ _ _.
+- case: d G0 H0=>//=_[_ H2][_] H3 _ _; case: X3=>Nq _ _ _.
   move: (X2); rewrite -(rely_loc' _ R)=>X3.
   apply: (core_state_stable _ _ _ _ R3 Nq X3).  
   apply: (core_state_stable _ _ _ _ R Nq X2).  
@@ -666,7 +672,7 @@ have P3: lq \in dom i1.
   by case/andP: W_valid.
 clear Hin R1 C0 i0 i3 Hw. 
 (* Consider different cases for msg_story. *)
-case: Q3=>Q3 Q4 [].
+case: Q3=>_ Q3 Q4 [].
 (* Now dismiss two first disjuncts. *)
 - case=>_/(_ mid (tag tms) (tms_cont tms)); rewrite -E.
   by case: (tms)E2=>t c/=E2=>/(_ (erefl _))/=; subst t. 
