@@ -112,6 +112,8 @@ Notation getLL s := (getLocal this (getSL s)).
 Notation getSR s := (getStatelet s (plab resource_protocol)).
 Notation getLR s := (getLocal resource_server (getSR s)).
 
+(* Intermediate Assertions *)
+
 Definition resource_perms d (p : seq R.request -> Prop) :=
   exists s : R.server_state,
     getLocal resource_server d = R.st :-> s /\
@@ -239,15 +241,23 @@ by apply /(cohVs CR1).
 by rewrite eq_sym; apply/negbTE/this_not_resource_server.
 Qed.
 
-
 (* TODO *)
 
 (* Write program to receive update response and prove postcondition that
-   guarantees update has occurred. (This will require a strengthened joint
-   coherence fact about epoch numbers. Or we could allow for failure, in which
-   case we still prove "noninterference". For that we'll still need to show that
-   all update messages in the network have strictly smaller epochs.) *)
+   guarantees update has occurred. *)
+
+(* That postcondition will require a strengthened joint coherence fact about
+   epoch numbers toprove "noninterference", namely that that all update messages
+   in the network have strictly smaller epochs than the lock server. *)
+
+(* That postcondition will also require strengthening `update_response_sent` to
+   assert that the update actually occurred. *)
 
 (* Prove stability lemmas. *)
+
+(* The stability of (the strengthened) `update_response_sent` will require a
+   nontrivial coherence fact about the lock protocol, basically amounting to
+   mutual exclusion and stability of the server's state when a client holds the
+   lock. *)
 
 End LockResourceHooked.
