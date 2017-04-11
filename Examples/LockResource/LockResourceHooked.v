@@ -147,4 +147,42 @@ Definition update_in_flight e v d :=
   [\/ update_just_sent e v d,
      update_at_server e v d |
      update_response_sent e v d].
+
+(* Resource Programs *)
+
+Program Definition send_update_act e v :=
+  act (@send_action_wrapper W resource_protocol this resource_label W_resource_protocol
+        (R.client_send_update_trans resource_server_not_client)
+        _
+        [:: e; v]
+        resource_server).
+Next Obligation.
+by rewrite !InE; right; right; left.
+Qed.
+
+Program Definition send_update e v :
+  DHT [this, W]
+    (fun i => resource_init_state i /\ lock_held e i,
+     fun r m => update_in_flight e v (getSR m) /\ lock_held e m)
+  := Do (send_update_act e v).
+Next Obligation.
+move=>s0/=[Init0][Held0].
+apply: act_rule=>s1 Rely01; split=>//=.
+(* precondition: *)
+- rewrite /Actions.send_act_safe/=.
+  move/rely_coh: (Rely01)=> [_ C1].
+  move: (coh_coh resource_label C1); rewrite W_resource_protocol=> Cr1.
+  split=>//; [split=>//; try by case: Init0 | | ].
+  + by rewrite /R.client_send_update_prec; eexists _, _.
+  + apply/andP; split=>//=; first by rewrite -(cohD C1) W_dom !inE eqxx orbC.
+    by rewrite inE this_in_resource_clients orbC.
+  (* now show hook fires: *)
+  move=>z lc hk; rewrite find_um_filt eqxx /resource_hooks /= =>/sym.
+  move/um_findPt_inv=>[][]??? _ _; subst z lc hk.
+  by rewrite (rely_loc' _ Rely01); exists e.
+
+(* postcondition: *)
+admit.
+Admitted.
+
 End LockResourceHooked.
