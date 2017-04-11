@@ -42,7 +42,7 @@ Hypothesis ds_inverse : left_inverse serialize deserialize.
 
 (* This one is in the init state *)
 Definition local_indicator (d : Data) :=
-  [Pred h | exists (r : nat) (l : Log), h = st :-> (d.1, CInit) \+ log :-> d.2].
+  [Pred h | h = st :-> (d.1, CInit) \+ log :-> d.2].
 
 (* Data is just a log *)
 Definition core_state_to_data h (d : Data)  :=
@@ -67,13 +67,14 @@ Lemma core_state_stable_step z s d s' n :
 Proof.
 move=>N S Qn L H0; case: (step_coh S)=>C1 C2.
 have R: network_rely (plab pc \\-> pc, Unit) cn s s' by exists 1, z, s'. 
-rewrite -(rely_loc' _ R) in L; case: L=>r[lg]L.
+rewrite -(rely_loc' _ R) in L.
 case: C2=>V1 V2 _ D /(_ lc)/=; rewrite prEq=>/=[[C2] Inv].
 case/orP: Qn=>[|P]; first by move/eqP=>Z; subst n; exists _, CInit. 
 move: (@cn_agree lc cn pts [::] Hnin (getStatelet s' lc) d.1 d.2 n C2 L Inv P)=>H. 
 by exists _, PInit.
 Qed.
 
+        
 (* Lemma core_data_injective h d d' : *)
 (*   valid h -> *)
 (*   core_state_to_data h d  ->  *)
@@ -89,24 +90,146 @@ Qed.
 (* Composite world *)
 Definition W := QueryHooked.W lq pc Data qnodes serialize core_state_to_data.
 
+Notation loc_qry s := (getLocal cn (getStatelet s lq)).
+Notation loc_tpc' s n := (getLocal n (getStatelet s lc)).
+Notation loc_tpc s := (loc_tpc' s cn).
+Notation qry_init := (query_init_state lq Data qnodes serialize cn).
+
+Lemma hook_complete0 c : hook_complete (c, Unit).
+Proof. by move=>????; rewrite dom0 inE. Qed.
+
+Lemma loc_imp_core s d n :
+  Coh W s -> n \in qnodes -> local_indicator d (loc_tpc s) ->
+  core_state_to_data (loc_tpc' s n) d.
+Proof.
+move=>C Nq E.
+case/orP: Nq=>[|P]; first by move/eqP=>z; subst n; exists _, CInit. 
+case: (C)=>_ _ _ _/(_ lc); rewrite prEqC//=; case=> C2 Inv.
+move: (@cn_agree lc cn pts [::] Hnin (getStatelet s lc) d.1 d.2 n C2 E Inv P)=>->.
+by eexists _, _.
+Qed.
+
+Lemma find_empty l i : l \notin dom i -> getStatelet i l = empty_dstatelet.
+Proof. by rewrite /getStatelet; case: dom_find=>//->. Qed.
+       
+
 Definition cn_request_log :=
   request_data_program _ pc _ _ _ _ ds_inverse _ Lab_neq _ cn_in_qnodes
-                       local_indicator core_state_stable_step.
+                       local_indicator core_state_stable_step (0, [::]).
 
 (* Coordinator loop *)
 Definition coordinator ds :=
-  coordinator_loop_zero lc cn pts [::] Hnin Puniq PtsNonEmpty ds.
+  with_inv (TwoPhaseInductiveProof.ii _ _ _)
+           (coordinator_loop_zero lc cn pts [::] Hnin Puniq PtsNonEmpty ds).
 
-(* TODO: finish this *)
-
-
+  
 (****************************************************************)
 (*************   Overall program combining the two  *************)
 (****************************************************************)
 
-Program Definition 
+(* The following program first initiates a series  of TPC rounds as a *)
+(* coordinator, and then, on behalf of the coordinator queries a *)
+(* particular pariticipant via the side protocol for querying. The *)
+(* goal is to show that the resul obtained from querying is coherent *)
+(* with respect to coordinator's state. *)
 
+Program Definition coordinate_and_query (ds : seq data) to :
+  {rr : seq (nid * nat) * seq (nid * nat)}, DHT [cn, W]
+  (fun i =>
+      let: (reqs, resp) := rr in 
+     [/\ loc_tpc i = st :-> (0, CInit) \+ log :-> ([::] : seq (bool * data)),
+        to \in qnodes,
+        loc_qry i = qst :-> (reqs, resp) &
+        qry_init to i],
+   fun (res : Data) m =>
+     let: (reqs, resp) := rr in
+     exists (chs : seq bool),
+       let: d := (size ds, seq.zip chs ds) in
+       [/\ loc_tpc m = st :-> (d.1, CInit) \+ log :-> d.2,
+        loc_qry m = qst :-> (reqs, resp),
+        qry_init to m &
+        res = d]) 
+  := Do _ (
+      iinject (coordinator ds);;    
+      cn_request_log to).
 
-(* TODO *)
+Next Obligation.
+by exact : (query_hookz lq pc Data qnodes serialize core_state_to_data).
+Defined.
+
+Next Obligation. by apply: injW. Defined.
+Next Obligation.
+apply:ghC=>i0[rq rs][P1 P2 P3 P4]C0; apply: step.
+(*Preparing to split the state. *)
+move: (C0)=>CD0; rewrite /W eqW in CD0; move: (coh_hooks CD0)=>{CD0}CD0.
+case: (coh_split CD0 (hook_complete0 _) (hook_complete0 _))=>i1[j1][C1 D1 Z]; subst i0.
+apply: inject_rule=>//.
+have E : loc_tpc (i1 \+ j1) = loc_tpc i1 by rewrite (locProjL CD0 _ C1)// gen_domPt inE andbC eqxx.
+rewrite E{E} in P1.
+apply: with_inv_rule'. 
+apply: call_rule=>//_ i2 [chs]L2 C2 Inv j2 CD2/= R.
+(* Massaging the complementary state *)
+have E : loc_qry (i1 \+ j1) = loc_qry j1 by rewrite (locProjR CD0 _ D1)// gen_domPt inE andbC eqxx.
+rewrite E {E} -(rely_loc' _ R) in P3.
+case: (rely_coh R)=>_ D2.
+rewrite /W eqW in CD2; move: (coh_hooks CD2)=>{CD2}CD2.
+rewrite /mkWorld/= in C2.
+have C2': i2 \In Coh (plab pc \\-> pc, Unit).
+- split=>//=.
+  + by rewrite /valid/= valid_unit um_validPt.
+  + by apply: (cohS C2).
+  + by apply: hook_complete0.  
+  + by move=>z; rewrite -(cohD C2) !um_domPt.
+  move=>l; case B: (lc == l).
+  + move/eqP:B=>B; subst l; rewrite /getProtocol um_findPt; split=>//.
+    by move: (coh_coh lc C2); rewrite /getProtocol um_findPt.
+  have X: l \notin dom i2 by rewrite -(cohD C2) um_domPt inE; move/negbT: B.
+  rewrite /getProtocol/= (find_empty _ _ X).
+  have Y: l \notin dom (lc \\-> pc) by rewrite um_domPt inE; move/negbT: B.
+  by case: dom_find Y=>//->_. 
+have D2': j2 \In Coh (lq \\-> pq lq Data qnodes serialize, Unit)
+    by apply: (cohUnKR CD2 _ (hook_complete0 _)).
+
+rewrite -(locProjL CD2 _ C2') in L2; last by rewrite um_domPt inE eqxx.
+rewrite -(locProjR CD2 _ D2') in P3; last by rewrite um_domPt inE eqxx.
+clear C2 D2.
+
+(* Exploiting injection for proving the Rely-property *)
+have X: inj_ext (coordinate_and_query_obligation_3 ds to) =
+        (lq \\-> pq lq Data qnodes serialize, Unit).
+- move: (W_valid lq pc Data qnodes serialize core_state_to_data Lab_neq)=>V.
+  move: (cohK (coordinate_and_query_obligation_3 ds to)).
+  rewrite {1}eqW/mkWorld/=/pc/=/TwoPhaseInductiveProof.tpc_with_inv -!joinA /PCM.join/= in V.
+  case/andP: V=>/=V V'.
+  rewrite {1}eqW/mkWorld/=/pc/=/TwoPhaseInductiveProof.tpc_with_inv -!joinA /PCM.join/=; case=>H K.
+  case: (um_cancel V H)=>_; rewrite !unitR=>_{H}H1.
+  rewrite [inj_ext _]surjective_pairing -H1{H1}; congr (_, _).
+  rewrite !unitL joinC/=/coordinate_and_query_obligation_2/query_hookz/= in V' K.
+  rewrite -[_ \\-> _]unitR in V'.
+  have Z:  (1, lc, (lq, tresp)) \\-> query_hook Data serialize core_state_to_data \+ Unit =
+      (1, lc, (lq, tresp)) \\-> query_hook Data serialize core_state_to_data \+
+      (inj_ext (coordinate_and_query_obligation_3 ds to)).2 by rewrite unitR.
+  by case: (um_cancel V' Z).
+
+(* So what's important is for the precondition ofattachment to be *)
+(* independent of the core protocol. *)  
+rewrite X in R.
+rewrite /query_init_state/= in P4.
+rewrite (locProjR CD0 _ D1) in P4; last by rewrite um_domPt inE eqxx.
+have Q4: qry_init to j2.
+- by apply: (query_init_rely' _ pc _ _ _ _ ds_inverse
+                              core_state_to_data Lab_neq cn cn_in_qnodes _ _ _ P4 R).
+clear P4.
+rewrite /query_init_state/= -(locProjR CD2 _ D2') in Q4; last by rewrite um_domPt inE eqxx.
+
+(* Now ready to use the spec for querying. *)
+apply (gh_ex (g:=(rq, rs, (size ds, seq.zip chs ds)))).
+apply: call_rule=>//=; last by move=>d m[->->T1 T2->]_; eexists _. 
+move=>CD2'; split=>//.
+case/orP: P2=>[|P]; first by move/eqP=>Z; subst to; exists _, CInit. 
+exists _, PInit; rewrite !(locProjL CD2 _ C2') in L2 *; last by rewrite um_domPt inE eqxx.
+move: (coh_coh lc C2'); rewrite prEq; case=>C3 _.
+by apply: (@cn_agree lc cn pts [::] Hnin _ _ _ to C3 _ Inv).
+Qed.
 
 End QueryPlusTPC.

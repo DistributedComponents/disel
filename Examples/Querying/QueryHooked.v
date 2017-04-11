@@ -129,23 +129,44 @@ Definition query_init_state (to : nid) s :=
       no_msg_from_to' this to request_msg (dsoup (getSq s)) &
       no_msg_from_to' to this response_msg (dsoup (getSq s))].    
 
+(* This is the serious one *)
+Lemma query_init_step' z to s s' :
+  this != z -> query_init_state to s ->
+  network_step (lq \\-> pq, Unit) z s s' -> query_init_state to s'.
+Proof.
+(* (* TODO: reuse query_init_step' *) *)
+(* move=> N H S; case: (step_coh S)=>C1 _. *)
+(* case: S; [by case=>_<- | *)
+(*   move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}| *)
+(*   move=>l rt H1 i from pf H3 C msg H2/=[H4]H5->{s'}]; *)
+(* rewrite -(cohD C) W_dom !inE in H3; *)
+(* case/orP:H3=>/eqP=>Z; subst l; *)
+(* (* Get rid of irrelevant cases: by means of a tactic *)                      *)
+(* rewrite /query_init_state/getStatelet ?findU ?(negbTE Lab_neq) ?eqxx//= (cohS C1). *)
+(* case B: (to == z); last first. *)
+(* (* rewrite /query_init_state/holds_res_perms/no_msg_from_to'/getLocal/=. *) *)
+(* (* rewrite findU B/=. *) *)
+(* (* case: H. *) *)
+(* (* - rewrite /query_init_state/holds_res_perms/no_msg_from_to'/getStatelet ?findU ?eqxx ?(negbTE Lab_neq)/=. *) *)
+Admitted.
+
+Lemma query_init_rely' to s s' :
+  query_init_state to s ->
+  network_rely (lq \\-> pq, Unit) this s s' -> query_init_state to s'.
+Proof.
+move=>H1 [n]H2; elim: n s H2 H1=>/=[s | n Hi s]; first by case=>Z _; subst s'.
+case=>z[s1][N]H1 H2 H3; apply: (Hi s1 H2).
+by apply: (query_init_step' _ _ _ _ N H3 H1).
+Qed.  
+
+(* TODO: generalize this for the big world *)
+
 Lemma query_init_step z to s s' :
   this != z -> query_init_state to s ->
   network_step W z s s' -> query_init_state to s'.
 Proof.
-move=> N H S; case: (step_coh S)=>C1 _.
-case: S; [by case=>_<- |
-  move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}|
-  move=>l rt H1 i from pf H3 C msg H2/=[H4]H5->{s'}];
-rewrite -(cohD C) W_dom !inE in H3;
-case/orP:H3=>/eqP=>Z; subst l;
-(* Get rid of irrelevant cases: by means of a tactic *)                     
-rewrite /query_init_state/getStatelet ?findU ?(negbTE Lab_neq) ?eqxx//= (cohS C1).
-case B: (to == z); last first.
-(* rewrite /query_init_state/holds_res_perms/no_msg_from_to'/getLocal/=. *)
-(* rewrite findU B/=. *)
-(* case: H. *)
-(* - rewrite /query_init_state/holds_res_perms/no_msg_from_to'/getStatelet ?findU ?eqxx ?(negbTE Lab_neq)/=. *)
+(* TODO: This should be provable our of query_init_step' *)
+
 Admitted.
 
 Lemma query_init_rely to s s' :
@@ -626,6 +647,8 @@ Qed.
 (*********           Full request program            *************)
 (*****************************************************************)
 
+Variable default_data : Data.
+
 Program Definition request_data_program to :
   {rrd : seq (nid * nat) * seq (nid * nat) * Data}, DHT [this, W]
    (fun i =>
@@ -636,23 +659,28 @@ Program Definition request_data_program to :
        core_state_to_data (getLc' i to) data],
     fun res m =>
       let: (reqs, resp, data) := rrd in
-      exists d, res = Some d /\
       [/\ getLq m = qst :-> (reqs, resp),
        local_indicator data (getLc m),
        query_init_state to m,
        core_state_to_data (getLc' m to) data &
-       d = data]) :=
+       res = data]) :=
   Do _ (
      rid <-- read_request_id to;
      send_req_act rid to;;
-     receive_resp_loop rid to).
+     r <-- receive_resp_loop rid to;
+     ret _ _ (if r is Some d then d else default_data) 
+     ).
 Next Obligation.
 apply:ghC=>i1[[reqs resp] d][L1 I1 M1 S1] C1.
 apply: step; apply: (gh_ex (g:=(reqs, resp, d))).
 apply: call_rule=>//r i2[P1 P2 P3 P4->{r}] C2.
 apply: step; apply: (gh_ex (g:=(reqs, resp, d))).
-apply: call_rule=>//r i3[Q1 Q2 _ Q3 Q4]C3.
-by apply: (gh_ex (g:=(reqs, resp, d))); apply: call_rule.
+apply: call_rule=>//_ i3[Q1 Q2 _ Q3 Q4]C3.
+apply: step; apply: (gh_ex (g:=(reqs, resp, d))).
+apply: call_rule=>//? i4[d'][->][T1] T2 T3 T4->{d'}C4.
+apply: ret_rule=>i5 R; rewrite !(rely_loc' _ R); split=>//.
+- by apply: (query_init_rely _ _ _ _ R).
+by apply: (core_state_stable _ _ _ _ R _ T2 T4); case: T3.  
 Qed.
 
 (*****************************************************************)
