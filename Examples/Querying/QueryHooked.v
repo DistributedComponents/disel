@@ -159,7 +159,7 @@ case: S; [by case=>_<- |
 rewrite -(cohD C) um_domPt inE in H3; move/eqP: H3=>H3; subst l;
 (* TODO: Get rid of irrelevant cases: by means of a tactic *)
 rewrite /query_init_state/getStatelet !findU !eqxx (cohS C1)/=;
-have Cq: coh pq (getStatelet s lq) by move: (coh_coh lq C1); rewrite /getProtocol um_findPt.
+have Cq: coh pq (getStatelet s lq) by move: (coh_coh lq C1); rewrite /getProtocol um_findPt;
 (* Send-transitions. *)
 - case:H=>G1 G2 G3 G4.
   move: st H1 H4 H5 H6; rewrite /get_st prEqQ'=>st H1 H4 H5 H6.
@@ -189,13 +189,31 @@ have Cq: coh pq (getStatelet s lq) by move: (coh_coh lq C1); rewrite /getProtoco
     rewrite /=/QueryProtocol.send_step/=!(getStK _ E)/= G/= in H6; case: H6=>Z.
     subst n; eexists rq, (seq.rem (to', rid) rs); split=>//.
     by move=>rn; move/mem_rem; apply/H.
-    case: (H4)=>_[C']/==>Z.
-    rewrite/QueryProtocol.send_req_prec (getStK _ E) in Z; subst msg. 
-    rewrite /=/QueryProtocol.send_step/=!(getStK _ E)/= in H6; case: H6=>Z; subst n.
-    by exists ((to', fresh_id rq) :: rq), rs.
+  case: (H4)=>_[C']/==>Z.
+  rewrite/QueryProtocol.send_req_prec (getStK _ E) in Z; subst msg. 
+  rewrite /=/QueryProtocol.send_step/=!(getStK _ E)/= in H6; case: H6=>Z; subst n.
+  by exists ((to', fresh_id rq) :: rq), rs.
 (* Receive-transitions *)
-
-Admitted.
+case:H=>G1 G2 G3 G4.
+move: (coh_s _ _) rt pf H1 H2.
+rewrite /get_rt prEqQ'/==>Cq'; rewrite !(proof_irrelevance Cq' Cq)=>{Cq'}.
+move=>rt pf H1 H2.
+case B: (to == z); rewrite /holds_res_perms/getLocal findU B/=; last first.
+- by split=>//; apply: no_msg_from_to_consume'=>//; rewrite ?(cohVs Cq).
+rewrite !(cohVl Cq); move/eqP:B=>B; subst z. 
+split=>//; try by apply: no_msg_from_to_consume'=>//; rewrite ?(cohVs Cq).
+case: G2=>rq[rs][E]H.
+case: H1;[|case=>//]; move=>Z; subst rt=>//=; simpl in H2;
+rewrite /QueryProtocol.receive_step (getStK _ E)/=; last first.
+- case: ifP=>_; last by eexists _, _.
+  by exists (seq.rem (from, head 0 msg) rq), rs. 
+case: ifP=>_; last by eexists _, _.
+exists rq, ((from, head 0 msg) :: rs); split=>//.
+move=>rn; rewrite inE; case/orP; last by apply: H.
+case/eqP=>Z1 Z2; subst rn from.
+case: msg H2 H4=>t c/=Z H4; subst t.
+by move: (G3 _ _ _ H4).
+Qed.
 
 Lemma query_init_rely' to s s' :
   query_init_state to s ->
