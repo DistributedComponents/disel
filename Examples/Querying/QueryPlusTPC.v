@@ -74,17 +74,6 @@ move: (@cn_agree lc cn pts [::] Hnin (getStatelet s' lc) d.1 d.2 n C2 L Inv P)=>
 by exists _, PInit.
 Qed.
 
-        
-(* Lemma core_data_injective h d d' : *)
-(*   valid h -> *)
-(*   core_state_to_data h d  ->  *)
-(*   core_state_to_data h d' -> *)
-(*   d = d'. *)
-(* Proof. *)
-(* case=>V [T1][t1]E1[T2][t2]E2. *)
-(* rewrite E1 in V E2. *)
-(* move: (hcancelT V E2).  *)
-
 (***************  Intermediate definitions **********************)
 
 (* Composite world *)
@@ -162,7 +151,8 @@ Next Obligation.
 apply:ghC=>i0[rq rs][P1 P2 P3 P4]C0; apply: step.
 (*Preparing to split the state. *)
 move: (C0)=>CD0; rewrite /W eqW in CD0; move: (coh_hooks CD0)=>{CD0}CD0.
-case: (coh_split CD0 (hook_complete0 _) (hook_complete0 _))=>i1[j1][C1 D1 Z].
+case: (coh_split CD0); try apply: hook_complete0.
+move=>i1[j1][C1 D1 Z].
 subst i0; apply: inject_rule=>//.
 have E : loc_tpc (i1 \+ j1) = loc_tpc i1 by rewrite (locProjL CD0 _ C1)// gen_domPt inE andbC eqxx.
 rewrite E{E} in P1.
@@ -188,7 +178,7 @@ have C2': i2 \In Coh (plab pc \\-> pc, Unit).
   have Y: l \notin dom (lc \\-> pc) by rewrite um_domPt inE; move/negbT: B.
   by case: dom_find Y=>//->_. 
 have D2': j2 \In Coh (lq \\-> pq lq Data qnodes serialize, Unit)
-    by apply: (cohUnKR CD2 _ (hook_complete0 _)).
+    by apply: (cohUnKR CD2 _); try apply: hook_complete0.
 
 rewrite -(locProjL CD2 _ C2') in L2; last by rewrite um_domPt inE eqxx.
 rewrite -(locProjR CD2 _ D2') in P3; last by rewrite um_domPt inE eqxx.
@@ -201,16 +191,18 @@ rewrite /query_init_state/= in P4.
 rewrite (locProjR CD0 _ D1) in P4; last by rewrite um_domPt inE eqxx.
 have Q4: qry_init to j2.
 - by apply: (query_init_rely' _ pc _ _ _ _ ds_inverse
-                              core_state_to_data Lab_neq cn cn_in_qnodes _ _ _ P4 R).
+             core_state_to_data Lab_neq cn cn_in_qnodes _ _ _ P4 R).
 clear P4.
-rewrite /query_init_state/= -(locProjR CD2 _ D2') in Q4; last by rewrite um_domPt inE eqxx.
+rewrite /query_init_state/= -(locProjR CD2 _ D2') in Q4;
+  last by rewrite um_domPt inE eqxx.
 
 (* Now ready to use the spec for querying. *)
 apply (gh_ex (g:=(rq, rs, (size ds, seq.zip chs ds)))).
 apply: call_rule=>//=; last by move=>d m[->->T1 T2->]_; eexists _. 
 move=>CD2'; split=>//.
 case/orP: P2=>[|P]; first by move/eqP=>Z; subst to; exists _, CInit. 
-exists _, PInit; rewrite !(locProjL CD2 _ C2') in L2 *; last by rewrite um_domPt inE eqxx.
+exists _, PInit; rewrite !(locProjL CD2 _ C2') in L2 *;
+  last by rewrite um_domPt inE eqxx.
 move: (coh_coh lc C2'); rewrite prEq; case=>C3 _.
 by apply: (@cn_agree lc cn pts [::] Hnin _ _ _ to C3 _ Inv).
 Qed.
