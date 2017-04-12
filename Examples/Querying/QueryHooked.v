@@ -631,6 +631,7 @@ case: S; [by case=>_<- |
 - move: (coh_s _ _) rt pf H1 H2 H4; rewrite /get_rt prEqQ=>C' rt pf H1 H2 H4.
   case: M=>M;[|constructor 2|constructor 3].
 
+  (*Extract three lemmas for different cases. *)
 Admitted.
 
 Lemma msg_story_step req_num to data reqs resp z s s' :
@@ -711,7 +712,8 @@ case:M; case=>G1 G2 G3 G4 G5; [constructor 1|constructor 2|constructor 3].
 (* Receive-transition, case 1 *)
 - split=>//=; first by rewrite /getLocal/= findU (negbTE N) in G1 *. 
   + by apply: no_msg_from_to_consume'=>//; rewrite (cohVs (cohQ s C)).
-  + admit. (* TODO: prove a suitable lemma about consume and msg_spec' *)
+  + apply: (msg_spec_consumeE (cohVs (cohQ s C)) H4 G4).
+    by rewrite (negbT A) orbC.
   by case:G5=>rq[rs][Tr]Np; exists rq, rs; rewrite /getLocal/=findU A/=. 
 
 (* Receive-transition, case 2 *)
@@ -723,9 +725,10 @@ case:M; case=>G1 G2 G3 G4 G5; [constructor 1|constructor 2|constructor 3].
 (* Receive-transition, case 3 *)
 - split=>//=; first by rewrite /getLocal/= findU (negbTE N) in G1 *. 
   + by apply: no_msg_from_to_consume'=>//; rewrite (cohVs (cohQ s C)).
-  + admit. (* TODO: prove a suitable lemma about consume and msg_spec' *)
+  + apply: (msg_spec_consumeE (cohVs (cohQ s C)) H4 G4).
+    by rewrite (negbTE N) orbC.
   by case:G5=>rq[rs][Tr]Np; exists rq, rs; rewrite /getLocal/=findU A/=.
-Admitted.  
+Qed.
       
 
 Lemma msg_story_rely req_num to data reqs resp s s2 :
@@ -1034,7 +1037,7 @@ split=>//.
 - rewrite /getStatelet/= findU eqxx/= (cohS C1)/=.
   by apply: (no_msg_from_to_consume' _ X2); case: C1'; case.
 rewrite /getStatelet/= findU eqxx/= (cohS C1)/=.
-case: (tms) E2 E=>t c/=-> E;apply: (msg_spec_consume' _ E X3).
+case: (tms) E2 E=>t c/=-> E;apply: (no_msg_spec_consume _ E X3).
 by case: C1'; case.
 Qed.
 
