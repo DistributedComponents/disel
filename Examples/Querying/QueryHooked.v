@@ -575,8 +575,9 @@ Lemma send_lc_all_cases req_num data reqs resp to s
 Proof.
 move=>H5 H6.
 move: st H1 H4 H5 H6; rewrite /get_st prEqC=>st H1 H4 H5 H6.
-case: M; [constructor 1|constructor 2|constructor 3].
-Admitted.
+by case: M; [constructor 1|constructor 2|constructor 3];
+   rewrite /getStatelet findU (negbTE Lab_neq)/=. 
+Qed.
 
 
 (***********************************************************)
@@ -607,18 +608,24 @@ case: S; [by case=>_<- |
   move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}|
   move=>l rt H1 i from pf H3 C msg H2/=[H4]_->{s'}];
   rewrite -(cohD C) domUn !inE !um_domPt !inE in H3;
-  case/andP:H3=>_ H3; case/orP: H3=>/eqP H3; subst l; first 1 last.
+  case/andP:H3=>_ H3; case/orP: H3=>/eqP H3; subst l.
+
+(* Something sending in lc, should be irrelevant for us. *)
+- move: st H1 H4 H5 H6; rewrite /get_st prEqC=>st H1 H4 H5 H6.
+  by case: M; [constructor 1|constructor 2|constructor 3];
+     rewrite /getStatelet findU (negbTE Lab_neq). 
+
 (* Something sending in lq, this is where the interesting stuff happens! *)
 - by apply: send_lq_all_cases.
 
-(* Something sending in lc, should be irrelevant. *)
-- admit.
-  
-(* Something is receiving in lc, should be irrelevant. *)
-- admit.
+(* Something is receiving in lc, should be irrelevant for us. *)
+- move: (coh_s _ _) rt pf H1 H2 H4; rewrite /get_rt prEqC=>C' rt pf H1 H2 H4.
+  by case: M; [constructor 1|constructor 2|constructor 3];
+     rewrite /getStatelet findU (negbTE Lab_neq). 
 
-(* Something receiving in lq, requires proving. *)
-- admit.
+(* Something receiving in lq, requires honest proving. *)  
+- move: (coh_s _ _) rt pf H1 H2 H4; rewrite /get_rt prEqQ=>C' rt pf H1 H2 H4.
+  case: M=>M;[|constructor 2|constructor 3].
 
 Admitted.
 
