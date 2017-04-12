@@ -597,7 +597,53 @@ Lemma recv_lq_case1 req_num reqs resp to s
   msg_just_sent d reqs resp req_num to \/
   msg_received d reqs resp req_num to. 
 Proof.
-Admitted.
+move=>H1 H2 H4; case: M=>G1 G2 G3 G4[rq][rs][Tr]Np.
+case X: (this == from); [move/eqP:X=>X; subst from|constructor 1];
+last first.
+- split=>//.
+  + by rewrite /getStatelet findU eqxx(cohS C)/=/getLocal/= findU (negbTE N) in G1 *. 
+  + rewrite /getStatelet findU eqxx(cohS C)/=.
+    by apply: no_msg_from_to_consume'=>//; rewrite (cohVs C').
+  + rewrite /getStatelet findU eqxx(cohS C)/=.
+    case: msg H2 H4=>t c H2 H4.
+    by apply: (msg_spec_consumeE (cohVs C') H4 G4); rewrite (negbT X).   
+  rewrite /getStatelet findU eqxx (cohS C)/=/holds_res_perms.
+  rewrite /getLocal/=findU eqxx/= (cohVl (cohQ s C)).  
+  case: H1;[|case=>//]; move=>Z; subst rt=>//=; simpl in H2, H4;
+  rewrite/QueryProtocol.receive_step (getStK _ Tr)/=.
+  + case:ifP=>_; last by exists rq, rs. 
+    exists rq, ((from, head 0 msg) :: rs); split=>//rn.
+    by rewrite inE; case/orP; [case/eqP=>Z; subst; rewrite eqxx in X|move/Np].
+  case:ifP=>_; last by exists rq, rs. 
+  by exists (seq.rem (from, head 0 msg) rq), rs. 
+case: msg H2 H4=>t c H2 H4.
+case: H1;[|case=>//]; move=>Z; subst rt=>//=; simpl in H2, H4; subst t; last first.
+- constructor 1; split=>//.
+  + by rewrite /getStatelet findU eqxx(cohS C)/=/getLocal/= findU (negbTE N) in G1 *. 
+  + rewrite /getStatelet findU eqxx(cohS C)/=.
+    by apply: no_msg_from_to_consume'=>//; rewrite (cohVs C').
+  + rewrite /getStatelet findU eqxx(cohS C)/=.
+    by apply: (msg_spec_consumeE (cohVs C') H4 G4)=>/=; rewrite -(orbC true)/= orbC.
+  rewrite /getStatelet findU eqxx (cohS C)/=/holds_res_perms.
+  rewrite /getLocal/=findU eqxx/= (cohVl (cohQ s C)).  
+  rewrite/QueryProtocol.receive_step (getStK _ Tr)/=.
+  case:ifP=>_; last by exists rq, rs. 
+  by exists (seq.rem (this, head 0 c) rq), rs.  
+(* Finally, the only interesting case here *)
+constructor 2; split=>//.  
++ by rewrite /getStatelet findU eqxx(cohS C)/=/getLocal/= findU (negbTE N) in G1 *.     
++ rewrite /getStatelet findU eqxx(cohS C)/=.
+  by apply: (no_msg_spec_consume (cohVs C') H4 G4).
++ rewrite /getStatelet findU eqxx(cohS C)/=.
+  by apply: no_msg_from_to_consume'=>//; rewrite (cohVs C').
+rewrite /getStatelet findU eqxx (cohS C)/=/holds_res_perms.
+rewrite /getLocal/=findU eqxx/= (cohVl (cohQ s C)).  
+rewrite/QueryProtocol.receive_step (getStK _ Tr)/=.
+case:ifP=>X; last by move/negbT/negbNE/Np: X.
+exists rq, ((this, head 0 c) :: rs); split=>//rn.
+rewrite inE=>/orP[]; last by move/Np.
+by case/eqP=>Z; subst rn; case:G4=>_/(_ _ _ H4)/eqP->.
+Qed.
 
 Lemma recv_lq_case2 req_num reqs resp to s
   (N : this != to) (Qn : to \in qnodes)
@@ -654,6 +700,7 @@ split=>//.
 - rewrite /getStatelet findU eqxx(cohS C)/=.
   by apply: no_msg_from_to_consume'=>//; rewrite (cohVs C').
 - rewrite /getStatelet findU eqxx(cohS C)/=.
+  case: msg H2 H4=>t c H2 H4.
   by apply: (msg_spec_consumeE (cohVs C') H4 G4); rewrite N orbC.
 rewrite /getStatelet findU eqxx (cohS C)/=/holds_res_perms.
 rewrite /getLocal/=findU eqxx/= (cohVl (cohQ s C)).  
@@ -800,7 +847,8 @@ case:M; case=>G1 G2 G3 G4 G5; [constructor 1|constructor 2|constructor 3].
 (* Receive-transition, case 1 *)
 - split=>//=; first by rewrite /getLocal/= findU (negbTE N) in G1 *. 
   + by apply: no_msg_from_to_consume'=>//; rewrite (cohVs (cohQ s C)).
-  + apply: (msg_spec_consumeE (cohVs (cohQ s C)) H4 G4).
+  + case: msg H2 H4=>t c H2 H4.
+    apply: (msg_spec_consumeE (cohVs (cohQ s C)) H4 G4).
     by rewrite (negbT A) orbC.
   by case:G5=>rq[rs][Tr]Np; exists rq, rs; rewrite /getLocal/=findU A/=. 
 
@@ -813,7 +861,8 @@ case:M; case=>G1 G2 G3 G4 G5; [constructor 1|constructor 2|constructor 3].
 (* Receive-transition, case 3 *)
 - split=>//=; first by rewrite /getLocal/= findU (negbTE N) in G1 *. 
   + by apply: no_msg_from_to_consume'=>//; rewrite (cohVs (cohQ s C)).
-  + apply: (msg_spec_consumeE (cohVs (cohQ s C)) H4 G4).
+  + case: msg H2 H4=>t c H2 H4.
+    apply: (msg_spec_consumeE (cohVs (cohQ s C)) H4 G4).
     by rewrite (negbTE N) orbC.
   by case:G5=>rq[rs][Tr]Np; exists rq, rs; rewrite /getLocal/=findU A/=.
 Qed.
@@ -1174,49 +1223,6 @@ apply: ret_rule=>i5 R; rewrite !(rely_loc' _ R); split=>//.
 - by apply: (query_init_rely _ _ _ _ R).
 by apply: (core_state_stable _ _ _ _ R _ T2 T4); case: T3.  
 Qed.
-
-(*****************************************************************)
-
-(*
-
-TODO (in arbitrary order):
-
-[1]. Prove injective "core_state_stable" -- done.
-
-2. Prove quasi-inductive property "query_init_step"
-
-3. Prove quasi-inductive property "msg_story_step"
-
-[4]. Specify and verify the read-action for getting the fresh request id. 
-
-[5]. Specify and verify receiving the response. -- done
-
-[6]. Write the full request program.
-
-[7]. Combine with the TPC procedure.
-
-------------------------------------------------------------------------
-------------------------------------------------------------------------
-
-Old TODO
-
-0. Refine no_msg_from_to for specific tags, otherwise the invariant 
-   doesn't hold.
-
-1. Finish showing that this property is preseverd by the joined rely;
-
-2. Make sure that this is the property we actually need in order to
-   verify the composite program; that is, write the program code and
-   verify it.
-
-3. Check that core_state_stable indeed holds just like this in 2PC 
-   inductive invariant.
-
-4. Define the generic procedure and make sure that the injection rule 
-   works as it should with respect to the core protocol!!!
-
-*)
-
 
 End QueryHooked.
 

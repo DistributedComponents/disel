@@ -64,11 +64,11 @@ suff X: i = m by subst i; rewrite eqxx in B.
 by apply: (H1 m); exists c'.  
 Qed.
 
-Lemma msg_spec_consumeE i d msg from to from' to' t cond:
+Lemma msg_spec_consumeE i d from to from' to' t c' t' cond:
   valid d ->
-  find  i d = Some (Msg msg from' to' true) ->
+  find  i d = Some (Msg (TMsg t' c') from' to' true) ->
   msg_in_soup' from to t cond d ->
-  (from != from') || (to != to') ->
+  [|| (from != from'), (to != to') | (t != t')] ->
   msg_in_soup' from to t cond (consume_msg d i).
 Proof.
 move=>V E S N.
@@ -76,14 +76,16 @@ case: S=>[][j][[c]F]H1 H2.
 have Nij: i != j.
 - case H: (i == j)=>//.
   move/eqP in H; subst i; move: E; rewrite F=>[][???]; subst.
-  by move: N=>/orP[]/eqP.
+  move: N=>/orP []/eqP; first by congruence.
+  move/eqP/orP; case; first by move=>X Z; subst to'; rewrite eqxx in X. 
+  by rewrite eqxx.
 split.
 - exists j; split; first by exists c; rewrite mark_other// eq_sym; apply/negbTE.
-  move=> x [c'][E'].
+  move=> x [c1][E'].
   case H: (x == i).
   + by move/eqP in H; subst x; rewrite (find_consume _ E) in E'. 
-  by apply: H1; exists c'; rewrite mark_other in E'.
-move=>k c'.
+  by apply: H1; exists c1; rewrite mark_other in E'.
+move=>k c1.
 case H: (k == i); first by move/eqP in H; subst k; rewrite (find_consume _ E).  
 by rewrite mark_other//; apply: H2.
 Qed.
