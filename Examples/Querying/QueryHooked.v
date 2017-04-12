@@ -356,7 +356,7 @@ by rewrite /getLocal -(step_is_local (plab pc) G1 B').
 Qed.
 
 (************************************************************************)
-(******                 Auxiliary lemmas                           ******)
+(******       Auxiliary lemmas for establishing stability          ******)
 (************************************************************************)
 
 Lemma cohQ s : Coh W s -> (QueryProtocol.QCoh qnodes) (getSq s).
@@ -376,8 +376,33 @@ Lemma send_lq_case1 req_num reqs resp to s
                       Msg (TMsg (t_snd st) msg) to to' true)) s) lq in
   msg_just_sent d reqs resp req_num to.
 Proof.
-move=>H5 H6.
-Admitted.
+move=>H5 H6; case: M=>G1 G2 G3 G4[rq][rs][E]Np; split=>//.
+- by rewrite /getStatelet findU eqxx(cohS C)/=/getLocal/= findU (negbTE N) in G1 *.
+- rewrite /getStatelet findU  eqxx(cohS C)/==>z t c.
+  rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
+  case: ifP; [|by move=>_; apply: G2].
+  rewrite um_domPt inE=>/eqP<-; rewrite um_findPt; case=>???; subst t c to'.
+  case: H1;[|case=>//]; move=>Z; subst st=>//; simpl in H5, H6;
+  rewrite/QueryProtocol.send_step (getStK _ E)/= in H6; case: H6=>H6/=; subst n.                                  
+  by case:H4=>_[C'][rid][_][_]; rewrite (getStK _ E); move/Np. 
+- rewrite /getStatelet findU  eqxx(cohS C)/=.
+  case:G4; case=>i[[c']Q1 Q3] Q2; split; last first.
+  + move=>j c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
+    case:ifP; last by move=>_; apply Q2. 
+    rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+    by case=>???; subst to; rewrite eqxx in N.
+  exists i; split=>[|j[c1]];rewrite findUnL ?(valid_fresh) ?(cohVs (cohQ s C))//.   
+  + by exists c'; rewrite (find_some Q1). 
+  case: ifP=>_; first by move=> T; apply: Q3; exists c1. 
+  by case/um_findPt_inv=>_[]_ _?; subst to; rewrite eqxx in N. 
+rewrite /getStatelet findU eqxx (cohS C)/=/holds_res_perms.
+rewrite /getLocal/=findU eqxx/= (cohVl (cohQ s C)).  
+case: H1;[|case=>//]; move=>Z; subst st=>//; simpl in H5, H6;
+rewrite/QueryProtocol.send_step (getStK _ E)/= in H6; case: H6=>H6; subst n.
+- by exists ((to', fresh_id rq) :: rq), rs.
+case: ifP=>_; last by exists rq, rs.                 
+by exists rq, (seq.rem (to', head 0 msg) rs); split=>//rn/mem_rem/Np.
+Qed.
 
 Lemma send_lq_case3 req_num data reqs resp to s
   (N : this != to) (Qn : to \in qnodes) (H : core_state_to_data (getLc' s to) data)
@@ -497,7 +522,7 @@ exists (fresh (dsoup (getStatelet s lq))); split.
 move=>i[c]; rewrite findUnR ?(valid_fresh)?(cohVs C')//.
 case: ifP=>[|_]; last by move/G4. 
 by rewrite um_domPt inE=>/eqP<-; rewrite um_findPt. 
-Admitted.
+Qed.
 
 
 (***********************************************************)
