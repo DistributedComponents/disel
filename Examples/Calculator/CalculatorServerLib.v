@@ -11,6 +11,7 @@ Require Import Actions Injection Process Always HoareTriples InferenceRules.
 Require Import InductiveInv.
 Require Import CalculatorProtocol CalculatorInvariant.
 Require Import CalculatorClientLib.
+Require Import SeqLib.
 
 Section CalculatorServerLib.
 
@@ -38,7 +39,7 @@ Notation loc i := (getLocal sv (getStatelet i l)).
 Export CalculatorProtocol.
 
 Program Definition tryrecv_req_act := act (@tryrecv_action_wrapper W sv
-      (fun k t b => (k == l) && (t == req)) _).
+      (fun k _ t b => (k == l) && (t == req)) _).
 Next Obligation. by case/andP:H=>/eqP->; rewrite gen_domPt inE/=. Qed.
 
 (* Receive-transition for the calculator *)

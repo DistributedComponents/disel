@@ -10,6 +10,7 @@ Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 Require Import InductiveInv.
 Require Import CalculatorProtocol CalculatorInvariant.
+Require Import SeqLib.
 
 Section CalculatorRecieve.
 
@@ -42,7 +43,7 @@ Variable cl : nid.
 Hypothesis  Hc : cl \in cls.
 
 Program Definition tryrecv_resp_act := act (@tryrecv_action_wrapper W cl
-      (fun k t b => (k == l) && (t == resp)) _).
+      (fun k _ t b => (k == l) && (t == resp)) _).
 Next Obligation. by case/andP:H=>/eqP->; rewrite gen_domPt inE/=. Qed.
 
 Notation loc i := (getLocal cl (getStatelet i l)).

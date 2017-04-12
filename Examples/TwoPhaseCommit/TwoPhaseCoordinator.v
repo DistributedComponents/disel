@@ -47,16 +47,16 @@ Next Obligation. by rewrite !InE; right; right; left. Qed.
 (* This action actually encompasses two receive-transitions *)
 Program Definition tryrecv_prep_resp := act (@tryrecv_action_wrapper W cn
       (* filter *)
-      (fun k t b => (k == l) && ((t == prep_yes) || (t == prep_no))) _).
+      (fun k _ t b => (k == l) && ((t == prep_yes) || (t == prep_no))) _).
 (* TODO: automate these kinds of proofs *)
 Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom gen_domPt inE/=. Qed.
 
 Program Definition tryrecv_commit_ack :=
-  act (@tryrecv_action_wrapper W cn (fun k t b => (k == l) && (t == commit_ack)) _).
+  act (@tryrecv_action_wrapper W cn (fun k _ t b => (k == l) && (t == commit_ack)) _).
 Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom gen_domPt inE/=. Qed.
 
 Program Definition tryrecv_abort_ack :=
-  act (@tryrecv_action_wrapper W cn (fun k t b => (k == l) && (t == abort_ack)) _).
+  act (@tryrecv_action_wrapper W cn (fun k _ t b => (k == l) && (t == abort_ack)) _).
 Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom gen_domPt inE/=. Qed.
 
 
