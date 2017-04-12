@@ -45,8 +45,27 @@ Definition local_indicator (d : Data) :=
   [Pred h | h = st :-> (d.1, CInit) \+ log :-> d.2].
 
 (* Data is just a log *)
-Definition core_state_to_data h (d : Data)  :=
-  exists T (s : T), h = st :-> (d.1, s) \+ log :-> d.2.
+Definition core_state_to_data n h (d : Data)  :=
+  if n == cn
+  then h = st :-> (d.1, CInit) \+ log :-> d.2
+  else h = st :-> (d.1, PInit) \+ log :-> d.2.                       
+
+Lemma core_state_to_data_inj n h d d' :
+  core_state_to_data n h d -> core_state_to_data n h d' -> d = d'.
+Proof.
+rewrite/core_state_to_data.
+case:ifP=>_ E; rewrite E ![_ \+ log :-> _]joinC=>{E}E.
+- have V: valid (log :-> d.2 \+ st :-> (d.1, CInit)).
+  - by case: validUn=>//k; rewrite !hdomPt !inE/==>/eqP<-. 
+  case: (hcancelV V E)=>E2=>{V E}V E. 
+  case: (hcancelPtV V E)=>E1.
+  by rewrite [d]surjective_pairing [d']surjective_pairing E1 E2.
+have V: valid (log :-> d.2 \+ st :-> (d.1, PInit)).
+- by case: validUn=>//k; rewrite !hdomPt !inE/==>/eqP<-. 
+case: (hcancelV V E)=>E2=>{V E}V E. 
+case: (hcancelPtV V E)=>E1.
+by rewrite [d]surjective_pairing [d']surjective_pairing E1 E2.
+Qed.
 
 Lemma cn_in_qnodes : cn \in qnodes.
 Proof. by rewrite inE eqxx. Qed.
@@ -62,16 +81,16 @@ Lemma core_state_stable_step z s d s' n :
   cn != z -> network_step (mkWorld pc) z s s' ->
   n \in qnodes ->
   local_indicator d (getLc s cn) ->
-  core_state_to_data (getLc s n) d  -> 
-  core_state_to_data (getLc s' n) d.
+  core_state_to_data n (getLc s n) d  -> 
+  core_state_to_data n (getLc s' n) d.
 Proof.
 move=>N S Qn L H0; case: (step_coh S)=>C1 C2.
 have R: network_rely (plab pc \\-> pc, Unit) cn s s' by exists 1, z, s'. 
 rewrite -(rely_loc' _ R) in L.
 case: C2=>V1 V2 _ D /(_ lc)/=; rewrite prEq=>/=[[C2] Inv].
-case/orP: Qn=>[|P]; first by move/eqP=>Z; subst n; exists _, CInit. 
+case/orP: Qn=>[|P]; first by move/eqP=>Z; subst n; rewrite /core_state_to_data eqxx.  
 move: (@cn_agree lc cn pts [::] Hnin (getStatelet s' lc) d.1 d.2 n C2 L Inv P)=>H. 
-by exists _, PInit.
+rewrite /core_state_to_data; case:ifP=>//; by move=>/eqP Z; subst n. 
 Qed.
 
 (***************  Intermediate definitions **********************)
@@ -86,13 +105,16 @@ Notation qry_init := (query_init_state lq Data qnodes serialize cn).
 
 Lemma loc_imp_core s d n :
   Coh W s -> n \in qnodes -> local_indicator d (loc_tpc s) ->
-  core_state_to_data (loc_tpc' s n) d.
+  core_state_to_data n (loc_tpc' s n) d.
 Proof.
 move=>C Nq E.
-case/orP: Nq=>[|P]; first by move/eqP=>z; subst n; exists _, CInit. 
+case/orP: Nq=>[|P]; first by move/eqP=>z; subst n; rewrite /core_state_to_data eqxx. 
 case: (C)=>_ _ _ _/(_ lc); rewrite prEqC//=; case=> C2 Inv.
 move: (@cn_agree lc cn pts [::] Hnin (getStatelet s lc) d.1 d.2 n C2 E Inv P)=>->.
-by eexists _, _.
+rewrite /core_state_to_data; case:ifP=>//.
+move=>/eqP Z; subst n; move/negbTE: Hnin=>Z.
+suff X: cn \in pts by rewrite X in Z.
+done.
 Qed.
 
 Lemma find_empty l i : l \notin dom i -> getStatelet i l = empty_dstatelet.
@@ -100,7 +122,7 @@ Proof. by rewrite /getStatelet; case: dom_find=>//->. Qed.
        
 
 Definition cn_request_log :=
-  request_data_program _ pc _ _ _ _ ds_inverse _ Lab_neq _ cn_in_qnodes
+  request_data_program _ pc _ _ _ _ ds_inverse _ core_state_to_data_inj Lab_neq _ cn_in_qnodes
                        local_indicator core_state_stable_step (0, [::]).
 
 (* Coordinator loop *)
@@ -190,8 +212,7 @@ rewrite injWQ in R.
 rewrite /query_init_state/= in P4.
 rewrite (locProjR CD0 _ D1) in P4; last by rewrite um_domPt inE eqxx.
 have Q4: qry_init to j2.
-- by apply: (query_init_rely' _ pc _ _ _ _ ds_inverse
-             core_state_to_data Lab_neq cn cn_in_qnodes _ _ _ P4 R).
+- by apply: (query_init_rely' lq Data qnodes serialize cn to _ _ P4 R).
 clear P4.
 rewrite /query_init_state/= -(locProjR CD2 _ D2') in Q4;
   last by rewrite um_domPt inE eqxx.
@@ -200,10 +221,11 @@ rewrite /query_init_state/= -(locProjR CD2 _ D2') in Q4;
 apply (gh_ex (g:=(rq, rs, (size ds, seq.zip chs ds)))).
 apply: call_rule=>//=; last by move=>d m[->->T1 T2->]_; eexists _. 
 move=>CD2'; split=>//.
-case/orP: P2=>[|P]; first by move/eqP=>Z; subst to; exists _, CInit. 
-exists _, PInit; rewrite !(locProjL CD2 _ C2') in L2 *;
+case/orP: P2=>[|P]; first by move/eqP=>Z; subst to; rewrite /core_state_to_data eqxx.  
+rewrite !(locProjL CD2 _ C2') in L2 *;
   last by rewrite um_domPt inE eqxx.
 move: (coh_coh lc C2'); rewrite prEq; case=>C3 _.
+rewrite /core_state_to_data; case:ifP=>//[|_]; first by move=>/eqP Z; subst to. 
 by apply: (@cn_agree lc cn pts [::] Hnin _ _ _ to C3 _ Inv).
 Qed.
 

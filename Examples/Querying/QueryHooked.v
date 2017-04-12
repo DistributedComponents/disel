@@ -23,13 +23,16 @@ Variable deserialize : seq nat -> Data.
 Hypothesis ds_inverse : left_inverse serialize deserialize.
 Definition pq := QueryProtocol qnodes serialize lq.
 
-Variable core_state_to_data : heap -> Data -> Prop.
+Variable core_state_to_data : nid -> heap -> Data -> Prop.
+
+Hypothesis core_state_to_data_inj :
+  forall n h d d', core_state_to_data n h d -> core_state_to_data n h d' -> d = d'.
 
 (* The query hook extracts certain data from the the core protocol *)
 (* local state if it's present there. *)
 Definition query_hook : hook_type :=
   fun hc hq ms to => 
-    forall d, core_state_to_data hc d -> exists rid, ms = rid :: serialize d.
+    forall n rid d, ms = rid :: serialize d -> core_state_to_data n hc d.
 
 Definition query_hookz := (1, (plab pc), (plab pq, tresp)) \\-> query_hook.
 
@@ -297,8 +300,8 @@ Hypothesis core_state_stable_step : forall z s data s' n,
   this != z -> network_step (plab pc \\-> pc, Unit) z s s' ->
   n \in qnodes ->
   local_indicator data (getLc s) ->
-  core_state_to_data (getLc' s n) data  -> 
-  core_state_to_data (getLc' s' n) data.
+  core_state_to_data n (getLc' s n) data  -> 
+  core_state_to_data n (getLc' s' n) data.
 
 Lemma prEqC' : (getProtocol (plab pc \\-> pc, Unit) (plab pc)) = pc.
 Proof. by rewrite /getProtocol gen_findPt/=. Qed.
@@ -309,8 +312,8 @@ Lemma core_state_stable_step_W s data s' z :
   network_step W z s s' ->
   z \in qnodes ->
   local_indicator data (getLc s) ->
-  core_state_to_data (getLc' s z) data -> 
-  core_state_to_data (getLc' s' z) data.
+  core_state_to_data z (getLc' s z) data -> 
+  core_state_to_data z (getLc' s' z) data.
 Proof.
 move=>N H2 G L H1; move:(step_coh H2)=>[C1 C2].
 rewrite eqW' in C1 C2.
@@ -340,8 +343,8 @@ Lemma core_state_stable s data s' z :
   network_rely W this s s' ->
   z \in qnodes ->
   local_indicator data (getLc s) ->
-  core_state_to_data (getLc' s z) data -> 
-  core_state_to_data (getLc' s' z) data.
+  core_state_to_data z (getLc' s z) data -> 
+  core_state_to_data z (getLc' s' z) data.
 Proof.
 move=> R Z L. move: (L); rewrite -(@rely_loc' _ _ (plab pc) s s' R)=>L'.
 move: R Z L.
@@ -405,7 +408,7 @@ by exists rq, (seq.rem (to', head 0 msg) rs); split=>//rn/mem_rem/Np.
 Qed.
 
 Lemma send_lq_case3 req_num data reqs resp to s
-  (N : this != to) (Qn : to \in qnodes) (H : core_state_to_data (getLc' s to) data)
+  (N : this != to) (Qn : to \in qnodes) (H : core_state_to_data to (getLc' s to) data)
   (L : local_indicator data (getLc' s this))
   (M : msg_responded (getSq s) reqs resp req_num to data)
   to' msg (n : heap) (C : Coh W s) (st : send_trans (Protocols.coh pq))
@@ -453,7 +456,7 @@ by exists rq, (seq.rem (to', head 0 msg) rs); split=>//rn/mem_rem/Np.
 Qed.
 
 Lemma send_lq_all_cases req_num data reqs resp to s
-  (N : this != to) (Qn : to \in qnodes) (H : core_state_to_data (getLc' s to) data)
+  (N : this != to) (Qn : to \in qnodes) (H : core_state_to_data to (getLc' s to) data)
   (L : local_indicator data (getLc' s this))
   (M : [\/ msg_just_sent (getSq s) reqs resp req_num to, msg_received (getSq s) reqs resp req_num to
         | msg_responded (getSq s) reqs resp req_num to data])
@@ -524,7 +527,8 @@ rewrite  (getStK _ E)/= in Tr.
 rewrite Tr; constructor 3.
 (* Now exploit the hook! *)
 move: (H5 1 (plab pc) query_hook); rewrite um_findPt -!(cohD C).
-move/(_ (erefl _) labC labQ data H)=>[rid'][]Z Ed; subst rid'.
+move/(_ (erefl _) labC labQ to rid d (erefl _))=>D.
+move: (core_state_to_data_inj _ _ _ _ D H)=>Z; subst d.
 split=>//; first 3 last.
 + rewrite /getStatelet findU eqxx(cohS C)/=.
   exists (rq), (seq.rem (this, rid) rs).
@@ -541,7 +545,7 @@ split=>//; first 3 last.
   case: ifP=>[|_]; last by apply: G3.
   by rewrite um_domPt inE=>/eqP<-{z}; rewrite um_findPt; case=><-.
 (* Here's the big hooking moment *)  
-split=>[|i m]; rewrite Ed in H4 H5 *; clear Ed d;
+split=>[|i m]; 
   rewrite /getStatelet findU eqxx/= (cohS C)/=; last first.
 + rewrite findUnR ?(valid_fresh) ?(cohVs C')//; case: ifP=>[|_]; last by move/G4. 
   rewrite um_domPt inE=>/eqP<-; rewrite um_findPt; case=><-.
@@ -556,7 +560,7 @@ Qed.
 
 (*  A lemma covering send-cases in the lc-part of the world  *)
 Lemma send_lc_all_cases req_num data reqs resp to s
-  (N : this != to) (Qn : to \in qnodes) (H : core_state_to_data (getLc' s to) data)
+  (N : this != to) (Qn : to \in qnodes) (H : core_state_to_data to (getLc' s to) data)
   (L : local_indicator data (getLc' s this))
   (M : [\/ msg_just_sent (getSq s) reqs resp req_num to, msg_received (getSq s) reqs resp req_num to
         | msg_responded (getSq s) reqs resp req_num to data])
@@ -585,7 +589,7 @@ Qed.
 (***********************************************************)
 Definition msg_story s req_num to data reqs resp :=
   [/\ to \in qnodes,
-     core_state_to_data (getLc' s to) data,
+     core_state_to_data to (getLc' s to) data,
      local_indicator data (getLc s) & 
      let: d := getSq s in
      [\/ msg_just_sent d reqs resp req_num to,
@@ -748,13 +752,13 @@ Program Definition read_request_id to :
       [/\ getLq i = qst :-> (reqs, resp),
        local_indicator data (getLc i),
        query_init_state to i &
-       core_state_to_data (getLc' i to) data],
+       core_state_to_data to (getLc' i to) data],
    fun (r : nat) m => 
      let: (reqs, resp, data) := rrd in 
      [/\ getLq m = qst :-> (reqs, resp),
        local_indicator data (getLc m),
        query_init_state to m,
-       core_state_to_data (getLc' m to) data &                                              
+       core_state_to_data to (getLc' m to) data &                                              
        r = fresh_id reqs]) :=
   Do _ (act (@skip_action_wrapper W this lq pq prEqQ _
                                 (fun s pf => fresh_id (getSt this pf).1))).
@@ -786,14 +790,14 @@ Program Definition send_req_act (rid : nat) (to : nid) :
        local_indicator data (getLc i),
        rid = fresh_id reqs,
        query_init_state to i &
-       core_state_to_data (getLc' i to) data],
+       core_state_to_data to (getLc' i to) data],
    fun (r : seq nat) m => 
      let: (reqs, resp, data) := rrd in 
      [/\ getLq m = qst :-> ((to, rid) :: reqs, resp),
       local_indicator data (getLc m),
       r = [:: rid],
       msg_story m rid to data ((to, rid) :: reqs) resp &
-      core_state_to_data (getLc' m to) data])
+      core_state_to_data to (getLc' m to) data])
   := Do (send_req rid to).
 
 Next Obligation.
@@ -828,7 +832,7 @@ have X : getLc i3 = getLc s0.
 (* Massaging the hypotheses. *)
 split=>//; try by rewrite X//.
 apply: (msg_story_rely _ _ _ _ _ i2)=>//.
-have E: core_state_to_data (getLc' i1 to) = core_state_to_data (getLc' i2 to).
+have E: core_state_to_data to (getLc' i1 to) = core_state_to_data to (getLc' i2 to).
 - case B: (to == this); [move/eqP:B=>Z; subst to | ]; last first.
   + by rewrite /getLocal (step_is_local _ N)=>//; move/negbT: B.
   subst i2; rewrite ![getLc' _ _]/getLocal /getStatelet/=.
@@ -912,7 +916,7 @@ Definition recv_resp_inv (rid : nat) to
     then [/\ getLq i = qst :-> (reqs, resp),
           local_indicator data (getLc i),
           query_init_state to i,
-          core_state_to_data (getLc' i to) data &
+          core_state_to_data to (getLc' i to) data &
           d = data]
     else [/\ getLq i = qst :-> ((to, rid) :: reqs, resp),
           local_indicator data (getLc i) &
@@ -926,14 +930,14 @@ Program Definition receive_resp_loop (rid : nat) to :
     [/\ getLq i = qst :-> ((to, rid) :: reqs, resp),
      local_indicator data (getLc i),
      msg_story i rid to data ((to, rid) :: reqs) resp &
-     core_state_to_data (getLc' i to) data],
+     core_state_to_data to (getLc' i to) data],
   fun res m =>
     let: (reqs, resp, data) := rrd in
     exists d, res = Some d /\
      [/\ getLq m = qst :-> (reqs, resp),
       local_indicator data (getLc m),
       query_init_state to m,
-      core_state_to_data (getLc' m to) data &
+      core_state_to_data to (getLc' m to) data &
       d = data]) := 
   Do _ (@while this W _ _ recv_resp_cond (recv_resp_inv rid to) _
          (fun _ => Do _ (
@@ -1053,13 +1057,13 @@ Program Definition request_data_program to :
       [/\ getLq i = qst :-> (reqs, resp),
        local_indicator data (getLc i),
        query_init_state to i &
-       core_state_to_data (getLc' i to) data],
+       core_state_to_data to (getLc' i to) data],
     fun res m =>
       let: (reqs, resp, data) := rrd in
       [/\ getLq m = qst :-> (reqs, resp),
        local_indicator data (getLc m),
        query_init_state to m,
-       core_state_to_data (getLc' m to) data &
+       core_state_to_data to (getLc' m to) data &
        res = data]) :=
   Do _ (
      rid <-- read_request_id to;
