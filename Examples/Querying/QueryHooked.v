@@ -583,6 +583,53 @@ by case: M; [constructor 1|constructor 2|constructor 3];
    rewrite /getStatelet findU (negbTE Lab_neq)/=. 
 Qed.
 
+Lemma recv_lq_case1 req_num reqs resp to s
+  (N : this != to) (Qn : to \in qnodes)
+  (M : msg_just_sent (getSq s) reqs resp req_num to)
+  i from msg (C : Coh W s) (C' : (coh pq) (getSq s))
+  (pf : to \in nodes pq (getSq s))
+  (rt : receive_trans (Protocols.coh pq)) : 
+  rt \In rcv_trans pq -> tag msg = t_rcv rt ->
+  find i (dsoup (getSq s)) = Some (Msg msg from to true) ->
+  let: d := getStatelet (upd (plab pq) 
+              (DStatelet (upd to (receive_step rt from msg C' pf) (dstate (getSq s)))
+               (consume_msg (dsoup (getSq s)) i)) s) lq in
+  msg_just_sent d reqs resp req_num to \/
+  msg_received d reqs resp req_num to. 
+Proof.
+Admitted.
+
+Lemma recv_lq_case2 req_num reqs resp to s
+  (N : this != to) (Qn : to \in qnodes)
+  (M : msg_received (getSq s) reqs resp req_num to)
+  i from msg (C : Coh W s) (C' : (coh pq) (getSq s))
+  (pf : to \in nodes pq (getSq s))
+  (rt : receive_trans (Protocols.coh pq)) : 
+  rt \In rcv_trans pq -> tag msg = t_rcv rt ->
+  find i (dsoup (getSq s)) = Some (Msg msg from to true) ->
+  let: d := getStatelet (upd (plab pq) 
+              (DStatelet (upd to (receive_step rt from msg C' pf) (dstate (getSq s)))
+               (consume_msg (dsoup (getSq s)) i)) s) lq in
+  msg_received d reqs resp req_num to.  
+Proof.
+Admitted.
+
+Lemma recv_lq_case3 req_num reqs resp to s data
+  (N : this != to) (Qn : to \in qnodes)
+  (M : msg_responded (getSq s) reqs resp req_num to data)
+  (H : core_state_to_data to (getLc' s to) data)
+  (L : local_indicator data (getLc' s this))
+  i from msg (C : Coh W s) (C' : (coh pq) (getSq s))
+  (pf : to \in nodes pq (getSq s))
+  (rt : receive_trans (Protocols.coh pq)) : 
+  rt \In rcv_trans pq -> tag msg = t_rcv rt ->
+  find i (dsoup (getSq s)) = Some (Msg msg from to true) ->
+  let: d := getStatelet (upd (plab pq) 
+              (DStatelet (upd to (receive_step rt from msg C' pf) (dstate (getSq s)))
+               (consume_msg (dsoup (getSq s)) i)) s) lq in
+  msg_responded d reqs resp req_num to data.  
+Proof.
+Admitted.
 
 (***********************************************************)
 (* A rely-inductive predicate describing the message story *)
@@ -628,11 +675,13 @@ case: S; [by case=>_<- |
      rewrite /getStatelet findU (negbTE Lab_neq). 
 
 (* Something receiving in lq, requires honest proving. *)  
-- move: (coh_s _ _) rt pf H1 H2 H4; rewrite /get_rt prEqQ=>C' rt pf H1 H2 H4.
-  case: M=>M;[|constructor 2|constructor 3].
-
-  (*Extract three lemmas for different cases. *)
-Admitted.
+move: (coh_s _ _) rt pf H1 H2 H4; rewrite /get_rt prEqQ=>C' rt pf H1 H2 H4.
+case: M=>M;[|constructor 2|constructor 3]; last first.
+- by apply: recv_lq_case3.
+- by apply: recv_lq_case2.
+by case:(recv_lq_case1 req_num _ _ to s N Qn M i from msg C C' pf _ H1 H2 H4);
+  [constructor 1|constructor 2].
+Qed.
 
 Lemma msg_story_step req_num to data reqs resp z s s' :
   this != z ->
