@@ -641,8 +641,71 @@ move=> N H S; case: H=> Qn H L M; split=>//.
   by exists 1, z, s'; split=>//=; split=>//; case/step_coh: S.
 - suff R : (network_rely W this s s') by rewrite -(rely_loc' _ R) in L.
   by exists 1, z, s'; split=>//=; split=>//; case/step_coh: S.
-(* TODO: prove for the case when it's *not( our responder is stepping. *)
-Admitted.
+
+case: S; [by case=>_<- |
+  move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}|
+  move=>l rt H1 i from pf H3 C msg H2/=[H4]_->{s'}];
+  rewrite -(cohD C) domUn !inE !um_domPt !inE in H3;
+  case/andP:H3=>_ H3; case/orP: H3=>/eqP H3; subst l;
+  do? [by rewrite /getStatelet findU (negbTE Lab_neq)];
+  rewrite /getStatelet findU eqxx(cohS C)/=.                
+
+(* Now only consider send-receive transitions within pq protocol *)
+
+(** Send-transitions **)
+case:M; case=>G1 G2 G3 G4 G5; [constructor 1|constructor 2|constructor 3].
+
+(* Send-transition, case 1 *)
+- split=>//=; first by rewrite /getLocal/= findU (negbTE N) in G1 *. 
+  + move=>i t c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
+    case:ifP; last by move=>_; apply G2. 
+    rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+    by case=>???; subst to; rewrite eqxx in A.
+  + case: G4; case=>i[[c']Q1 Q3] Q2; split; last first.
+    - move=>j c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
+      case:ifP; last by move=>_; apply Q2.
+      rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+      by case=>????; subst z to' c; rewrite eqxx in N.
+    exists i; split=>[|j[c1]];rewrite findUnL ?(valid_fresh) ?(cohVs (cohQ s C))//.   
+    - by exists c'; rewrite (find_some Q1). 
+    case: ifP=>_; first by move=> T; apply: Q3; exists c1. 
+    by case/um_findPt_inv=>_[]????; subst to' z; rewrite eqxx in N.
+  by case:G5=>rq[rs][Tr]Np; exists rq, rs; rewrite /getLocal/=findU A/=. 
+    
+(* Send-transition, case 2 *)
+- split=>//=; first by rewrite /getLocal/= findU (negbTE N) in G1 *. 
+  + move=>i t c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
+    case:ifP; last by move=>_; apply G3. 
+    rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+    by case=>????; subst z to'; rewrite eqxx in N.
+  + move=>i t c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
+    case:ifP; last by move=>_; apply G4. 
+    rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+    by case=>????; subst z to'; rewrite eqxx in A.
+  by case:G5=>rq[rs][Tr]Np; exists rq, rs; rewrite /getLocal/=findU A/=. 
+
+(* Send-transition, case 3 *)
+- split=>//=; first by rewrite /getLocal/= findU (negbTE N) in G1 *. 
+  + move=>i t c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
+    case:ifP; last by move=>_; apply G3. 
+    rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+    by case=>????; subst to' z; rewrite eqxx in N.
+  + case: G4; case=>i[[c']Q1 Q3] Q2; split; last first.
+    - move=>j c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
+      case:ifP; last by move=>_; apply Q2.
+      rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+      by case=>????; subst z to' c; rewrite eqxx in A.
+    exists i; split=>[|j[c1]];rewrite findUnL ?(valid_fresh) ?(cohVs (cohQ s C))//.   
+    - by exists c'; rewrite (find_some Q1). 
+    case: ifP=>_; first by move=> T; apply: Q3; exists c1. 
+    by case/um_findPt_inv=>_[]????; subst to' z; rewrite eqxx in A.
+  by case:G5=>rq[rs][Tr]Np; exists rq, rs; rewrite /getLocal/=findU A/=. 
+
+(** Receive-transitions **)
+case:M; case=>G1 G2 G3 G4 G5; [constructor 1|constructor 2|constructor 3].
+
+Admitted.  
+      
 
 Lemma msg_story_rely req_num to data reqs resp s s2 :
   msg_story s req_num to data reqs resp ->
