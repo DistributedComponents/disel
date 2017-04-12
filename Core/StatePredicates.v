@@ -27,6 +27,8 @@ The derived definition come next.
 
  *)
 
+(* There is exactly one message from from to to. Furthermore, it
+   satisfies the given criterion. *)
 Definition msg_in_soup (from to : nid) (criterion : nat -> seq nat -> bool)
            (d : soup) : Prop :=
   (exists! i, exists t c,

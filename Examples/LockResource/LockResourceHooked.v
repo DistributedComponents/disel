@@ -12,6 +12,10 @@ Require Import Actions Injection Process Always HoareTriples InferenceRules.
 
 Require Import LockProtocol ResourceProtocol.
 
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
+
 Module L := LockProtocol.
 Module R := ResourceProtocol.
 
@@ -119,6 +123,11 @@ Definition resource_perms d (p : seq R.request -> Prop) :=
     getLocal resource_server d = R.st :-> s /\
     p (R.outstanding s).
 
+Definition resource_value v d :=
+  exists s : R.server_state,
+    getLocal resource_server d = R.st :-> s /\
+    R.current_value s = v.
+
 Definition no_outstanding_updates d :=
   resource_perms d (fun out => forall n e v, R.Update (n, e, v) \in out -> n != this).
 
@@ -149,8 +158,9 @@ Definition update_at_server e v d :=
 
 Definition update_response_sent e v d :=
   [/\ no_msg_from_to this resource_server (dsoup d),
-     no_outstanding_updates d &
-     exists b : nat, msg_spec this resource_server R.update_response_tag [:: e; v; b] (dsoup d)].
+     no_outstanding_updates d,
+     exists b : nat, msg_spec resource_server this R.update_response_tag [:: e; v; b] (dsoup d) &
+     resource_value v d].
 
 Definition update_in_flight e v d :=
   [\/ update_just_sent e v d,
@@ -168,6 +178,19 @@ Lemma update_in_flight_rely e v s1 s2 :
   network_rely W this s1 s2 ->
   update_in_flight e v (getSR s1) ->
   update_in_flight e v (getSR s2).
+Admitted.
+
+Lemma lock_held_rely e s1 s2 :
+  network_rely W this s1 s2 ->
+  lock_held e s1 ->
+  lock_held e s2.
+Proof. by move=>Rely12; rewrite /lock_held (rely_loc' _ Rely12). Qed.
+
+Lemma resource_value_rely e v s1 s2 :
+  lock_held e s1 ->
+  network_rely W this s1 s2 ->
+  resource_value v (getSR s1) ->
+  resource_value v (getSR s2).
 Admitted.
 
 (* Resource Programs *)
@@ -221,9 +244,9 @@ have Held2: lock_held e s2.
   by rewrite s2def /getStatelet findU/= (negbTE lock_resource_label_neq).
 split; last first.
 - by move: Held2; rewrite /lock_held (rely_loc' _ Rely23).
-apply/(update_in_flight_rely _ _ s2 s3)=>//.
+apply/(update_in_flight_rely Rely23)=>//.
 constructor 1.
-move: (resource_init_state_rely _ _ Rely01 Init0).
+move: (resource_init_state_rely Rely01 Init0).
 rewrite /update_just_sent/resource_init_state=>-[]Out1 From1 To1.
 case: Step=>_[] h' [] _ s2def.
 have C1 := (rely_coh Rely01).2.
@@ -240,6 +263,99 @@ apply /no_msg_from_toE'=>//.
 by apply /(cohVs CR1).
 by rewrite eq_sym; apply/negbTE/this_not_resource_server.
 Qed.
+
+Program Definition tryrecv_update_response :=
+  act (@tryrecv_action_wrapper W this
+      (fun l from tag m => [&& l == resource_label, from == resource_server &
+                            tag == R.update_response_tag]) _).
+Next Obligation.
+case/andP: H=>/eqP->_.
+rewrite joinC domUn inE um_domPt inE eqxx andbC/=.
+case: validUn=>//=; rewrite ?um_validPt//.
+move=>k; rewrite !um_domPt !inE=>/eqP<-/eqP H.
+move: (lock_resource_label_neq).
+by rewrite H eqxx.
+Qed.
+
+Definition recv_update_response_inv e v (_ : unit) : cont (option nat) :=
+  fun res s =>
+    if res is Some v
+    then [/\ resource_init_state s,
+            lock_held e s &
+            resource_value v (getSR s)]
+    else update_in_flight e v (getSR s) /\ lock_held e s.
+
+Lemma recv_update_response_inv_rely e v u r s1 s2 :
+  network_rely W this s1 s2 ->
+  recv_update_response_inv e v u r s1 ->
+  recv_update_response_inv e v u r s2.
+Admitted.
+
+(* TODO: move this into Core/Actions.v *)
+Lemma tryrecv_act_step_none_equal_state W0 this0 p s1 s2 :
+    Actions.tryrecv_act_step W0 this0 p s1 s2 None ->
+    s1 = s2.
+Proof.
+  case=>[C1][[] | [l][m][tms][from][rt][pf][]]; done.
+Qed.
+
+Require Import While.
+
+Program Definition recv_update_response_loop e v :
+  DHT [this, W]
+    (fun i => resource_init_state i /\ lock_held e i,
+     fun res m => [/\ resource_init_state m,
+                  lock_held e m,
+                  resource_value v (getSR m) &
+                  if res is Some r then r = v else False]) :=
+  Do _ (@while this W _ _ (fun x => if x is Some _ then false else true)
+               (recv_update_response_inv e v) _
+               (fun _ => Do _ (
+                 r <-- tryrecv_update_response ;
+                 if r is Some (from, tag, [:: e0; v0; b0]) return _
+                 then ret _ _ (Some v0)
+                 else ret _ _ None)) None).
+Next Obligation. by apply: with_spec x. Qed.
+Next Obligation. by eauto using recv_update_response_inv_rely. Qed.
+Next Obligation. move=>s0 /=[[]][]. case: H=>[r|_ Inv0]; first done.
+apply: step; apply: act_rule=> s1 Rely01/=; split; first by case: (rely_coh Rely01).
+move=>y s2 s3 [_]/= Step12 Rely23.
+case: y Step12=>[|Step12]; last first.
+- apply: ret_rule=>s4 Rely34[][_] [Flight0] Held0.
+  move/tryrecv_act_step_none_equal_state in Step12. subst s2.
+  split.
+  + by eauto using update_in_flight_rely.
+  by eauto using lock_held_rely.
+move=>[[from]]tag body Step12.
+move: Step12=>[C1][[]|[l][m][[t c]][from0][rt][pf][[]]/esym Fm Hrt HT Wf]; first done.
+move=>/andP[/eqP ?] /andP[/eqP ?] /eqP HT' /= s2def [? ? ?]. subst l from0 from body tag.
+move: (coh_coh resource_label C1).
+rewrite W_resource_protocol/==>-[][Vs1]Sp1 _ _ _.
+move: (Sp1 _ _ Fm erefl).
+rewrite /R.coh_msg/= eqxx/R.msg_from_server HT HT'.
+rewrite /eq_op/= => -[] _ [[_][e0][v0][b0] E|[]]; last done.
+rewrite E.
+apply: ret_rule=>s4 Rely34[][_][Flight0] Held0.
+rewrite /recv_update_response_inv.
+have: update_in_flight e v (getStatelet s1 resource_label)
+  by eauto using update_in_flight_rely.
+case; do? by move=>[]_ _ /(_ _ _ _ Fm).
+move=>[]NM1 NO1[b]MS1.
+move: MS1=>[_] /(_ _ _ _ Fm) /andP[/eqP ? /eqP Ec]. subst t c.
+case: Ec=>???. subst e0 v0 b0.
+move=>RV1.
+have Held1 := lock_held_rely Rely01 Held0.
+have Held2 : lock_held e s2 by admit.
+have Held3 :=  lock_held_rely Rely23 Held2.
+split; first last.
+- apply /(resource_value_rely Held3)=>//.
+  apply /(resource_value_rely Held2)=>//.
+  move: RV1.
+  rewrite /resource_value. subst s2.
+  rewrite /getStatelet plab_resourceE findU eqxx/= (cohS C1).
+  by rewrite /getLocal findU (negbTE this_not_resource_server) /=.
+- by exact: lock_held_rely Rely34 Held3.
+Admitted.
 
 (* TODO *)
 
