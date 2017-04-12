@@ -648,10 +648,26 @@ Lemma recv_lq_case3 req_num reqs resp to s data
                (consume_msg (dsoup (getSq s)) i)) s) lq in
   msg_responded d reqs resp req_num to data.  
 Proof.
-
-Admitted.
-
-
+move=>H1 H2 H4; case: M=>G1 G2 G3 G4[rq][rs][Tr]Np.
+split=>//.
+- by rewrite /getStatelet findU eqxx(cohS C)/=/getLocal/= findU (negbTE N) in G1 *. 
+- rewrite /getStatelet findU eqxx(cohS C)/=.
+  by apply: no_msg_from_to_consume'=>//; rewrite (cohVs C').
+- rewrite /getStatelet findU eqxx(cohS C)/=.
+  by apply: (msg_spec_consumeE (cohVs C') H4 G4); rewrite N orbC.
+rewrite /getStatelet findU eqxx (cohS C)/=/holds_res_perms.
+rewrite /getLocal/=findU eqxx/= (cohVl (cohQ s C)).  
+case: H1;[|case=>//]; move=>Z; subst rt=>//=; simpl in H2, H4;
+rewrite/QueryProtocol.receive_step (getStK _ Tr)/=.
+- case:ifP=>_; last by exists rq, rs. 
+  exists rq, ((from, head 0 msg) :: rs); split=>//rn.
+  case X: (this == from); last first.
+  + by rewrite inE; case/orP; [case/eqP=>Z; subst; rewrite eqxx in X|move/Np].
+  move/eqP:X=>X; subst from.
+  by case: msg H2 H4=>t c/= H2 H4; move: (G3 _ _ _ H4); subst t.  
+case:ifP=>_; last by exists rq, rs. 
+by exists (seq.rem (from, head 0 msg) rq), rs. 
+Qed.
 
 (***********************************************************)
 (* A rely-inductive predicate describing the message story *)
