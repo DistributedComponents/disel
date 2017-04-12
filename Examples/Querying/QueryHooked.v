@@ -358,7 +358,46 @@ Qed.
 (************************************************************************)
 (******                 Auxiliary lemmas                           ******)
 (************************************************************************)
-Lemma send_lq req_num data reqs resp to s
+
+Lemma cohQ s : Coh W s -> (QueryProtocol.QCoh qnodes) (getSq s).
+Proof. by move/(coh_coh lq); rewrite prEqQ. Qed.
+
+Lemma send_lq_case1 req_num reqs resp to s
+  (N : this != to) (Qn : to \in qnodes) 
+  (M : msg_just_sent (getSq s) reqs resp req_num to)
+  to' msg (n : heap) (C : Coh W s) (st : send_trans (Protocols.coh pq))
+  (H1 : st \In snd_trans pq)
+  (H2 : to \in qnodes)
+  (H4 : send_safe st to to' (getSq s) msg) : 
+  all_hooks_fire query_hookz (plab pq) (t_snd st) s to msg to' -> Some n = send_step H4 ->
+  let: d := getStatelet (upd (plab pq) 
+              (DStatelet (upd to n (dstate (getSq s)))
+               (dsoup (getSq s) \+ fresh (dsoup (getSq s)) \\->
+                      Msg (TMsg (t_snd st) msg) to to' true)) s) lq in
+  msg_just_sent d reqs resp req_num to.
+Proof.
+move=>H5 H6.
+Admitted.
+
+Lemma send_lq_case3 req_num data reqs resp to s
+  (N : this != to) (Qn : to \in qnodes) (H : core_state_to_data (getLc' s to) data)
+  (L : local_indicator data (getLc' s this))
+  (M : msg_responded (getSq s) reqs resp req_num to data)
+  to' msg (n : heap) (C : Coh W s) (st : send_trans (Protocols.coh pq))
+  (H1 : st \In snd_trans pq)
+  (H2 : to \in qnodes)
+  (H4 : send_safe st to to' (getSq s) msg) : 
+  all_hooks_fire query_hookz (plab pq) (t_snd st) s to msg to' -> Some n = send_step H4 ->
+  let: d := getStatelet (upd (plab pq) 
+              (DStatelet (upd to n (dstate (getSq s)))
+               (dsoup (getSq s) \+ fresh (dsoup (getSq s)) \\->
+                      Msg (TMsg (t_snd st) msg) to to' true)) s) lq in
+  msg_responded d reqs resp req_num to data.  
+Proof.
+move=>H5 H6.
+Admitted.
+
+Lemma send_lq_all_cases req_num data reqs resp to s
   (N : this != to) (Qn : to \in qnodes) (H : core_state_to_data (getLc' s to) data)
   (L : local_indicator data (getLc' s this))
   (M : [\/ msg_just_sent (getSq s) reqs resp req_num to, msg_received (getSq s) reqs resp req_num to
@@ -378,60 +417,86 @@ Lemma send_lq req_num data reqs resp to s
 Proof.
 move=>H5 H6.
 move: st H1 H4 H5 H6; rewrite /get_st prEqQ=>st H1 H4 H5 H6.
-case: M; first 1 last.
-+ (* now he can send us the message, this is the crucial step. *)
-  case=>G1 G2 G3 G4 [rq][rs][E]Np.
-  case B : (to' == this); last first.
-  - constructor 2. (* boring case : sending to someone else*)
-    split=>//; admit.
-    
-
-
-    
-
-    
-  move/eqP:B=>B; subst to'.
-  case: H1;[|case=>//]; move=>Z; subst st=>//; simpl in H5, H6.
-  - (* sending request (not response) -- this is boring *) admit.
-  (* Sending response to us!!! *)                                          
-  case: (H4)=>_[C']/=[rid][d][Zm]Tr; subst msg.
-  rewrite  (getStK _ E)/= in Tr.
-  rewrite /QueryProtocol.send_step (getStK _ E) in H6.                                          
-  case: H6=>H6; subst n; rewrite Tr.
+case: M; last 1 first.
++ (* already responded to our request, should be boring *)
   constructor 3.
-  (* Now exploit the hook! *)
-  move: (H5 1 (plab pc) query_hook); rewrite um_findPt -!(cohD C).
-  move/(_ (erefl _) labC labQ data H)=>[rid'][]Z Ed; subst rid'.
-  split=>//; first 3 last.
-  + rewrite /getStatelet findU eqxx(cohS C)/=.
-    exists (rq), (seq.rem (this, rid) rs).
-    rewrite /getLocal findU eqxx/= (cohVl C'); split=>// rn R.
-    move/Np/eqP: (mem_rem R)=>Zr; subst rn.
-    move/Np:Tr=>/eqP=>Zr; subst rid.
-    case: (C')=>_ _ _/(_ to); rewrite E (cohDom C')=>/(_ Qn). 
-    case=>[[x1 x2]][]/(hcancelPtV _); rewrite hvalidPt/==>/(_ is_true_true).
-    case=>Z1 Z2; subst x1 x2=>/andP[_]G.
-    by rewrite (rem_filter (this, req_num) G) mem_filter/= eqxx/= in R.
-  + by rewrite /getStatelet findU eqxx(cohS C)/getLocal findU (negbTE N). 
-  + rewrite /getStatelet findU eqxx (cohS C)/==>z t c.
-    rewrite findUnR ?(valid_fresh) ?(cohVs C')//.
-    case: ifP=>[|_]; last by apply: G3.
-    by rewrite um_domPt inE=>/eqP<-{z}; rewrite um_findPt; case=><-.
-  (* Here's the big hooking moment *)  
-  split=>[|i m]; rewrite Ed in H4 H5 *; clear Ed d;
-    rewrite /getStatelet findU eqxx/= (cohS C)/=; last first.
-  + rewrite findUnR ?(valid_fresh) ?(cohVs C')//; case: ifP=>[|_]; last by move/G4. 
-    rewrite um_domPt inE=>/eqP<-; rewrite um_findPt; case=><-.
-    by move/Np/eqP: Tr=>->; rewrite eqxx.
-  exists (fresh (dsoup (getStatelet s lq))); split.
-  + exists (rid :: serialize data).
-    by rewrite findUnR ?(valid_fresh)?(cohVs C')// um_domPt inE eqxx um_findPt.
-  move=>i[c]; rewrite findUnR ?(valid_fresh)?(cohVs C')//.
-  case: ifP=>[|_]; last by move/G4. 
-  by rewrite um_domPt inE=>/eqP<-; rewrite um_findPt. 
+  by apply: (send_lq_case3 req_num data  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ H4). 
++ (* just sent the request *)
+  by constructor 1; apply: (send_lq_case1 req_num _ _ _ _ _ _ _ _ _ _ _ _ _ _ H4). 
 
-+ (* already responded to our request, should be boring *) admit.
-+ (* not yet received our request, should be boring *) admit.
+Ltac kill_g3 s C G3 to N :=
+  rewrite /getStatelet findU  eqxx(cohS C)/==>z t c;
+  rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//;
+  case: ifP; [|by move=>_; apply: G3]; 
+  rewrite um_domPt inE=>/eqP<-; rewrite um_findPt;
+  by case=>_ _ Z _; subst to; rewrite eqxx in N.
+
+Ltac kill_g4 s C G4 to' t B:=
+  rewrite /getStatelet findU  eqxx(cohS C)/==>z t c;
+  rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//;
+  case: ifP; [|by move=>_; apply: G4]; 
+  rewrite um_domPt inE=>/eqP<-; rewrite um_findPt;
+  by case=>??; try move=>?; try subst t; try subst to'; try rewrite ?eqxx in B.
+
+(* now he can send us the message, this is the crucial step. *)
+case=>G1 G2 G3 G4 [rq][rs][E]Np.
+case B : (to' == this); [move/eqP:B=>B; subst to'|]; last first.
+- constructor 2. (* boring case : sending to someone else*)
+  split=>//.
+  + by rewrite /getStatelet findU eqxx(cohS C)/=/getLocal/= findU (negbTE N) in G1 *. 
+  + kill_g3 s C G3 to N.
+  + kill_g4 s C G4 to' t B.
+  rewrite /getStatelet findU eqxx (cohS C)/=/holds_res_perms.
+  rewrite /getLocal/=findU eqxx/= (cohVl (cohQ s C)).  
+  case: H1;[|case=>//]; move=>Z; subst st=>//; simpl in H5, H6;
+  rewrite/QueryProtocol.send_step (getStK _ E)/= in H6; case: H6=>H6; subst n.
+  - by exists ((to', fresh_id rq) :: rq), rs. 
+  case:ifP=>_; last by exists rq, rs.   
+  by exists rq, (seq.rem (to', head 0 msg) rs); split=>//rn/mem_rem/Np.
+(* Actually sending to us. *)  
+case: H1;[|case=>//]; move=>Z; subst st=>//; simpl in H5, H6;
+rewrite/QueryProtocol.send_step (getStK _ E)/= in H6; case: H6=>H6; subst n.                                  
+- constructor 2; split=>//. (* sending request (not response) -- this is boring *)
+  + by rewrite /getStatelet findU eqxx(cohS C)/=/getLocal/= findU (negbTE N) in G1 *. 
+  + kill_g3 s C G3 to N.
+  + kill_g4 s C G4 to' t B.
+  rewrite /getStatelet findU eqxx (cohS C)/=/holds_res_perms.
+  rewrite /getLocal/=findU eqxx/= (cohVl (cohQ s C)).
+  by exists ((this, fresh_id rq) :: rq), rs.    
+(* Sending response to us!!! *)                                          
+case: (H4)=>_[C']/=[rid][d][Zm]Tr; subst msg.
+rewrite  (getStK _ E)/= in Tr.
+rewrite Tr; constructor 3.
+(* Now exploit the hook! *)
+move: (H5 1 (plab pc) query_hook); rewrite um_findPt -!(cohD C).
+move/(_ (erefl _) labC labQ data H)=>[rid'][]Z Ed; subst rid'.
+split=>//; first 3 last.
++ rewrite /getStatelet findU eqxx(cohS C)/=.
+  exists (rq), (seq.rem (this, rid) rs).
+  rewrite /getLocal findU eqxx/= (cohVl C'); split=>// rn R.
+  move/Np/eqP: (mem_rem R)=>Zr; subst rn.
+  move/Np:Tr=>/eqP=>Zr; subst rid.
+  case: (C')=>_ _ _/(_ to); rewrite E (cohDom C')=>/(_ Qn). 
+  case=>[[x1 x2]][]/(hcancelPtV _); rewrite hvalidPt/==>/(_ is_true_true).
+  case=>Z1 Z2; subst x1 x2=>/andP[_]G.
+  by rewrite (rem_filter (this, req_num) G) mem_filter/= eqxx/= in R.
++ by rewrite /getStatelet findU eqxx(cohS C)/getLocal findU (negbTE N). 
++ rewrite /getStatelet findU eqxx (cohS C)/==>z t c.
+  rewrite findUnR ?(valid_fresh) ?(cohVs C')//.
+  case: ifP=>[|_]; last by apply: G3.
+  by rewrite um_domPt inE=>/eqP<-{z}; rewrite um_findPt; case=><-.
+(* Here's the big hooking moment *)  
+split=>[|i m]; rewrite Ed in H4 H5 *; clear Ed d;
+  rewrite /getStatelet findU eqxx/= (cohS C)/=; last first.
++ rewrite findUnR ?(valid_fresh) ?(cohVs C')//; case: ifP=>[|_]; last by move/G4. 
+  rewrite um_domPt inE=>/eqP<-; rewrite um_findPt; case=><-.
+  by move/Np/eqP: Tr=>->; rewrite eqxx.
+exists (fresh (dsoup (getStatelet s lq))); split.
++ exists (rid :: serialize data).
+  by rewrite findUnR ?(valid_fresh)?(cohVs C')// um_domPt inE eqxx um_findPt.
+move=>i[c]; rewrite findUnR ?(valid_fresh)?(cohVs C')//.
+case: ifP=>[|_]; last by move/G4. 
+by rewrite um_domPt inE=>/eqP<-; rewrite um_findPt. 
 Admitted.
 
 
@@ -465,7 +530,7 @@ case: S; [by case=>_<- |
   rewrite -(cohD C) domUn !inE !um_domPt !inE in H3;
   case/andP:H3=>_ H3; case/orP: H3=>/eqP H3; subst l; first 1 last.
 (* Something sending in lq, this is where the interesting stuff happens! *)
-- by apply: send_lq.
+- by apply: send_lq_all_cases.
 
 (* Something sending in lc, should be irrelevant. *)
 - admit.
