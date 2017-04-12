@@ -704,6 +704,23 @@ case:M; case=>G1 G2 G3 G4 G5; [constructor 1|constructor 2|constructor 3].
 (** Receive-transitions **)
 case:M; case=>G1 G2 G3 G4 G5; [constructor 1|constructor 2|constructor 3].
 
+(* Receive-transition, case 1 *)
+- split=>//=; first by rewrite /getLocal/= findU (negbTE N) in G1 *. 
+  + by apply: no_msg_from_to_consume'=>//; rewrite (cohVs (cohQ s C)).
+  + admit. (* TODO: prove a suitable lemma about consume and msg_spec' *)
+  by case:G5=>rq[rs][Tr]Np; exists rq, rs; rewrite /getLocal/=findU A/=. 
+
+(* Receive-transition, case 2 *)
+- split=>//=; first by rewrite /getLocal/= findU (negbTE N) in G1 *. 
+  + by apply: no_msg_from_to_consume'=>//; rewrite (cohVs (cohQ s C)).
+  + by apply: no_msg_from_to_consume'=>//; rewrite (cohVs (cohQ s C)).
+  by case:G5=>rq[rs][Tr]Np; exists rq, rs; rewrite /getLocal/=findU A/=. 
+
+(* Receive-transition, case 3 *)
+- split=>//=; first by rewrite /getLocal/= findU (negbTE N) in G1 *. 
+  + by apply: no_msg_from_to_consume'=>//; rewrite (cohVs (cohQ s C)).
+  + admit. (* TODO: prove a suitable lemma about consume and msg_spec' *)
+  by case:G5=>rq[rs][Tr]Np; exists rq, rs; rewrite /getLocal/=findU A/=.
 Admitted.  
       
 
