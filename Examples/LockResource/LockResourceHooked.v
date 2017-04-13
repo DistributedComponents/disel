@@ -43,10 +43,10 @@ Definition resource_hook : hook_type :=
     exists e, hl = L.st :-> L.Held e.
 
 Definition resource_hooks :=
-  (1, plab lock_protocol, (plab resource_protocol, R.update_tag)) \\-> resource_hook.
+  (1, lock_label, (resource_label, R.update_tag)) \\-> resource_hook.
 
 Definition W : world :=
-  ((plab lock_protocol \\-> lock_protocol) \+ (plab resource_protocol \\-> resource_protocol),
+  ((lock_label \\-> lock_protocol) \+ (resource_label \\-> resource_protocol),
    resource_hooks).
 
 Lemma W_valid : valid W.
@@ -78,12 +78,12 @@ Proof. done. Qed.
 
 
 Lemma eqW : 
-  W = (plab lock_protocol \\-> lock_protocol, Unit) \+
-      (plab resource_protocol \\-> resource_protocol, Unit) \+
+  W = (lock_label \\-> lock_protocol, Unit) \+
+      (resource_label \\-> resource_protocol, Unit) \+
       (Unit, resource_hooks).
 Proof. by rewrite /PCM.join/=/W !unitL !unitR. Qed.
 
-Lemma injW : injects (plab lock_protocol \\-> lock_protocol, Unit) W resource_hooks.
+Lemma injW : injects (lock_label \\-> lock_protocol, Unit) W resource_hooks.
 Proof.
 rewrite eqW.
 apply: injectL.
@@ -110,10 +110,10 @@ Variable this : nid.
 Hypothesis this_in_lock_clients: this \in lock_clients.
 Hypothesis this_in_resource_clients: this \in resource_clients.
 
-Notation getSL s := (getStatelet s (plab lock_protocol)).
+Notation getSL s := (getStatelet s lock_label).
 Notation getLL s := (getLocal this (getSL s)).
 
-Notation getSR s := (getStatelet s (plab resource_protocol)).
+Notation getSR s := (getStatelet s resource_label).
 Notation getLR s := (getLocal resource_server (getSR s)).
 
 (* Intermediate Assertions *)
@@ -138,13 +138,13 @@ Definition outstanding_update e v d :=
 Definition is_update_msg (t : nat) (_ : seq nat) := t == R.update_tag.
 Definition is_update_response_msg (t : nat) (_ : seq nat) := t == R.update_response_tag.
 
-Definition resource_init_state s :=
-  [/\ no_outstanding_updates (getSR s),
-     no_msg_from_to this resource_server (dsoup (getSR s)) &
-     no_msg_from_to resource_server this (dsoup (getSR s))].
+Definition resource_init_state d :=
+  [/\ no_outstanding_updates d,
+     no_msg_from_to this resource_server (dsoup d) &
+     no_msg_from_to resource_server this (dsoup d)].
 
-Definition lock_held e s :=
-  getLL s = L.st :-> L.Held e.
+Definition lock_held e d :=
+  getLocal this d = L.st :-> L.Held e.
 
 Definition update_just_sent e v d :=
   [/\ msg_spec this resource_server R.update_tag [:: e; v] (dsoup d),
@@ -168,27 +168,38 @@ Definition update_in_flight e v d :=
      update_response_sent e v d].
 
 (* Stability Lemmas *)
+
+(* TODO: state all of the following lemmas in the approprate small world. *)
+
+Lemma no_outstanding_updates_rely s1 s2 :
+  network_rely W this s1 s2 ->
+  no_msg_from_to this resource_server (dsoup (getSR s1)) ->
+  no_outstanding_updates (getSR s1) ->
+  no_outstanding_updates (getSR s2).
+Admitted.
+
 Lemma resource_init_state_rely s1 s2 :
   network_rely W this s1 s2 ->
-  resource_init_state s1 ->
-  resource_init_state s2.
+  resource_init_state (getSR s1) ->
+  resource_init_state (getSR s2).
 Admitted.
 
 Lemma update_in_flight_rely e v s1 s2 :
   network_rely W this s1 s2 ->
+  lock_held e (getSL s1) ->
   update_in_flight e v (getSR s1) ->
   update_in_flight e v (getSR s2).
 Admitted.
 
 Lemma lock_held_rely e s1 s2 :
   network_rely W this s1 s2 ->
-  lock_held e s1 ->
-  lock_held e s2.
+  lock_held e (getSL s1) ->
+  lock_held e (getSL s2).
 Proof. by move=>Rely12; rewrite /lock_held (rely_loc' _ Rely12). Qed.
 
 Lemma resource_value_rely e v s1 s2 :
-  lock_held e s1 ->
   network_rely W this s1 s2 ->
+  lock_held e (getSL s1) ->
   resource_value v (getSR s1) ->
   resource_value v (getSR s2).
 Admitted.
@@ -216,8 +227,8 @@ Qed.
 
 Program Definition send_update e v :
   DHT [this, W]
-    (fun i => resource_init_state i /\ lock_held e i,
-     fun r m => update_in_flight e v (getSR m) /\ lock_held e m)
+    (fun i => resource_init_state (getSR i) /\ lock_held e (getSL i),
+     fun r m => update_in_flight e v (getSR m) /\ lock_held e (getSL m))
   := Do (send_update_act e v).
 Next Obligation.
 move=>s0/=[Init0][Held0].
@@ -237,7 +248,7 @@ apply: act_rule=>s1 Rely01; split=>//=.
 
 (* postcondition: *)
 move=>m s2 s3 [Safe] Step Rely23 _.
-have Held2: lock_held e s2.
+have Held2: lock_held e (getSL s2).
 - move: Held0.
   rewrite /lock_held -(rely_loc' _ Rely01).
   case: Step=>_ [h'][]_ s2def.
@@ -279,11 +290,17 @@ Qed.
 
 Definition recv_update_response_inv e v (_ : unit) : cont (option nat) :=
   fun res s =>
-    if res is Some v
-    then [/\ resource_init_state s,
-            lock_held e s &
+    if res is Some v0
+    then [/\ v0 = v,
+            resource_init_state (getSR s),
+            lock_held e (getSL s) &
             resource_value v (getSR s)]
-    else update_in_flight e v (getSR s) /\ lock_held e s.
+    else update_in_flight e v (getSR s) /\ lock_held e (getSL s).
+
+Lemma recv_update_response_inv_lock_held e v u r s :
+  recv_update_response_inv e v u r s ->
+  lock_held e (getSL s).
+Proof. by case: r=>[a|][]. Qed.
 
 Lemma recv_update_response_inv_rely e v u r s1 s2 :
   network_rely W this s1 s2 ->
@@ -303,20 +320,20 @@ Require Import While.
 
 Program Definition recv_update_response_loop e v :
   DHT [this, W]
-    (fun i => resource_init_state i /\ lock_held e i,
-     fun res m => [/\ resource_init_state m,
-                  lock_held e m,
+    (fun i => update_in_flight e v (getSR i) /\ lock_held e (getSL i),
+     fun res m => [/\ resource_init_state (getSR m),
+                  lock_held e (getSL m),
                   resource_value v (getSR m) &
                   if res is Some r then r = v else False]) :=
-  Do _ (@while this W _ _ (fun x => if x is Some _ then false else true)
+  Do _ (@while this W _ _ (fun x => if x is Some _ return bool then false else true)
                (recv_update_response_inv e v) _
                (fun _ => Do _ (
                  r <-- tryrecv_update_response ;
                  if r is Some (from, tag, [:: e0; v0; b0]) return _
                  then ret _ _ (Some v0)
                  else ret _ _ None)) None).
-Next Obligation. by apply: with_spec x. Qed.
-Next Obligation. by eauto using recv_update_response_inv_rely. Qed.
+Next Obligation. by apply: with_spec x. Defined.
+Next Obligation. by eauto using recv_update_response_inv_rely. Defined.
 Next Obligation. move=>s0 /=[[]][]. case: H=>[r|_ Inv0]; first done.
 apply: step; apply: act_rule=> s1 Rely01/=; split; first by case: (rely_coh Rely01).
 move=>y s2 s3 [_]/= Step12 Rely23.
@@ -324,7 +341,7 @@ case: y Step12=>[|Step12]; last first.
 - apply: ret_rule=>s4 Rely34[][_] [Flight0] Held0.
   move/tryrecv_act_step_none_equal_state in Step12. subst s2.
   split.
-  + by eauto using update_in_flight_rely.
+  + eauto 10 using update_in_flight_rely, lock_held_rely.
   by eauto using lock_held_rely.
 move=>[[from]]tag body Step12.
 move: Step12=>[C1][[]|[l][m][[t c]][from0][rt][pf][[]]/esym Fm Hrt HT Wf]; first done.
@@ -336,38 +353,46 @@ rewrite /R.coh_msg/= eqxx/R.msg_from_server HT HT'.
 rewrite /eq_op/= => -[] _ [[_][e0][v0][b0] E|[]]; last done.
 rewrite E.
 apply: ret_rule=>s4 Rely34[][_][Flight0] Held0.
+have Rely24 := rely_trans Rely23 Rely34. move =>{s3}{Rely23}{Rely34}.
 rewrite /recv_update_response_inv.
 have: update_in_flight e v (getStatelet s1 resource_label)
   by eauto using update_in_flight_rely.
 case; do? by move=>[]_ _ /(_ _ _ _ Fm).
 move=>[]NM1 NO1[b]MS1.
-move: MS1=>[_] /(_ _ _ _ Fm) /andP[/eqP ? /eqP Ec]. subst t c.
+move: (MS1)=>[_] /(_ _ _ _ Fm) /andP[/eqP ? /eqP Ec]. subst t c.
 case: Ec=>???. subst e0 v0 b0.
 move=>RV1.
 have Held1 := lock_held_rely Rely01 Held0.
-have Held2 : lock_held e s2 by admit.
-have Held3 :=  lock_held_rely Rely23 Held2.
-split; first last.
-- apply /(resource_value_rely Held3)=>//.
-  apply /(resource_value_rely Held2)=>//.
+have Held2 : lock_held e (getSL s2)
+  by move: Held1;rewrite s2def/getStatelet findU (negbTE lock_resource_label_neq).
+split=>//; first last.
+- apply /(resource_value_rely Rely24 Held2)=>//.
   move: RV1.
   rewrite /resource_value. subst s2.
-  rewrite /getStatelet plab_resourceE findU eqxx/= (cohS C1).
+  rewrite /getStatelet findU eqxx/= (cohS C1).
   by rewrite /getLocal findU (negbTE this_not_resource_server) /=.
-- by exact: lock_held_rely Rely34 Held3.
-Admitted.
+- by exact: lock_held_rely Rely24 Held2.
+apply /(resource_init_state_rely Rely24).
+rewrite s2def /getStatelet findU eqxx/= (cohS C1).
+split.
+- move: NO1.
+  rewrite /no_outstanding_updates/resource_perms.
+  by rewrite /getLocal/= findU (negbTE this_not_resource_server) /=.
+- move: NM1.
+  rewrite /no_outstanding_updates/resource_perms.
+  by apply/no_msg_from_to_consume.
+fold (getStatelet s1 resource_label).
+move=>/=.
+exact: (msg_spec_consume _ Fm MS1).
+Qed.
+Next Obligation.
+move=>s/=[Init Held].
+apply: call_rule'; cbn; first by move=>_; exists tt; split=>//.
+move=>r s' /(_ tt (conj Init Held))[].
+by case: r=>//r _[]; split.
+Qed.
 
 (* TODO *)
-
-(* Write program to receive update response and prove postcondition that
-   guarantees update has occurred. *)
-
-(* That postcondition will require a strengthened joint coherence fact about
-   epoch numbers toprove "noninterference", namely that that all update messages
-   in the network have strictly smaller epochs than the lock server. *)
-
-(* That postcondition will also require strengthening `update_response_sent` to
-   assert that the update actually occurred. *)
 
 (* Prove stability lemmas. *)
 
