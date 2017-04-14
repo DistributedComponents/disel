@@ -136,4 +136,103 @@ by apply /(cohVs Cs1).
 by rewrite eq_sym; apply/negbTE/this_not_server.
 Qed.
 
+Program Definition tryrecv_grant :=
+  act (@tryrecv_action_wrapper W this
+      (fun l0 from tag m => [&& l0 == l, from == server &
+                            tag == L.grant_tag]) _).
+Next Obligation.
+case/andP: H=>/eqP->_.
+by rewrite um_domPt inE eqxx.
+Qed.
+
+Definition recv_grant_inv (_ : unit) : cont (option nat) :=
+  fun res s =>
+    if res is Some e
+    then lock_quiescent (getStatelet s l) /\
+         L.held this e (getStatelet s l)
+    else lock_request_in_flight (getStatelet s l).
+
+Lemma recv_grant_inv_rely u r s1 s2 :
+  network_rely W this s1 s2 ->
+  recv_grant_inv u r s1 ->
+  recv_grant_inv u r s2.
+Admitted.
+
+Require Import While.
+
+Program Definition recv_grant_loop :
+  DHT [this, W]
+    (fun i => lock_request_in_flight (getStatelet i l),
+     fun res m => lock_quiescent (getStatelet m l) /\
+               if res is Some e
+               then L.held this e (getStatelet m l)
+               else False) :=
+  Do _ (@while this W _ _ (fun x => if x is Some _ return bool then false else true)
+               (recv_grant_inv) _
+               (fun _ => Do _ (
+                 r <-- tryrecv_grant ;
+                 if r is Some (from, tag, [:: e]) return _
+                 then ret _ _ (Some e)
+                 else ret _ _ None)) None).
+Next Obligation. by apply: with_spec x. Defined.
+Next Obligation. by eauto using recv_grant_inv_rely. Defined.
+Next Obligation.
+move=>s0 /=[[]][]. case: H=>[r|_ Inv0]; first done.
+apply: step; apply: act_rule=> s1 Rely01/=; split; first by case: (rely_coh Rely01).
+move=>y s2 s3 [_]/= Step12 Rely23.
+case: y Step12=>[|Step12]; last first.
+- apply: ret_rule=>s4 Rely34[][_] Flight0/=.
+  move/Actions.tryrecv_act_step_none_equal_state in Step12. subst s2.
+  eauto using lock_request_in_flight_rely.
+move=>[[from]]tag body Step12.
+move: Step12=>[C1][[]|[l0][m][[t c]][from0][rt][pf][[]]/esym Fm Hrt HT Wf]; first done.
+move=>/andP[/eqP ?] /andP[/eqP ?] /eqP HT' /= s2def [? ? ?]. subst l0 from0 from body tag.
+move: (coh_s l C1) rt Hrt HT HT' Wf pf s2def.
+rewrite LSW.W_l/=.
+move=> Cs1' rt Hrt HT HT' Wf pf s2def.
+move: (coh_coh l C1).
+have Cs1 := (coh_coh l C1).
+rewrite LSW.W_l/==>-[][Vs1]Sp1 _ _ _.
+move: (Sp1 _ _ Fm erefl).
+rewrite /L.coh_msg/= eqxx/L.msg_from_server HT HT' =>-[e][_]/=/eqP ?. subst c.
+apply: ret_rule=>s4 Rely34[][_] Flight0.
+have Rely24 := rely_trans Rely23 Rely34. move =>{s3}{Rely23}{Rely34}.
+rewrite /recv_grant_inv.
+have: lock_request_in_flight (getStatelet s1 l)
+  by eauto using lock_request_in_flight_rely.
+
+case; do? by move=>[]_ _ _ /(_ _ _ _ Fm).
+move=>[]NH1 NM1 NP1[e0]MS1.
+move: (MS1)=>[_] /(_ _ _ _ Fm) /andP[/eqP Et /eqP Ec]. subst t.
+case: Ec=>?. subst e0.
+
+move: (Hrt) Et.
+rewrite /L.lock_receives !InE.
+case; first by move=>->/=.
+case; first by move=>->/=.
+move=>?. subst rt.
+move=>/= _.
+
+split; last first.
+- apply /(LSW.held_rely Rely24).
+  rewrite s2def/getStatelet findU eqxx/= (cohS C1).
+  rewrite /L.held/getLocal/= findU eqxx/= (cohVl Cs1).
+  by rewrite /L.rc_step this_in_clients /L.client_recv_step.
+apply /(lock_quiescent_rely Rely24).
+rewrite s2def /getStatelet findU eqxx/= (cohS C1).
+split.
+- move: NP1.
+  rewrite /no_pending_acquires/acquire_perms.
+  by rewrite /getLocal/= findU (negbTE this_not_server) /=.
+- exact: (no_msg_from_to_consume _ NM1).
+move=>/=.
+exact: (msg_spec_consume _ Fm MS1).
+Qed.
+Next Obligation.
+move=>s/= Inv.
+apply: call_rule'; cbn; first by move=>_; exists tt.
+move=>r s' /(_ tt Inv)[].
+by case: r=>//r _[]; split.
+Qed.
+
 End LockPrograms.
