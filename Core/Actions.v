@@ -216,6 +216,11 @@ Qed.
 Definition tryrecv_action_wrapper :=
   Action tryrecv_act_safe_coh tryrecv_act_step_total tryrecv_act_step_sem.
 
+Lemma tryrecv_act_step_none_equal_state s1 s2 :
+  tryrecv_act_step s1 s2 None ->
+  s1 = s2.
+Proof. by case=>[C1][[] | [l][m][tms][from][rt][pf][]]. Qed.
+
 End TryReceiveActionWrapper.
 
 (* A wrapper for the send-action *)

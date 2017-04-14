@@ -299,14 +299,6 @@ Lemma recv_update_response_inv_rely e v u r s1 s2 :
   recv_update_response_inv e v u r s2.
 Admitted.
 
-(* TODO: move this into Core/Actions.v *)
-Lemma tryrecv_act_step_none_equal_state W0 this0 p s1 s2 :
-    Actions.tryrecv_act_step W0 this0 p s1 s2 None ->
-    s1 = s2.
-Proof.
-  case=>[C1][[] | [l][m][tms][from][rt][pf][]]; done.
-Qed.
-
 (* TODO: would be nice to get this from SmallWorld.held_rely. *)
 Lemma lock_held_rely e s1 s2 :
   network_rely W this s1 s2 ->
@@ -332,12 +324,13 @@ Program Definition recv_update_response_loop e v :
                  else ret _ _ None)) None).
 Next Obligation. by apply: with_spec x. Defined.
 Next Obligation. by eauto using recv_update_response_inv_rely. Defined.
-Next Obligation. move=>s0 /=[[]][]. case: H=>[r|_ Inv0]; first done.
+Next Obligation.
+move=>s0 /=[[]][]. case: H=>[r|_ Inv0]; first done.
 apply: step; apply: act_rule=> s1 Rely01/=; split; first by case: (rely_coh Rely01).
 move=>y s2 s3 [_]/= Step12 Rely23.
 case: y Step12=>[|Step12]; last first.
 - apply: ret_rule=>s4 Rely34[][_] [Flight0] Held0.
-  move/tryrecv_act_step_none_equal_state in Step12. subst s2.
+  move/Actions.tryrecv_act_step_none_equal_state in Step12. subst s2.
   split.
   + eauto 10 using update_in_flight_rely, lock_held_rely.
   by eauto using lock_held_rely.
