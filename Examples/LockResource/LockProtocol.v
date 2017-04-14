@@ -574,11 +574,13 @@ End Protocol.
 
 Section Assertions.
 
+Notation assert_local this x d := (getLocal this d = st :-> x).
+
 Definition held this e d :=
-  getLocal this d = st :-> Held e.
+  assert_local this (Held e) d.
 
 Definition not_held this d :=
-  getLocal this d = st :-> NotHeld.
+  assert_local this NotHeld d.
 
 End Assertions.
 

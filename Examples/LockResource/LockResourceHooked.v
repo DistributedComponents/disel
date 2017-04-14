@@ -10,7 +10,7 @@ Require Import SeqLib.
 Require Import StatePredicates.
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 
-Require Import LockProtocol ResourceProtocol.
+Require Import LockProtocol ResourceProtocol LockSmallWorld.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -188,12 +188,6 @@ Lemma update_in_flight_rely e v s1 s2 :
   update_in_flight e v (getSR s2).
 Admitted.
 
-Lemma lock_held_rely e s1 s2 :
-  network_rely W this s1 s2 ->
-  L.held this e (getSL s1) ->
-  L.held this e (getSL s2).
-Proof. by move=>Rely12; rewrite /L.held (rely_loc' _ Rely12). Qed.
-
 Lemma resource_value_rely e v s1 s2 :
   network_rely W this s1 s2 ->
   L.held this e (getSL s1) ->
@@ -312,6 +306,13 @@ Lemma tryrecv_act_step_none_equal_state W0 this0 p s1 s2 :
 Proof.
   case=>[C1][[] | [l][m][tms][from][rt][pf][]]; done.
 Qed.
+
+(* TODO: would be nice to get this from SmallWorld.held_rely. *)
+Lemma lock_held_rely e s1 s2 :
+  network_rely W this s1 s2 ->
+  L.held this e (getSL s1) ->
+  L.held this e (getSL s2).
+Proof. by move=>Rely12; rewrite /L.held (rely_loc' _ Rely12). Qed.
 
 Require Import While.
 

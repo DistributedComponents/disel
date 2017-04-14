@@ -53,3 +53,5 @@ Examples/Querying/QueryPlusTPC.v
 Examples/LockResource/LockProtocol.v
 Examples/LockResource/ResourceProtocol.v
 Examples/LockResource/LockResourceHooked.v
+Examples/LockResource/LockSmallWorld.v
+Examples/LockResource/LockPrograms.v
