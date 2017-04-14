@@ -143,9 +143,6 @@ Definition resource_init_state d :=
      no_msg_from_to this resource_server (dsoup d) &
      no_msg_from_to resource_server this (dsoup d)].
 
-Definition lock_held e d :=
-  getLocal this d = L.st :-> L.Held e.
-
 Definition update_just_sent e v d :=
   [/\ msg_spec this resource_server R.update_tag [:: e; v] (dsoup d),
      no_outstanding_updates d &
@@ -186,20 +183,20 @@ Admitted.
 
 Lemma update_in_flight_rely e v s1 s2 :
   network_rely W this s1 s2 ->
-  lock_held e (getSL s1) ->
+  L.held this e (getSL s1) ->
   update_in_flight e v (getSR s1) ->
   update_in_flight e v (getSR s2).
 Admitted.
 
 Lemma lock_held_rely e s1 s2 :
   network_rely W this s1 s2 ->
-  lock_held e (getSL s1) ->
-  lock_held e (getSL s2).
-Proof. by move=>Rely12; rewrite /lock_held (rely_loc' _ Rely12). Qed.
+  L.held this e (getSL s1) ->
+  L.held this e (getSL s2).
+Proof. by move=>Rely12; rewrite /L.held (rely_loc' _ Rely12). Qed.
 
 Lemma resource_value_rely e v s1 s2 :
   network_rely W this s1 s2 ->
-  lock_held e (getSL s1) ->
+  L.held this e (getSL s1) ->
   resource_value v (getSR s1) ->
   resource_value v (getSR s2).
 Admitted.
@@ -227,8 +224,8 @@ Qed.
 
 Program Definition send_update e v :
   DHT [this, W]
-    (fun i => resource_init_state (getSR i) /\ lock_held e (getSL i),
-     fun r m => update_in_flight e v (getSR m) /\ lock_held e (getSL m))
+    (fun i => resource_init_state (getSR i) /\ L.held this e (getSL i),
+     fun r m => update_in_flight e v (getSR m) /\ L.held this e (getSL m))
   := Do (send_update_act e v).
 Next Obligation.
 move=>s0/=[Init0][Held0].
@@ -248,13 +245,13 @@ apply: act_rule=>s1 Rely01; split=>//=.
 
 (* postcondition: *)
 move=>m s2 s3 [Safe] Step Rely23 _.
-have Held2: lock_held e (getSL s2).
+have Held2: L.held this e (getSL s2).
 - move: Held0.
-  rewrite /lock_held -(rely_loc' _ Rely01).
+  rewrite /L.held -(rely_loc' _ Rely01).
   case: Step=>_ [h'][]_ s2def.
   by rewrite s2def /getStatelet findU/= (negbTE lock_resource_label_neq).
 split; last first.
-- by move: Held2; rewrite /lock_held (rely_loc' _ Rely23).
+- by move: Held2; rewrite /L.held (rely_loc' _ Rely23).
 apply/(update_in_flight_rely Rely23)=>//.
 constructor 1.
 move: (resource_init_state_rely Rely01 Init0).
@@ -293,13 +290,13 @@ Definition recv_update_response_inv e v (_ : unit) : cont (option nat) :=
     if res is Some v0
     then [/\ v0 = v,
             resource_init_state (getSR s),
-            lock_held e (getSL s) &
+            L.held this e (getSL s) &
             resource_value v (getSR s)]
-    else update_in_flight e v (getSR s) /\ lock_held e (getSL s).
+    else update_in_flight e v (getSR s) /\ L.held this e (getSL s).
 
 Lemma recv_update_response_inv_lock_held e v u r s :
   recv_update_response_inv e v u r s ->
-  lock_held e (getSL s).
+  L.held this e (getSL s).
 Proof. by case: r=>[a|][]. Qed.
 
 Lemma recv_update_response_inv_rely e v u r s1 s2 :
@@ -320,9 +317,9 @@ Require Import While.
 
 Program Definition recv_update_response_loop e v :
   DHT [this, W]
-    (fun i => update_in_flight e v (getSR i) /\ lock_held e (getSL i),
+    (fun i => update_in_flight e v (getSR i) /\ L.held this e (getSL i),
      fun res m => [/\ resource_init_state (getSR m),
-                  lock_held e (getSL m),
+                  L.held this e (getSL m),
                   resource_value v (getSR m) &
                   if res is Some r then r = v else False]) :=
   Do _ (@while this W _ _ (fun x => if x is Some _ return bool then false else true)
@@ -363,7 +360,7 @@ move: (MS1)=>[_] /(_ _ _ _ Fm) /andP[/eqP ? /eqP Ec]. subst t c.
 case: Ec=>???. subst e0 v0 b0.
 move=>RV1.
 have Held1 := lock_held_rely Rely01 Held0.
-have Held2 : lock_held e (getSL s2)
+have Held2 : L.held this e (getSL s2)
   by move: Held1;rewrite s2def/getStatelet findU (negbTE lock_resource_label_neq).
 split=>//; first last.
 - apply /(resource_value_rely Rely24 Held2)=>//.

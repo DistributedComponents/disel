@@ -571,6 +571,17 @@ Program Definition LockProtocol : protocol :=
   @Protocol _ l _ lock_sends lock_receives _ _.
 
 End Protocol.
+
+Section Assertions.
+
+Definition held this e d :=
+  getLocal this d = st :-> Held e.
+
+Definition not_held this d :=
+  getLocal this d = st :-> NotHeld.
+
+End Assertions.
+
 End LockProtocol.
 
 Module Exports.
