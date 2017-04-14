@@ -10,7 +10,7 @@ Require Import SeqLib.
 Require Import StatePredicates.
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 
-Require Import LockProtocol ResourceProtocol LockSmallWorld.
+Require Import LockProtocol ResourceProtocol LockSmallWorld LockPrograms.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -314,7 +314,7 @@ Program Definition recv_update_response_loop e v :
      fun res m => [/\ resource_init_state (getSR m),
                   L.held this e (getSL m),
                   resource_value v (getSR m) &
-                  if res is Some r then r = v else False]) :=
+                  if res is Some r return Prop then r = v else False]) :=
   Do _ (@while this W _ _ (fun x => if x is Some _ return bool then false else true)
                (recv_update_response_inv e v) _
                (fun _ => Do _ (
@@ -383,7 +383,52 @@ move=>r s' /(_ tt (conj Init Held))[].
 by case: r=>//r _[]; split.
 Qed.
 
+Notation lock_quiescent := (lock_quiescent lock_server this).
+
+(* Why is this broken? *)
+
+Program Definition update_rpc e v :
+  DHT [this, W]
+    (fun i => resource_init_state (getSR i) /\ L.held this e (getSL i),
+     fun (res : unit) m =>
+       [/\ resource_init_state (getSR m),
+          L.held this e (getSL m) &
+          resource_value v (getSR m)])
+    := Do (send_update e v ;;
+           recv_update_response_loop e v ;;
+           ret _ _ tt).
+
+Program Definition lock_and_update (v : nat) :
+  DHT [this, W]
+    (fun i => [/\ lock_quiescent (getSL i),
+              L.not_held this (getSL i) &
+              resource_init_state (getSR i)],
+     fun (e : nat) m =>
+       [/\ resource_init_state (getSR m),
+          L.held this e (getSL m) &
+          resource_value v (getSR m)])
+  := Do (e <-- iinject (lock_rpc lock_label lock_server_not_client this_in_lock_clients);
+         (* update_rpc e v ;; *)
+         ret _ _ e).
+
 (* TODO *)
+
+(* Fix the type error above. *)
+
+(* Discuss with Ilya what to do about the Unlock acknowledgment problem. (Cannot
+   get back to *known* quiescent state after sending Release message in lock
+   protocol, because the Release is not acknowledged.
+
+   Possible solutions:
+
+     - acknowledge releases
+
+     - change intermediate assertions to allow for possibility of in flight
+       releases, even in "quiescent" states
+
+   I think we should do the first one for now, because it is significantly
+   simpler, even though it means we cannot make more than one call to lock() in
+   a program. *)
 
 (* Prove stability lemmas. *)
 
