@@ -283,6 +283,13 @@ Lemma resource_init_state_rely_small s1 s2 :
   resource_init_state (getSR s2).
 Admitted.
 
+Lemma resource_init_state_step s1 s2 z :
+  network_step W z s1 s2 ->
+  this != z ->
+  resource_init_state (getSR s1) ->
+  resource_init_state (getSR s2).
+Admitted.
+
 Lemma resource_init_state_rely s1 s2 :
   network_rely W this s1 s2 ->
   resource_init_state (getSR s1) ->
@@ -298,12 +305,40 @@ Lemma update_in_flight_rely e v s1 s2 :
   update_in_flight e v (getSR s2).
 Admitted.
 
+Lemma lock_held_step e s1 s2 z :
+  network_step W z s1 s2 ->
+  this != z ->
+  L.held this e (getSL s1) ->
+  L.held this e (getSL s2).
+Proof. by move=>Step N; rewrite /L.held/getLocal (step_is_local _ Step). Qed.
+
+Lemma resource_value_step e v s1 s2 z :
+  network_step W z s1 s2 ->
+  this != z ->
+  L.held this e (getSL s1) ->
+  resource_init_state (getSR s1) ->
+  resource_value v (getSR s1) ->
+  resource_value v (getSR s2).
+Proof.
+case B: (z == resource_server); [move/eqP: B=>?; subst z|move/negbT/eqP/nesym/eqP: B=>B];
+last by move=> Step; rewrite /resource_value/getLocal (step_is_local _ Step)//.
+
+case; first by move=>[_]->.
+- (* Send transitions *)
+Admitted.
+
 Lemma resource_value_rely e v s1 s2 :
   network_rely W this s1 s2 ->
   L.held this e (getSL s1) ->
+  resource_init_state (getSR s1) ->
   resource_value v (getSR s1) ->
   resource_value v (getSR s2).
-Admitted.
+Proof.
+move=>[n].
+elim: n s1 s2=>/= [|n IH]/=s1 s3; first by move=>[->].
+move=>[z][s2][N]Step12 Rely23 Held1 Init1 Val1.
+by eauto using lock_held_step, resource_value_step, resource_init_state_step.
+Qed.
 
 (* Resource Programs *)
 
@@ -389,6 +424,16 @@ move: (lock_resource_label_neq).
 by rewrite H eqxx.
 Qed.
 
+Lemma lock_held_rely e s1 s2 :
+  network_rely W this s1 s2 ->
+  L.held this e (getSL s1) ->
+  L.held this e (getSL s2).
+Proof.
+move=>Rely12 Held1.
+apply: (rely_frameL injW _ Rely12)=>//.
+exact: LockSmallWorld.held_rely.
+Qed.
+
 Definition recv_update_response_inv e v (_ : unit) : cont (option nat) :=
   fun res s =>
     if res is Some v0
@@ -407,16 +452,15 @@ Lemma recv_update_response_inv_rely e v u r s1 s2 :
   network_rely W this s1 s2 ->
   recv_update_response_inv e v u r s1 ->
   recv_update_response_inv e v u r s2.
-Admitted.
-
-Lemma lock_held_rely e s1 s2 :
-  network_rely W this s1 s2 ->
-  L.held this e (getSL s1) ->
-  L.held this e (getSL s2).
 Proof.
-move=>Rely12 Held1.
-apply: (rely_frameL injW _ Rely12)=>//.
-exact: LockSmallWorld.held_rely.
+case: r=>/=[v0|]Rely12.
+- case; split=>//.
+  by eauto using resource_init_state_rely.
+  by eauto using lock_held_rely.
+  by eauto using resource_value_rely.
+case; split.
+- by eauto using update_in_flight_rely.
+by eauto using lock_held_rely.
 Qed.
 
 Require Import While.
@@ -472,25 +516,25 @@ move=>RV1.
 have Held1 := lock_held_rely Rely01 Held0.
 have Held2 : L.held this e (getSL s2)
   by move: Held1;rewrite s2def/getStatelet findU (negbTE lock_resource_label_neq).
-split=>//; first last.
-- apply /(resource_value_rely Rely24 Held2)=>//.
-  move: RV1.
-  rewrite /resource_value. subst s2.
-  rewrite /getStatelet findU eqxx/= (cohS C1).
-  by rewrite /getLocal findU (negbTE this_not_resource_server) /=.
+have: resource_init_state (getSR s2).
+- rewrite s2def /getStatelet findU eqxx/= (cohS C1).
+  split.
+  + move: NO1.
+    rewrite /no_outstanding_updates/resource_perms.
+    by rewrite /getLocal/= findU (negbTE this_not_resource_server) /=.
+  + move: NM1.
+    rewrite /no_outstanding_updates/resource_perms.
+    by apply/no_msg_from_to_consume.
+  fold (getStatelet s1 resource_label).
+  move=>/=.
+  exact: (msg_spec_consume _ Fm MS1).
+split=>//; first by apply /(resource_init_state_rely Rely24).
 - by exact: lock_held_rely Rely24 Held2.
-apply /(resource_init_state_rely Rely24).
-rewrite s2def /getStatelet findU eqxx/= (cohS C1).
-split.
-- move: NO1.
-  rewrite /no_outstanding_updates/resource_perms.
-  by rewrite /getLocal/= findU (negbTE this_not_resource_server) /=.
-- move: NM1.
-  rewrite /no_outstanding_updates/resource_perms.
-  by apply/no_msg_from_to_consume.
-fold (getStatelet s1 resource_label).
-move=>/=.
-exact: (msg_spec_consume _ Fm MS1).
+apply /(resource_value_rely Rely24 Held2)=>//.
+move: RV1.
+rewrite /resource_value. subst s2.
+rewrite /getStatelet findU eqxx/= (cohS C1).
+by rewrite /getLocal findU (negbTE this_not_resource_server) /=.
 Qed.
 Next Obligation.
 move=>s/=[Init Held].
