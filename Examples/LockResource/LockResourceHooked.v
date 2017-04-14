@@ -100,6 +100,22 @@ apply/negbT; apply/eqP=>/=Z. move/negbTE: lock_resource_label_neq.
 by rewrite Z eqxx.
 Qed.
 
+Lemma injWQ : inj_ext injW = (resource_label \\-> resource_protocol, Unit).
+Proof.
+move: (W_valid)=>V; move: (cohK injW).
+rewrite {1}eqW/mkWorld/= -!joinA /PCM.join/= in V.
+case/andP: V=>/=V V'.
+rewrite {1}eqW/mkWorld/= -!joinA /PCM.join/=; case=>H K.
+case: (um_cancel V H)=>_; rewrite !unitR=>_{H}H1.
+rewrite [inj_ext _]surjective_pairing -H1{H1}; congr (_, _).
+rewrite !unitL joinC/=/resource_hooks/= in V' K.
+rewrite -[_ \\-> _]unitR in V'.
+have Z:  (1, lock_label, (resource_label, R.update_tag)) \\-> resource_hook \+ Unit =
+         (1, lock_label, (resource_label, R.update_tag)) \\-> resource_hook \+ (inj_ext injW).2
+  by rewrite unitR.
+by case: (um_cancel V' Z).
+Qed.
+
 Lemma W_resource_protocol : getProtocol W resource_label = resource_protocol.
 Proof.
   rewrite /getProtocol/W/= findUnR; last by case/andP: W_valid.
@@ -175,6 +191,13 @@ Lemma no_outstanding_updates_rely s1 s2 :
   no_outstanding_updates (getSR s2).
 Admitted.
 
+Lemma resource_init_state_rely_small s1 s2 :
+  network_rely (resource_label \\-> resource_protocol, Unit) this s1 s2 ->
+  resource_init_state (getSR s1) ->
+  resource_init_state (getSR s2).
+Admitted.
+
+(* TODO: Get this by framing the previous lemma. *)
 Lemma resource_init_state_rely s1 s2 :
   network_rely W this s1 s2 ->
   resource_init_state (getSR s1) ->
@@ -418,9 +441,32 @@ Program Definition lock_and_update (v : nat) :
        [/\ resource_init_state (getSR m),
           L.held this e (getSL m) &
           resource_value v (getSR m)])
-  := Do (e <-- iinject (lock_rpc lock_label lock_server_not_client this_in_lock_clients);
+  := Do (e <-- inject injW (lock_rpc lock_label lock_server_not_client this_in_lock_clients);
          update_rpc e v ;; 
          ret _ _ e).
+Next Obligation.
+move=>s0/= [LQ0 LNH0 RI0] C0.
+apply: step=>//.
+
+move: (C0)=>CD0; rewrite eqW in CD0; move: (coh_hooks CD0)=>{CD0}CD0.
+case: (coh_split CD0); try apply: hook_complete0.
+move=>l0[r0][Cl0 Cr0] E0.
+subst s0; apply: inject_rule=>//.
+
+have ESL0: getSL (l0 \+ r0) = getSL l0
+  by rewrite (locProjL CD0 _ Cl0)// gen_domPt inE andbC eqxx.
+rewrite ESL0{ESL0} in LQ0 LNH0.
+have ESR0: getSR (l0 \+ r0) = getSR r0
+  by rewrite (locProjR CD0 _ Cr0)// gen_domPt inE andbC eqxx.
+rewrite ESR0{ESR0} in RI0.
+
+apply: call_rule; first done.
+move=>e l1[LQ1 LH1] Cl1 r1 C1 Rely_r01.
+rewrite injWQ in Rely_r01.
+move: RI0 => /(resource_init_state_rely_small Rely_r01) RI1.
+
+Admitted.
+
 
 (* TODO *)
 
