@@ -308,16 +308,16 @@ Proof. by move=>Rely12; rewrite /L.held (rely_loc' _ Rely12). Qed.
 
 Require Import While.
 
-Definition is_res_v res (v : nat) : bool :=
-  if res is Some _ then res == Some v else false.
+Definition is_res_v (res : option nat) (v : nat) : bool :=
+  res == Some v.
 
 Program Definition recv_update_response_loop e v :
   DHT [this, W]
     (fun i => update_in_flight e v (getSR i) /\ L.held this e (getSL i),
      fun res m => [/\ resource_init_state (getSR m),
-                  L.held this e (getSL m) &
-                  resource_value v (getSR m)
-                  (* is_res_v res v *)]) :=
+                  L.held this e (getSL m),
+                  resource_value v (getSR m) &
+                  is_res_v res v]) :=
   Do (@while this W _ _ (fun x => if x is Some _ then false else true)
                (recv_update_response_inv e v) _
                (fun _ => Do _ (
@@ -388,9 +388,6 @@ Qed.
 
 Notation lock_quiescent := (lock_quiescent lock_server this).
 
-(* Why is this broken? *)
-
-
 Program Definition update_rpc e v :
   DHT [this, W]
     (fun i => resource_init_state (getSR i) /\ L.held this e (getSL i),
@@ -401,8 +398,16 @@ Program Definition update_rpc e v :
     := Do (send_update e v ;;
            recv_update_response_loop e v ;;
            ret _ _ tt).
-
-Next Obligation. Admitted.
+Next Obligation.
+move=>s0/=[Init0 Held0].
+apply: step; apply: call_rule=>// _ s1 [Flight1 Held1] C1.
+apply: step; apply: call_rule=>// r s2 [Init2 Held2 Val2 Res] C2.
+apply: ret_rule=>s3 Rely23 _.
+have Held3 := lock_held_rely Rely23 Held2.
+split=>//.
+exact: (resource_init_state_rely Rely23).
+exact: (resource_value_rely Rely23 Held2).
+Qed.
 
 Program Definition lock_and_update (v : nat) :
   DHT [this, W]
