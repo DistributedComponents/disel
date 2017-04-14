@@ -308,21 +308,24 @@ Proof. by move=>Rely12; rewrite /L.held (rely_loc' _ Rely12). Qed.
 
 Require Import While.
 
+Definition is_res_v res (v : nat) : bool :=
+  if res is Some _ then res == Some v else false.
+
 Program Definition recv_update_response_loop e v :
   DHT [this, W]
     (fun i => update_in_flight e v (getSR i) /\ L.held this e (getSL i),
      fun res m => [/\ resource_init_state (getSR m),
-                  L.held this e (getSL m),
-                  resource_value v (getSR m) &
-                  if res is Some r return Prop then r = v else False]) :=
-  Do _ (@while this W _ _ (fun x => if x is Some _ return bool then false else true)
+                  L.held this e (getSL m) &
+                  resource_value v (getSR m)
+                  (* is_res_v res v *)]) :=
+  Do (@while this W _ _ (fun x => if x is Some _ then false else true)
                (recv_update_response_inv e v) _
                (fun _ => Do _ (
                  r <-- tryrecv_update_response ;
                  if r is Some (from, tag, [:: e0; v0; b0]) return _
                  then ret _ _ (Some v0)
                  else ret _ _ None)) None).
-Next Obligation. by apply: with_spec x. Defined.
+
 Next Obligation. by eauto using recv_update_response_inv_rely. Defined.
 Next Obligation.
 move=>s0 /=[[]][]. case: H=>[r|_ Inv0]; first done.
@@ -380,12 +383,13 @@ Next Obligation.
 move=>s/=[Init Held].
 apply: call_rule'; cbn; first by move=>_; exists tt; split=>//.
 move=>r s' /(_ tt (conj Init Held))[].
-by case: r=>//r _[]; split.
+by case: r=>//=r _[]; split=>//; subst r.
 Qed.
 
 Notation lock_quiescent := (lock_quiescent lock_server this).
 
 (* Why is this broken? *)
+
 
 Program Definition update_rpc e v :
   DHT [this, W]
@@ -398,6 +402,8 @@ Program Definition update_rpc e v :
            recv_update_response_loop e v ;;
            ret _ _ tt).
 
+Next Obligation. Admitted.
+
 Program Definition lock_and_update (v : nat) :
   DHT [this, W]
     (fun i => [/\ lock_quiescent (getSL i),
@@ -408,7 +414,7 @@ Program Definition lock_and_update (v : nat) :
           L.held this e (getSL m) &
           resource_value v (getSR m)])
   := Do (e <-- iinject (lock_rpc lock_label lock_server_not_client this_in_lock_clients);
-         (* update_rpc e v ;; *)
+         update_rpc e v ;; 
          ret _ _ e).
 
 (* TODO *)
