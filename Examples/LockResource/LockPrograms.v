@@ -235,4 +235,27 @@ move=>r s' /(_ tt Inv)[].
 by case: r=>//r _[]; split.
 Qed.
 
+Program Definition lock_rpc :
+  DHT [this, W]
+    (fun i => lock_quiescent (getStatelet i l) /\ L.not_held this (getStatelet i l),
+     fun (res : nat) m =>
+       lock_quiescent (getStatelet m l) /\
+       L.held this res (getStatelet m l))
+    := Do (send_acquire ;;
+           r <-- recv_grant_loop ;
+           ret _ _ (if r is Some e then e else 0)).
+Next Obligation.
+move=>s0/=[Qui0 NH0].
+apply: step; apply: call_rule; first done.
+move=>_ s1 Flight1 C1.
+apply: step; apply: call_rule; first done.
+move=>r s2 [Qui2].
+case: r; last done.
+move=> e Held2 C2.
+apply: ret_rule=>s3 Rely23 _.
+split.
+- exact: (lock_quiescent_rely Rely23).
+exact: (held_rely Rely23).
+Qed.
+
 End LockPrograms.
