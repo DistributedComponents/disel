@@ -455,22 +455,36 @@ subst s0; apply: inject_rule=>//.
 
 have ESL0: getSL (l0 \+ r0) = getSL l0
   by rewrite (locProjL CD0 _ Cl0)// gen_domPt inE andbC eqxx.
-rewrite ESL0{ESL0} in LQ0 LNH0.
-have ESR0: getSR (l0 \+ r0) = getSR r0
-  by rewrite (locProjR CD0 _ Cr0)// gen_domPt inE andbC eqxx.
-rewrite ESR0{ESR0} in RI0.
-
+rewrite ESL0{ESL0} in LQ0 LNH0 *.
 apply: call_rule; first done.
 move=>e l1[LQ1 LH1] Cl1 r1 C1 Rely_r01.
-rewrite injWQ in Rely_r01.
-move: RI0 => /(resource_init_state_rely_small Rely_r01) RI1.
 
-Admitted.
+have ESR0: getSR (l0 \+ r0) = getSR r0
+  by rewrite (locProjR CD0 _ Cr0)// gen_domPt inE andbC eqxx.
+rewrite ESR0{ESR0} in RI0 *.
 
+move: (C1)=>CD1; rewrite eqW in CD1; move: (coh_hooks CD1)=>{CD1}CD1.
+have Cr1 := (cohUnKR CD1 Cl1 (@hook_complete0 _)).
+
+apply: step. apply: call_rule.
+- rewrite injWQ in Rely_r01.
+  have ESL1: getSL (l1 \+ r1) = getSL l1
+    by rewrite (locProjL CD1 _ Cl1)// gen_domPt inE andbC eqxx.
+  have ESR1: getSR (l1 \+ r1) = getSR r1
+    by rewrite (locProjR CD1 _ Cr1)// gen_domPt inE andbC eqxx.
+  rewrite ESL1 ESR1.
+  move=> _.
+  split=>//.
+  by apply /(resource_init_state_rely_small Rely_r01).
+move=>_ s2 [Init2 Held2 Val2] C2.
+apply: ret_rule=>s3 Rely23 _.
+split.
+exact: (resource_init_state_rely Rely23).
+exact: (lock_held_rely Rely23).
+exact: (resource_value_rely Rely23 Held2).
+Qed.
 
 (* TODO *)
-
-(* Fix the type error above. *)
 
 (* Discuss with Ilya what to do about the Unlock acknowledgment problem. (Cannot
    get back to *known* quiescent state after sending Release message in lock
