@@ -50,9 +50,8 @@ Definition acquire_perms (p : seq nid -> Prop) d :=
 Definition no_pending_acquires :=
   acquire_perms (fun out => this \notin out).
 
-Definition lock_init_state d :=
-  [/\ L.not_held this d,
-     no_pending_acquires d,
+Definition lock_quiescent d :=
+  [/\ no_pending_acquires d,
      no_msg_from_to this server (dsoup d) &
      no_msg_from_to server this (dsoup d)].
 
@@ -82,10 +81,10 @@ Definition lock_request_in_flight d :=
      acquire_pending d |
      grant_sent d].
 
-Lemma lock_init_state_rely s1 s2 :
+Lemma lock_quiescent_rely s1 s2 :
   network_rely W this s1 s2 ->
-  lock_init_state (getStatelet s1 l) ->
-  lock_init_state (getStatelet s2 l).
+  lock_quiescent (getStatelet s1 l) ->
+  lock_quiescent (getStatelet s2 l).
 Admitted.
 
 Lemma lock_request_in_flight_rely s1 s2 :
@@ -96,11 +95,11 @@ Admitted.
 
 Program Definition send_acquire :
   DHT [this, W]
-    (fun i => lock_init_state (getStatelet i l),
+    (fun i => lock_quiescent (getStatelet i l) /\ L.not_held this (getStatelet i l),
      fun r m => lock_request_in_flight (getStatelet m l))
   := Do send_acquire_act.
 Next Obligation.
-move=>s0/= Init0.
+move=>s0/= [Qui0 NH0].
 apply: act_rule=>s1 Rely01; split=>/=.
 - rewrite /Actions.send_act_safe/=.
   move/rely_coh: (Rely01)=> [_ C1].
@@ -110,15 +109,15 @@ apply: act_rule=>s1 Rely01; split=>/=.
     have HC: L.HClient server clients this server by [].
     exists HC, Cs1.
     rewrite (L.getSt_client_K(m:=L.NotHeld) _ Cs1 _ this_in_clients)//.
-    by move: Init0=>[] H; rewrite (not_held_rely Rely01)//.
+    by move: Qui0=>[] H; rewrite (not_held_rely Rely01)//.
   + apply/andP; split=>//=; first by rewrite -(cohD C1) LSW.W_dom !inE eqxx.
     by rewrite inE this_in_clients orbC.
   by move=>z lc hk; rewrite find_um_filt eqxx find0E.
 move=>m s2 s3 [Safe] Step Rely23 _.
 apply /(lock_request_in_flight_rely Rely23).
 constructor 1.
-move: (lock_init_state_rely Rely01 Init0).
-rewrite /lock_init_state/acquire_sent=>-[NH1 NP1 NM1 NM'1].
+move: (lock_quiescent_rely Rely01 Qui0).
+rewrite /lock_quiescent/acquire_sent=>-[NP1 NM1 NM'1].
 case: Step=>_/=[h'][h'def]s2def.
 have C1 := (rely_coh Rely01).2.
 have Cs1 := (coh_coh l C1).
