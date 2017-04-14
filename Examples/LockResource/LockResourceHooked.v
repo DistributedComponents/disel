@@ -322,12 +322,41 @@ Lemma recv_update_response_inv_rely e v u r s1 s2 :
   recv_update_response_inv e v u r s2.
 Admitted.
 
-(* TODO: would be nice to get this from SmallWorld.held_rely. *)
+Lemma hook_complete_inj_ext U V K (pf : injects U V K) :
+  hook_complete (inj_ext pf).
+Proof. by case: pf=>/= E[]. Qed.
+
+(* TODO: move this into framework *)
+(* TODO: generalize to small worlds with more than one label and nontrivial hooks? *)
+Lemma rely_frameL l p W K (I : dstatelet -> Prop) n :
+  injects (l \\-> p, Unit) W K ->
+  (forall s1 s2, network_rely (l \\-> p, Unit) n s1 s2 -> I (getStatelet s1 l) -> I (getStatelet s2 l)) ->
+  forall s1 s2, network_rely W n s1 s2 -> I (getStatelet s1 l) -> I (getStatelet s2 l).
+Proof.
+move=> injW I_rely s1 s2 Rely12 I1.
+case: (rely_coh Rely12) => C1 C2.
+move: (cohK injW)=> eqW.
+rewrite eqW in C1; move: (coh_hooks C1)=>{C1}C1.
+rewrite eqW in C2; move: (coh_hooks C2)=>{C2}C2.
+case: (coh_split C1); [exact: hook_complete0| exact: hook_complete_inj_ext |].
+move=>l1[r1][Cl1 Cr1 ?]; subst s1.
+case: (coh_split C2); [exact: hook_complete0| exact: hook_complete_inj_ext |].
+move=>l2[r2][Cl2 Cr2 ?]; subst s2.
+case: (rely_split injW _ _ Rely12)=>//Rl Rr.
+rewrite (locProjL C1 _ _)// in I1; last by rewrite um_domPt inE eqxx.
+rewrite (locProjL C2 _ _)//; last by rewrite um_domPt inE eqxx.
+by apply: (I_rely _ _ Rl).
+Qed.
+
 Lemma lock_held_rely e s1 s2 :
   network_rely W this s1 s2 ->
   L.held this e (getSL s1) ->
   L.held this e (getSL s2).
-Proof. by move=>Rely12; rewrite /L.held (rely_loc' _ Rely12). Qed.
+Proof.
+move=>Rely12 Held1.
+apply: (rely_frameL injW _ Rely12)=>//.
+exact: LockSmallWorld.held_rely.
+Qed.
 
 Require Import While.
 
