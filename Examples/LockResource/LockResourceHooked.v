@@ -486,21 +486,6 @@ Qed.
 
 (* TODO *)
 
-(* Discuss with Ilya what to do about the Unlock acknowledgment problem. (Cannot
-   get back to *known* quiescent state after sending Release message in lock
-   protocol, because the Release is not acknowledged.
-
-   Possible solutions:
-
-     - acknowledge releases
-
-     - change intermediate assertions to allow for possibility of in flight
-       releases, even in "quiescent" states
-
-   I think we should do the first one for now, because it is significantly
-   simpler, even though it means we cannot make more than one call to lock() in
-   a program. *)
-
 (* Prove stability lemmas. *)
 
 (* The stability of (the strengthened) `update_response_sent` will require a
