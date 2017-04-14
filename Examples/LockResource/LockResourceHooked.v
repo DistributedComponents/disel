@@ -180,16 +180,102 @@ Definition update_in_flight e v d :=
      update_at_server e v d |
      update_response_sent e v d].
 
+(* Generic results to frame stability lemmas.  *)
+(* TODO: move these into framework *)
+
+Lemma hook_complete_inj_ext U V K (pf : injects U V K) :
+  hook_complete (inj_ext pf).
+Proof. by case: pf=>/= E[]. Qed.
+
+(* TODO: generalize to small worlds with more than one label and nontrivial hooks? *)
+Lemma rely_frameL' l p W K (I J : dstatelet -> Prop) n :
+  injects (l \\-> p, Unit) W K ->
+  (forall s1 s2, network_rely (l \\-> p, Unit) n s1 s2 ->
+            J (getStatelet s1 l) -> I (getStatelet s1 l) -> I (getStatelet s2 l)) ->
+  forall s1 s2, network_rely W n s1 s2 ->
+           J (getStatelet s1 l) -> I (getStatelet s1 l) -> I (getStatelet s2 l).
+Proof.
+move=> injW I_rely s1 s2 Rely12 J1 I1.
+case: (rely_coh Rely12) => C1 C2.
+move: (cohK injW)=> eqW.
+rewrite eqW in C1; move: (coh_hooks C1)=>{C1}C1.
+rewrite eqW in C2; move: (coh_hooks C2)=>{C2}C2.
+case: (coh_split C1); [exact: hook_complete0| exact: hook_complete_inj_ext |].
+move=>l1[r1][Cl1 Cr1 ?]; subst s1.
+case: (coh_split C2); [exact: hook_complete0| exact: hook_complete_inj_ext |].
+move=>l2[r2][Cl2 Cr2 ?]; subst s2.
+case: (rely_split injW _ _ Rely12)=>//Rl Rr.
+rewrite (locProjL C1 _ _)// in I1 J1; last by rewrite um_domPt inE eqxx.
+rewrite (locProjL C2 _ _)//; last by rewrite um_domPt inE eqxx.
+by apply: (I_rely _ _ Rl).
+Qed.
+
+Lemma rely_frameL l p W K (I : dstatelet -> Prop) n :
+  injects (l \\-> p, Unit) W K ->
+  (forall s1 s2, network_rely (l \\-> p, Unit) n s1 s2 -> I (getStatelet s1 l) -> I (getStatelet s2 l)) ->
+  forall s1 s2, network_rely W n s1 s2 -> I (getStatelet s1 l) -> I (getStatelet s2 l).
+Proof.
+move=> injW I_rely s1 s2 Rely12 I1.
+apply: (rely_frameL'(J := fun _ => True) injW _ Rely12)=>//.
+eauto.
+Qed.
+
+Lemma rely_frameR' l p G W K (I J : dstatelet -> Prop) n
+      (injW : injects (G, Unit) W K) :
+  inj_ext injW = (l \\-> p, Unit) ->
+  (forall s1 s2, network_rely (l \\-> p, Unit) n s1 s2 ->
+            J (getStatelet s1 l) -> I (getStatelet s1 l) -> I (getStatelet s2 l)) ->
+  forall s1 s2, network_rely W n s1 s2 ->
+           J (getStatelet s1 l) -> I (getStatelet s1 l) -> I (getStatelet s2 l).
+Proof.
+move=> injWQ I_rely s1 s2 Rely12 J1 I1.
+case: (rely_coh Rely12) => C1 C2.
+move: (cohK injW)=> eqW.
+rewrite eqW in C1; move: (coh_hooks C1)=>{C1}C1.
+rewrite eqW in C2; move: (coh_hooks C2)=>{C2}C2.
+case: (coh_split C1); [exact: hook_complete0| exact: hook_complete_inj_ext |].
+move=>l1[r1][Cl1 Cr1 ?]; subst s1.
+case: (coh_split C2); [exact: hook_complete0| exact: hook_complete_inj_ext |].
+move=>l2[r2][Cl2 Cr2 ?]; subst s2.
+case: (rely_split injW _ _ Rely12)=>//Rl Rr.
+rewrite (locProjR C1 _ _)// in I1 J1; last by rewrite injWQ um_domPt inE eqxx.
+rewrite (locProjR C2 _ _)//; last by rewrite injWQ um_domPt inE eqxx.
+rewrite injWQ in Rr.
+by apply: (I_rely _ _ Rr).
+Qed.
+
+Lemma rely_frameR l p G W K (I : dstatelet -> Prop) n
+      (injW : injects (G, Unit) W K) :
+  inj_ext injW = (l \\-> p, Unit) ->
+  (forall s1 s2, network_rely (l \\-> p, Unit) n s1 s2 ->
+            I (getStatelet s1 l) -> I (getStatelet s2 l)) ->
+  forall s1 s2, network_rely W n s1 s2 ->
+           I (getStatelet s1 l) ->  I (getStatelet s2 l).
+Proof.
+move=> injWQ I_rely s1 s2 Rely12 I1.
+apply: (rely_frameR'(J := fun _ => True) injWQ _ Rely12)=>//.
+eauto.
+Qed.
+
 (* Stability Lemmas *)
 
 (* TODO: state all of the following lemmas in the approprate small world. *)
+
+Lemma no_outstanding_updates_rely_small s1 s2 :
+  network_rely (resource_label \\-> resource_protocol, Unit) this s1 s2 ->
+  no_msg_from_to this resource_server (dsoup (getSR s1)) ->
+  no_outstanding_updates (getSR s1) ->
+  no_outstanding_updates (getSR s2).
+Admitted.
 
 Lemma no_outstanding_updates_rely s1 s2 :
   network_rely W this s1 s2 ->
   no_msg_from_to this resource_server (dsoup (getSR s1)) ->
   no_outstanding_updates (getSR s1) ->
   no_outstanding_updates (getSR s2).
-Admitted.
+Proof.
+exact: (rely_frameR'(J := fun x => _ (dsoup x)) injWQ no_outstanding_updates_rely_small).
+Qed.
 
 Lemma resource_init_state_rely_small s1 s2 :
   network_rely (resource_label \\-> resource_protocol, Unit) this s1 s2 ->
@@ -197,12 +283,13 @@ Lemma resource_init_state_rely_small s1 s2 :
   resource_init_state (getSR s2).
 Admitted.
 
-(* TODO: Get this by framing the previous lemma. *)
 Lemma resource_init_state_rely s1 s2 :
   network_rely W this s1 s2 ->
   resource_init_state (getSR s1) ->
   resource_init_state (getSR s2).
-Admitted.
+Proof.
+exact: (rely_frameR injWQ resource_init_state_rely_small).
+Qed.
 
 Lemma update_in_flight_rely e v s1 s2 :
   network_rely W this s1 s2 ->
@@ -321,32 +408,6 @@ Lemma recv_update_response_inv_rely e v u r s1 s2 :
   recv_update_response_inv e v u r s1 ->
   recv_update_response_inv e v u r s2.
 Admitted.
-
-Lemma hook_complete_inj_ext U V K (pf : injects U V K) :
-  hook_complete (inj_ext pf).
-Proof. by case: pf=>/= E[]. Qed.
-
-(* TODO: move this into framework *)
-(* TODO: generalize to small worlds with more than one label and nontrivial hooks? *)
-Lemma rely_frameL l p W K (I : dstatelet -> Prop) n :
-  injects (l \\-> p, Unit) W K ->
-  (forall s1 s2, network_rely (l \\-> p, Unit) n s1 s2 -> I (getStatelet s1 l) -> I (getStatelet s2 l)) ->
-  forall s1 s2, network_rely W n s1 s2 -> I (getStatelet s1 l) -> I (getStatelet s2 l).
-Proof.
-move=> injW I_rely s1 s2 Rely12 I1.
-case: (rely_coh Rely12) => C1 C2.
-move: (cohK injW)=> eqW.
-rewrite eqW in C1; move: (coh_hooks C1)=>{C1}C1.
-rewrite eqW in C2; move: (coh_hooks C2)=>{C2}C2.
-case: (coh_split C1); [exact: hook_complete0| exact: hook_complete_inj_ext |].
-move=>l1[r1][Cl1 Cr1 ?]; subst s1.
-case: (coh_split C2); [exact: hook_complete0| exact: hook_complete_inj_ext |].
-move=>l2[r2][Cl2 Cr2 ?]; subst s2.
-case: (rely_split injW _ _ Rely12)=>//Rl Rr.
-rewrite (locProjL C1 _ _)// in I1; last by rewrite um_domPt inE eqxx.
-rewrite (locProjL C2 _ _)//; last by rewrite um_domPt inE eqxx.
-by apply: (I_rely _ _ Rl).
-Qed.
 
 Lemma lock_held_rely e s1 s2 :
   network_rely W this s1 s2 ->
