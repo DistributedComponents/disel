@@ -19,7 +19,6 @@ Variable server : nid.
 Variable clients : seq nid.
 
 Hypothesis Hnin : server \notin clients.
-Hypothesis Huniq : uniq clients.
 
 Lemma client_not_server n : n \in clients -> (n == server) = false.
 Proof.
