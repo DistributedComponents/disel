@@ -20,7 +20,7 @@ let bnd_prog this w p1 p2 =
 let sup_prog _ _ _ =
   failwith "sup_prog"
 
-let inject_prog _ _ _ _ x =
+let inject_prog _ _ _ _ _ x =
   x
 
 let with_inv_prog _ _ _ x =
@@ -67,7 +67,7 @@ let rec get_msg = function
            raise e
          end
 
-let tryrecv_action_wrapper w this p =
+let tryrecv_action_wrapper (ctx,hk) this p =
   let () = check_for_new_connections () in
   let fds = get_all_read_fds () in
   let (ready_fds, _, _) = Unix.select fds [] [] 0.0 in
@@ -76,10 +76,10 @@ let tryrecv_action_wrapper w this p =
     | None -> (* nothing available *) None
     | Some (l, src, tag, msg) ->
        begin
-         match Unionmap.UMDef.find Ordtype.nat_ordType (Obj.magic l) w with
+         match Unionmap.UMDef.find Ordtype.nat_ordType (Obj.magic l) ctx with
          | None ->
             begin
-              Printf.printf "World is %a\n%!" print_world (Unionmap.UMDef.from (Obj.magic ()) w);
+              Printf.printf "World is %a\n%!" print_world (Unionmap.UMDef.from (Obj.magic ()) ctx);
               failwith
                 (Printf.sprintf "Could not find protocol %a in the world!" sprint_nat l)
             end
@@ -107,8 +107,8 @@ let tryrecv_action_wrapper w this p =
   end
 
 
-let send_action_wrapper w p this (l : Ordtype.Ordered.sort) t m dst =
-  Printf.printf "World is %a\n%!" print_world (Unionmap.UMDef.from (Obj.magic ()) w);
+let send_action_wrapper (ctx,hk) p this (l : Ordtype.Ordered.sort) t m dst =
+  Printf.printf "World is %a\n%!" print_world (Unionmap.UMDef.from (Obj.magic ()) ctx);
   send_msg (Obj.magic l) dst (t.Protocols.Transitions.t_snd) m;
   let dstatelet = get_protocol_state l in
   let ost' = t.Protocols.Transitions.send_step this dst dstatelet m (Obj.magic ()) in
@@ -119,5 +119,5 @@ let send_action_wrapper w p this (l : Ordtype.Ordered.sort) t m dst =
   end;
   m
 
-let skip_action_wrapper w this l p f =
+let skip_action_wrapper (ctx, hk) this l p f =
   f (get_current_state ()) (Obj.magic ())

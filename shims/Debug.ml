@@ -31,11 +31,6 @@ let print_heap print_key print_value f = function
   | Heap.Heap.Undef -> Printf.fprintf f "Undef"
   | Heap.Heap.Def fm -> print_finmap print_key print_value f fm
 
-let print_depmap print_key print_value f d =
-  print_um print_key print_value f (Unionmap.UMDef.from (Obj.magic ())
-                                                        (DepMaps.DepMaps.dmap (Obj.magic ()) d))
-
-
 let print_ordered_sort_which_is_nat f o =
   print_nat f (Obj.magic o)
 
