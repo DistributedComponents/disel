@@ -126,7 +126,7 @@ Definition DepMap := DepMap.
 Lemma dep_unit (d : depmap labF) : dmap d = Unit -> d = unit labF.
 Proof.
 case: d=>u pf/=; rewrite /unit. move: (dmDom_unit labF)=>pf' Z; subst u.
-by rewrite (proof_irrelevance pf').
+by rewrite (proof_irrelevance pf).
 Qed.
 
 Coercion dmap := dmap.
