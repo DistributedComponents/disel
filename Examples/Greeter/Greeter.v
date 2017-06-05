@@ -240,10 +240,9 @@ Notation loc i := (getLocal this (getStatelet i l)).
 Notation msgs i := (dsoup (getStatelet i l)).
 
 Definition greeter_spec to :=
-  {j}, DHT [this, W]
-  (fun i => i = j /\ to \in nodes,
-   fun r m => forall n,
-       loc j = counter :-> n ->
+  {n : nat}, DHT [this, W]
+  (fun i => loc i = counter :-> n /\ to \in nodes,
+   fun r m => 
        [/\ loc m = counter :-> n.+1, 
         head 0 r = n &
         exists z b, find z (msgs m) = Some (Msg (TMsg 0 (n :: hello)) this to b)]).
@@ -253,21 +252,21 @@ Program Definition greet to : greeter_spec to :=
       act (greet_act n to)).
 
 Next Obligation.
-apply: ghC=>j s1[Z] Hto C1; subst j.
+apply ghC=>s1 n [Hloc] Hto C1.
 
 apply: step.
 - apply: act_rule. 
   move=> s2 R1.
   split; first by move: R1=> /rely_coh[]; rewrite /read_act/=/Actions.skip_safe. 
   move=> y s2' s3 [Sf1]/=.
-  rewrite /Actions.skip_step => -[] C2 ? ? R2. subst s2'. subst.
+  rewrite /Actions.skip_step => -[] C2 ? ? R2; subst s2'; subst.
 
 (* Applying inference rule for actions *)
 apply: act_rule=>s4 R3.
 (* Dealing with rely *)
 
 (* Proving the precondition *)
-split=>[|r s5 s6 [Sf2] St R4 n Hloc].
+split=>[|r s5 s6 [Sf2] St R4].
 - split; case/rely_coh: R3=>C3 C4=>//.
   + split=>//; first by eauto.
     by case: C4=>_ _ _ _/(_ l); rewrite grEq.
@@ -277,15 +276,14 @@ split=>[|r s5 s6 [Sf2] St R4 n Hloc].
 case: St=>Z1[h]/=[St]Z2; subst.
 
 (* Making use of the stepping relation *)
-rewrite /GreeterProtocol.greet_step/= Hto in St; case: St=>Z; subst h.
+rewrite /GreeterProtocol.greet_step/= Hto in St; case: St=>Z'; subst h.
 (* Rewriting the state getter *)
-erewrite !getNK in R4; first last.
+erewrite !getNK in R4; first last. 
 - by rewrite (rely_loc' l R3) (rely_loc' l R2) (rely_loc' l R1); exact: Hloc.
 - by rewrite (rely_loc' l R1); exact: Hloc.
 (* rewriting via rely *)
 case/rely_coh: (R3)=>C3 C4.
-erewrite getNK;
-  last by rewrite (rely_loc' l R1); exact: Hloc.
+erewrite getNK; last by rewrite (rely_loc' l R1); exact: Hloc.
 rewrite (rely_loc' l R4); split=>//.
 - rewrite /getLocal/getStatelet findU eqxx/= (cohS C4)/= findU eqxx/=.
   rewrite getsE /=; last by rewrite -(cohD C4) um_domPt inE.
@@ -299,7 +297,7 @@ case: (rely_send_other' R4 (m := fresh (msgs s4)) (l := l)
 rewrite /getStatelet findU eqxx/= (cohS C4)/=.
 rewrite getsE /=; last by rewrite -(cohD C4) um_domPt inE.
 rewrite joinC um_findPtUn // joinC valid_fresh.
-apply: (cohVs (coh_coh l C4)).
+by apply: (cohVs (coh_coh l C4)).
 Qed.
 
 Definition greeter_spec2 n to :=
@@ -317,10 +315,10 @@ Next Obligation.
 move=>i/=[H1 H2].
 (* Switch to the continuation *)
 apply: step.
-apply: (gh_ex (g := i)); apply: call_rule=>//.
-move=>? j/(_ n H1)[Hcount Hhead _] Cj.
-apply: (gh_ex (g := j)); apply: call_rule=>//.
-by move=>r m/(_ n.+1 Hcount)[Lm].
+apply: (gh_ex (g := n)); apply: call_rule=>//.
+move=>? j[Hcount Hhead _] Cj.
+apply: (gh_ex (g := n.+1)); apply: call_rule=>//.
+by move=>r m[X1 X2 _]. 
 Qed.
 
 End GreeterPrograms.
@@ -425,3 +423,8 @@ by rewrite (rely_loc' l1 R2).
 Qed.
 
 End CombineGreeters.
+
+(* Local Variables: *)
+(* coq-prog-name: "coqtop" *)
+(* coq-load-path: nil *)
+(* End: *)
