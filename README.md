@@ -7,7 +7,7 @@ compositional verification of distributed systems.
 
 ### Requirements
 
-* Coq 8.5pl3 (available from https://coq.inria.fr/coq-85)
+* Coq 8.6 (available from https://coq.inria.fr/download)
 * Mathematical Components 1.6.1 (http://math-comp.github.io/math-comp/)
 
 ### Building
