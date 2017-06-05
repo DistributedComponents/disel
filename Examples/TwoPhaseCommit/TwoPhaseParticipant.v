@@ -91,21 +91,21 @@ Notation loc i := (getLocal p (getStatelet i l)).
 Notation Pin := (TPCProtocol.pts_in cn others Hpin).
 
 Program Definition read_round_p :
-  {j}, DHT [p, W]
-  (fun i => i = j, 
-   fun r m => loc m = loc j /\
+  {(ecl : (nat * PState) * Log)}, DHT [p, W]
+  (fun i => loc i = st :-> ecl.1 \+ log :-> ecl.2, 
+   fun r m => loc m = st :-> ecl.1 \+ log :-> ecl.2 /\
               exists (pf : coh (getS m)), r = (getStP Hnin pf Pin).1) :=
   Do (act (@skip_action_wrapper W p l tpc (prEq tpc) _
                                 (fun s pf => (getStP Hnin pf Pin).1))).
 Next Obligation.  
-apply: ghC=>i x E/= _; subst x.
+apply: ghC=>i [[e c]lg]/= E _.
 apply: act_rule=>j R; split=>[|r k m]; first by case: (rely_coh R).
 case=>/=H1[Cj]Z; subst j=>->R'.
 split; first by rewrite (rely_loc' l R') (rely_loc' _ R).
 case: (rely_coh R')=>_; case=>_ _ _ _/(_ l)=>/= pf; rewrite prEq in pf.
-exists pf; move: (rely_loc' l R') =>/sym E.
+exists pf; move: (rely_loc' l R') =>/sym E'.
 suff X: getStP Hnin (Actions.safe_local (prEq tpc) H1) Pin = getStP Hnin pf Pin by rewrite X.
-by apply: (TPCProtocol.getStPE Hnin pf _ Pin Hpin E).
+by apply: (TPCProtocol.getStPE Hnin pf _ Pin Hpin E').
 Qed.
 
 (* Step 1 receive perp-messages *)
@@ -403,8 +403,7 @@ Program Definition participant_round (doCommit : bool) :
       ret _ _ tt).
 Next Obligation.
 apply:ghC=>i1[e lg]/=E1 C1; apply: step.
-apply: (gh_ex (g:=i1)); apply: call_rule=>//e' i2 [E2][pf]->C2.
-rewrite E1 in E2.
+apply: (gh_ex (g:=(e, PInit, lg))); apply: call_rule=>//e' i2 [E2][pf]->C2.
 have X: (getStP (cn:=cn) (others:=others) Hnin  pf Pin).1 = e
   by move: (getStP_K Hnin pf Pin Hpin E2)=>->.
 rewrite X; apply: step; apply: (gh_ex (g:=lg));

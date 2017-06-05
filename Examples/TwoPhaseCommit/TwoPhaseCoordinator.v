@@ -75,21 +75,21 @@ Export TPCProtocol.
 (*************************************)
 
 Program Definition read_round :
-  {j}, DHT [cn, W]
-  (fun i => i = j, 
-   fun r m => loc m = loc j /\
+  {(ecl : (nat * CState) * Log)}, DHT [cn, W]
+  (fun i => loc i = st :-> ecl.1 \+ log :-> ecl.2, 
+   fun r m => loc m = st :-> ecl.1 \+ log :-> ecl.2 /\
               exists (pf : coh (getS m)), r = (getStC pf).1) :=
   Do (act (@skip_action_wrapper W cn l tpc (prEq tpc) _
                                 (fun s pf => (getStC pf).1))).
 Next Obligation.
-apply: ghC=>i x E/= _; subst x.
+apply: ghC=>i [[e c]lg]/= E _. 
 apply: act_rule=>j R; split=>[|r k m]; first by case: (rely_coh R).
 case=>/=H1[Cj]Z; subst j=>->R'.
 split; first by rewrite (rely_loc' l R') (rely_loc' _ R).
 case: (rely_coh R')=>_; case=>_ _ _ _/(_ l)=>/= pf; rewrite prEq in pf.
-exists pf; move: (rely_loc' l R') =>/sym E.
+exists pf; move: (rely_loc' l R') =>/sym E'.
 suff X: getStC (Actions.safe_local (prEq tpc) H1) = getStC pf by rewrite X.
-by apply: (getStCE pf _ E).   
+by apply: (getStCE pf _ E').   
 Qed.
 
 (*******************************************)
@@ -385,9 +385,9 @@ Program Definition coordinator_prelude (d : data) :
       ret _ _ (res, b)).
 Next Obligation.
 move=>s0/=[lg][e]E0; apply: step.
-apply: (gh_ex (g := s0)).
-apply: call_rule=>//e' s1 [E1][pf]->C1.
-rewrite E0 in E1; rewrite !(getStC_K _ E1)=>{e'}.
+apply: (gh_ex (g := (e, CInit, lg))).
+apply: call_rule=>//=e' s1 [E1][pf]->C1.
+rewrite !(getStC_K _ E1)=>{e'}.
 apply: step; apply: (gh_ex (g:=lg)).
 apply: call_rule=>//_ s2[_]/=E2 C2.
 apply: step; apply: (gh_ex (g:=(d, lg))).
@@ -793,9 +793,9 @@ Program Definition coordinator_round (d : data) :
       ret _ _ b).
 Next Obligation.
 move=>s0/=[e][lg]E0; apply: step.
-apply: (gh_ex (g := s0)).
+apply: (gh_ex (g := (e, CInit, lg))).
 apply: call_rule=>//e' s1 [E1][pf]->C1.
-rewrite E0 in E1; rewrite !(getStC_K _ E1)=>{e'}.
+rewrite !(getStC_K _ E1)=>{e'}.
 apply: step; apply: (gh_ex (g:=lg)).
 apply: call_rule=>//_ s2[_]/=E2 C2.
 apply: step; apply: (gh_ex (g:=(d, lg))).
