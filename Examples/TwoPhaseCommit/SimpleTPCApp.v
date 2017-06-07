@@ -132,9 +132,14 @@ rewrite (getPLoc _ P); split=>//; case: ifP; first by move/eqP=>Z; subst z.
 by move=>_; rewrite P; exists (0, PInit), [::].
 Qed.
 
+
+Check network_rely.
+
 (* [Run] Runnable coordinator code *)
 Program Definition run_coordinator :
-  DHT [cn, _] (fun i => i = init_state, fun _ m => exists (chs : seq bool),
+  DHT [cn, _] (
+  fun i => network_rely W cn init_state i,
+  fun _ m => exists (chs : seq bool),
   let: r := size data_stream in
   let: lg := seq.zip chs data_stream in
   getLocal cn (getStatelet m l) =
@@ -144,10 +149,10 @@ Program Definition run_coordinator :
       st :-> (r, PInit) \+ log :-> lg)
   := Do (with_inv (TwoPhaseInductiveProof.ii _ _ _) coordinator).
 Next Obligation.
-move=>i/=->.
+move=>i/=R.
 apply: with_inv_rule'.
 apply:call_rule=>//.
-- by rewrite /getStatelet gen_findPt/=getCnLoc.
+- by rewrite (rely_loc' _ R) /getStatelet gen_findPt/=getCnLoc.  
 move=>_ m [chs] CS C I _.
 exists chs.
 split=>//.
@@ -160,17 +165,18 @@ Qed.
 
 
 Program Definition run_participant p (pf : p \in pts) choices :
-  DHT [p, _] (fun i => i = init_state,
+  DHT [p, _] (
+  fun i => network_rely W p init_state i,
   fun _ m => exists (lg : Log) (r : nat),
    getLocal p (getStatelet m l) = st :-> (r, PInit) \+ log :-> lg /\
    forall pt' (ps' : PState) lg', pt' \in pts ->
     getLocal pt' (getStatelet m l) = st :-> (r, ps') \+ log :-> lg' -> lg = lg')
   := Do (with_inv (TwoPhaseInductiveProof.ii _ _ _ ) (participant p pf choices)).
 Next Obligation.
-move=>i/=->.
+move=>i/=R.
 apply: with_inv_rule'.
 apply:call_rule=>//.
-- by rewrite /getStatelet gen_findPt/= (getPLoc _ pf).
+- by rewrite (rely_loc' _ R)/getStatelet gen_findPt/= (getPLoc _ pf).
 move=>_ m [bs][ds] PS C I _.
 exists (seq.zip bs ds), (size choices).
 move /(coh_coh l) in C.

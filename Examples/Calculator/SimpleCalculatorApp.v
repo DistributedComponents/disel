@@ -221,7 +221,7 @@ Definition compute_input := compute_list_f l1 f prec cs1 cls1 cl Hc1 sv.
 (* [C] A simple client, evaluating a serives of requests *)
 Program Definition client_run (u : unit) :
   DHT [cl, V]
-   (fun i => i = init_state,
+   (fun i => network_rely V cl init_state i,
    fun (res : seq (input * nat)) m =>
      [/\ all (fun e => f e.1 == Some e.2) res &
       client_input = map fst res]) :=
@@ -235,12 +235,19 @@ by move=>??????; rewrite dom0 inE.
 Qed.
 
 Next Obligation.
-move=>i/=Z; subst i; apply: inject_rule=>//.
-- by apply: coh1.
-apply: call_rule=>C1/=.
-- rewrite /getLocal/=/getStatelet/= gen_findPt/=/init_dstate1.  
-  by rewrite findUnR ?valid_init_dstate1// um_domPt inE eqxx gen_findPt/=. 
-by move=>m[H1]H2 H3.  
+move=>i/=R.
+have X: injects W1 V Unit.
+- move: (@injectL W1 W2 Unit)=>/=; rewrite !unitR validV=>H.
+  apply: H=>//; do? [by apply: hook_complete0]. 
+  by move=>l _=>????; rewrite dom0. 
+case: (rely_ext X coh1 R)=>i1[j1][Z]C'; subst i.
+apply: inject_rule=>//.
+apply: call_rule=>C1{C'}/=; last by move=>m[H1]H2 H3.
+have E: (getStatelet i1 l1) = (getStatelet (i1 \+ j1) l1).
+- by rewrite (locProjL (proj2 (rely_coh R)) _ C1)=>//; rewrite /W1 um_domPt.
+rewrite E (rely_loc' _ R)/getLocal/=/getStatelet/=.
+rewrite findUnL ?validI// um_domPt inE eqxx gen_findPt/=.
+by rewrite /init_dstate1 findUnR?valid_init_dstate1// um_domPt/= gen_findPt/=. 
 Qed.
 
 (* [S1] Delegating server, serving the client's needs *)
@@ -250,17 +257,17 @@ Definition delegating_server (u : unit) :=
 
 Program Definition server1_run (u : unit) :
   DHT [sv, V]
-   (fun i => i = init_state,
+   (fun i => network_rely V sv init_state i,
    fun (res : unit) m => False) :=
   Do (delegating_server u).
 Next Obligation.
-move=>i/=Z; subst i; apply: call_rule=>C1//=.
-rewrite /init_state/getLocal/=/getStatelet/=.
+move=>i/=R; apply: call_rule=>C1//=.
+rewrite (rely_loc' _ R)/getLocal/=/getStatelet/=.
 rewrite findUnL ?validI ?valid_init_dstate1//.
 rewrite um_domPt inE eqxx gen_findPt/=. 
 rewrite findUnR ?validI ?valid_init_dstate1//=.
-rewrite gen_domPt inE/= gen_findPt/=.
-rewrite findUnR ?validI ?valid_init_dstate1//=.
+rewrite gen_domPt inE/= gen_findPt/=; split=>//.
+rewrite -(rely_loc _ R)/=/getStatelet findUnR ?validI ?valid_init_dstate1//=.
 rewrite gen_domPt inE/= gen_findPt/= /init_dstate2/=.
 rewrite findUnL ?validI ?valid_init_dstate2//.
 by rewrite gen_domPt inE/= gen_findPt/= /init_dstate2/=.
@@ -274,7 +281,7 @@ Definition secondary_server (u : unit) :=
 
 Program Definition server2_run (u : unit) :
   DHT [sd, V]
-   (fun i => i = init_state,
+   (fun i => network_rely V sd init_state i,
     fun (res : unit) m => False) :=
   Do _ (@inject sd W2 V Unit _ _ (secondary_server u);; ret _ _ tt).
 
@@ -286,13 +293,24 @@ by move=>??????; rewrite dom0 inE.
 Qed.
 
 Next Obligation.
-move=>i/=Z; subst i; apply: step.
+move=>i/=R; apply: step.
 rewrite /init_state joinC.
-apply: inject_rule=>//=; first by apply: coh2.
-apply: with_inv_rule; apply:call_rule=>//.
-move=>_; rewrite /getLocal/=/getStatelet/= gen_findPt/=.
-rewrite /init_dstate2 findUnR ?valid_init_dstate2//.
-by rewrite gen_domPt inE/= gen_findPt/=.
+
+have X: injects W2 V Unit.
+- move: (@injectL W2 W1 Unit)=>/=; rewrite !unitR=>H. 
+  rewrite /V joinC;apply: H=>//; do? [by apply: hook_complete0].
+  + by rewrite joinC validV.
+  by move=>l _=>????; rewrite dom0.
+rewrite /V joinC in R X; rewrite /init_state [l1 \\->_ \+ _]joinC in R.
+case: (rely_ext X coh2 R)=>j1[i1][Z]C'; subst i.
+apply: inject_rule=>//=.
+apply: with_inv_rule; apply:call_rule=>//_.
+have E: (getStatelet j1 l2) = (getStatelet (j1 \+ i1) l2).
+- by rewrite (locProjL (proj2 (rely_coh R)) _ C')=>//; rewrite /W1 um_domPt.
+rewrite E (rely_loc' _ R)/getLocal/=/getStatelet/=.
+rewrite findUnL ?validI//; last by rewrite joinC validI.
+rewrite um_domPt/= gen_findPt/=.
+by rewrite /init_dstate2 findUnL ?valid_init_dstate2 ?um_domPt/= ?gen_findPt.  
 Qed.
 
 End CalculatorApp.
