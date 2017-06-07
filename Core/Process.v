@@ -295,4 +295,80 @@ Lemma pstep_inv A pr I (ii : InductiveInv pr I) s1 s2 this sc
   s2 \In Coh (mkWorld (ProtocolWithIndInv ii)).
 Proof. by move=>C1; case/pstep_network_sem/(with_inv_step C1)/step_coh. Qed.
 
+
+(***********************************************************************)
+(******************** Parallel schedule ********************************)
+(***********************************************************************)
+
+Definition par_proc W A := seq (nid * proc W A).
+
+Inductive par_schedule :=
+  Done | ParStep (n : nid) of schedule.
+
+Definition par_good (W : world) A (ps : par_proc W A) sc : Prop :=
+  match sc with
+  | Done => False
+  | ParStep n sc' => exists p ps1 ps2, ps = ps1 ++ (n, p) :: ps2 /\ good p sc'                                         end.
+
+Definition par_safe (W : world) A (ps : par_proc W A) sc (s : state)  : Prop :=
+  match sc with
+  | ParStep n sc' =>
+    (exists! pp, let: (p, ps1, ps2) := pp in ps = ps1 ++ (n, p) :: ps2) /\
+    (forall p ps1 ps2, ps = ps1 ++ (n, p) :: ps2 -> safe p n sc' s)  
+  | _ => True
+  end.
+
+(*  Parallel stepping *)
+Definition par_step (W : world) A (s1 : state) (ps : par_proc W A) sc
+           (s2 : state) (ps' : par_proc W A) : Prop :=
+  match sc with
+  | ParStep n sc' =>
+    exists p p' ps1 ps2,
+    [/\ ps = ps1 ++ (n, p) :: ps2, step s1 p sc' s2 p' & ps' = (ps1 ++ (n, p') :: ps2)]
+  | _ => False
+  end.
+
+Definition par_pstep (W : world) A s1 (ps : par_proc W A) sc s2 p2 := 
+  [/\ s1 \In Coh W, par_safe ps sc s1 & par_step s1 ps sc s2 p2].
+
+(* Some sanity lemmas wrt. stepping *)
+
+Lemma par_pstep_safe (W : world) A s1 (t : par_proc W A) sc s2 q : 
+        par_pstep s1 t sc s2 q -> par_safe t sc s1.
+Proof. by case. Qed.
+
+Lemma par_pstep_network_sem (W : world) A s1 (t : par_proc W A) sc s2 q :
+  par_pstep s1 t sc s2 q -> exists n p, (n, p) \In t /\ network_step W n s1 s2. 
+Proof.
+case: sc =>//=; first by case=>//. 
+move=>n sc; case=>/= C; case; case=>[[[p ps1] ps2]][E]H1 H2; subst t.
+case=>x[p'][ps3][ps4][E]S Z; subst q.
+case/(H1 (x, ps3, ps4)): E=> Z1 Z2 Z3; subst x ps3 ps4.
+exists n, p; split; first by apply/Mem_cat; right; apply/In_cons; left.
+apply: (@pstep_network_sem W A s1 p n sc s2 p').
+by split=>//; apply: (H2 p ps1 ps2 (erefl _)).
+Qed.
+
+Lemma par_pstep_inv A pr I (ii : InductiveInv pr I) s1 s2 sc
+      (t t' : par_proc (mkWorld pr) A):
+  s1 \In Coh (mkWorld (ProtocolWithIndInv ii)) ->
+  par_pstep s1 t sc s2 t' -> 
+  s2 \In Coh (mkWorld (ProtocolWithIndInv ii)).
+Proof.
+by move=>C1; case/par_pstep_network_sem=> n [p][_]/(with_inv_step C1)/step_coh; case.
+Qed.
+
+Lemma par_proc_progress W A s (t : par_proc W A) sc : 
+        s \In Coh W -> par_safe t sc s -> par_good t sc ->  
+        exists s' (q : par_proc W A), par_pstep s t sc s' q.
+Proof.
+move=>C; case: sc=>// n sc/=.
+case; case=>[[[p ps1] ps2]][E]H1 H2; subst t.
+case=>x[ps3][ps4][E]G; case/(H1 (x, ps3, ps4)): E=> Z1 Z2 Z3; subst x ps3 ps4.
+move: (H2 p ps1 ps2 (erefl _))=>S.
+case: (proc_progress C S G)=>s'[p'][_]_ H; exists s'.
+exists (ps1 ++ (n, p') :: ps2); split=>//=; last by exists p, p', ps1, ps2.
+by split=>//; exists (p, ps1, ps2). 
+Qed.
+                     
 End ProcessSemantics.
