@@ -302,12 +302,10 @@ Proof. by move=>C1; case/pstep_network_sem/(with_inv_step C1)/step_coh. Qed.
 
 Definition par_proc W A := seq (nid * proc W A).
 
-Inductive par_schedule :=
-  Done | ParStep (n : nid) of schedule.
+Inductive par_schedule := ParStep (n : nid) of schedule.
 
 Definition par_good (W : world) A (ps : par_proc W A) sc : Prop :=
   match sc with
-  | Done => False
   | ParStep n sc' => exists p ps1 ps2, ps = ps1 ++ (n, p) :: ps2 /\ good p sc'                                         end.
 
 Definition par_safe (W : world) A (ps : par_proc W A) sc (s : state)  : Prop :=
@@ -315,7 +313,6 @@ Definition par_safe (W : world) A (ps : par_proc W A) sc (s : state)  : Prop :=
   | ParStep n sc' =>
     (exists! pp, let: (p, ps1, ps2) := pp in ps = ps1 ++ (n, p) :: ps2) /\
     (forall p ps1 ps2, ps = ps1 ++ (n, p) :: ps2 -> safe p n sc' s)  
-  | _ => True
   end.
 
 (*  Parallel stepping *)
@@ -325,7 +322,6 @@ Definition par_step (W : world) A (s1 : state) (ps : par_proc W A) sc
   | ParStep n sc' =>
     exists p p' ps1 ps2,
     [/\ ps = ps1 ++ (n, p) :: ps2, step s1 p sc' s2 p' & ps' = (ps1 ++ (n, p') :: ps2)]
-  | _ => False
   end.
 
 Definition par_pstep (W : world) A s1 (ps : par_proc W A) sc s2 p2 := 
@@ -340,7 +336,7 @@ Proof. by case. Qed.
 Lemma par_pstep_network_sem (W : world) A s1 (t : par_proc W A) sc s2 q :
   par_pstep s1 t sc s2 q -> exists n p, (n, p) \In t /\ network_step W n s1 s2. 
 Proof.
-case: sc =>//=; first by case=>//. 
+case: sc =>//=.
 move=>n sc; case=>/= C; case; case=>[[[p ps1] ps2]][E]H1 H2; subst t.
 case=>x[p'][ps3][ps4][E]S Z; subst q.
 case/(H1 (x, ps3, ps4)): E=> Z1 Z2 Z3; subst x ps3 ps4.

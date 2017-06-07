@@ -34,6 +34,13 @@ Fixpoint always_sc A (s1 : state) p scs (P : state -> proc A -> Prop) : Prop :=
 
 Definition always A s (p : proc A) P := forall scs, always_sc s p scs P.
 
+Fixpoint par_always_sc A (s1 : state) ps scs (P : state -> par_proc W A -> Prop) : Prop :=
+  s1 \In coherent /\
+  if scs is sc :: scs' then
+     [/\ par_safe ps sc s1, P s1 ps &
+     forall s2 qs, @par_pstep W A s1 ps sc s2 qs -> par_always_sc s2 qs scs' P]
+  else P s1 ps.
+
 (* Some basic properties of the alwas predicate *)
 
 Lemma alw_coh' A s (p : proc A) scs P : 
