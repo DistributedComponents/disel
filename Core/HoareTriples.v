@@ -16,7 +16,7 @@ Unset Printing Implicit Defensive.
 (* Program is a set of processes *)
 Structure prog (W : world) A (this : nid) :=
   Prog {
-      set_of : proc this W A -> Prop; 
+      set_of : proc W A -> Prop; 
       (* Unifinshed is a bottom element that should be present *)
       _ : set_of Unfinished
   }.
@@ -55,7 +55,7 @@ Definition spec A := prod pre (post A).
 
 Definition has_spec (s : spec A) := 
   [Pred T : prog W A this | forall i t, 
-     s.1 i -> i \In Coh W -> t \In T -> after i t (s.2 i)]. 
+     s.1 i -> i \In Coh W -> t \In T -> after this  i t (s.2 i)]. 
 
 End Programs.
 
@@ -128,7 +128,7 @@ This is the main predicate defining what the verification is:
 
 Definition verify (W : world) A (i : state) (e : DT W A) r := 
   i \In Coh W -> 
-  forall p, p \In DTbin.prog_of (code_of e) -> after i p r. 
+  forall p, p \In DTbin.prog_of (code_of e) -> after this i p r. 
 
 End Specs.
 
@@ -160,8 +160,8 @@ by apply/stsepE/progE; apply: poset_asym H1 H2.
 Qed.
 
 
-Definition bot_set t := t = @Unfinished this W A. 
-Definition bot_prg := @Prog _ _ _ bot_set (erefl _).
+Definition bot_set t := t = @Unfinished W A. 
+Definition bot_prg := @Prog _ _ this bot_set (erefl _).
 
 (* Bottom satisfies any specification *)
 Lemma bot_spec : bot_prg \In has_spec this W s.
@@ -175,7 +175,7 @@ Proof. by case: e=>[[p U] H] t ->. Qed.
 
 Definition sup_set (es : Pred (DTbin s)) t := 
   t = Unfinished \/ exists e : DTbin s, t \In DTbin.prog_of e /\ e \In es.
-Definition sup_prog es := @Prog _ _ _ (sup_set es) (or_introl (erefl _)).
+Definition sup_prog es := @Prog _ _ this (sup_set es) (or_introl (erefl _)).
 
 Lemma sup_spec es : sup_prog es \In has_spec this W s.
 Proof.
@@ -245,10 +245,10 @@ Variable W : world.
 Variables (A : Type)  (x : A).
 
 (* Trees inhabiting a return statement *)
-Definition ret_set t := t = Unfinished \/ t = @Ret this W A x.
+Definition ret_set t := t = Unfinished \/ t = @Ret W A x.
 
 (* It naturally has the unfinished statement *)
-Definition ret_prog := @Prog _ _ _ ret_set (or_introl (erefl _)).
+Definition ret_prog := @Prog _ _ this ret_set (or_introl (erefl _)).
 
 Definition ret_s : spec A := 
   (fun i => True, fun i y m => network_rely W this i m /\ y = x). 
@@ -271,8 +271,8 @@ Variable W : world.
 Variables (A : Type)  (x : A).
 Variable a : action W A this.
 
-Definition act_set t := t = Unfinished \/ t = @Act this W A a.
-Definition act_prog := @Prog _ _ _ act_set (or_introl (erefl _)).
+Definition act_set t := t = Unfinished \/ t = @Act W A this a.
+Definition act_prog := @Prog _ _ this act_set (or_introl (erefl _)).
 
 (* Relaxing the precondition with respect to the rely, via action's safety *)
 Definition act_s : spec A := 
@@ -305,7 +305,7 @@ Variables (T : prog W A this) (K : A -> prog W B this).
 
 Definition bnd_set t := 
   t = Unfinished \/ exists t', t \In pcat t' K /\ t' \In T.
-Definition bnd_prog := @Prog _ _ _ bnd_set (or_introl (erefl _)).
+Definition bnd_prog := @Prog _ _ this bnd_set (or_introl (erefl _)).
 
 End Prog.
 
@@ -362,7 +362,7 @@ Variable T : prog V A this.
 
 Definition inject_set t := 
   t = Unfinished \/ exists t', t' \In T /\ t = Inject w t'. 
-Definition inject_prog := @Prog _ _ _ inject_set (or_introl (erefl _)).
+Definition inject_prog := @Prog _ _ this inject_set (or_introl (erefl _)).
 End Prog.
 
 Definition inject_s : spec A :=
@@ -375,7 +375,7 @@ Lemma inject_has_spec : inject_prog (code_of e) \In has_spec this W inject_s.
 Proof.
 move=>i /= t [i1][j1][->{i}][Ci1 H1] C.
 case=>[|[t' [H2 ->{t}]]]; first by move=>->; apply: alw_unfin.
-have : after i1 t' (s.2 i1) by case: (code_of e) H2=>p /= /(_ _ _ H1); apply. 
+have : after this i1 t' (s.2 i1) by case: (code_of e) H2=>p /= /(_ _ _ H1); apply. 
 move/(aft_inject w C); apply: aft_imp=>{H1 t' H2} v m _.
 case=>i2 [j2][->{m} Ci2 S2 H2] i3 j3 E Ci3.
 suff [E1 E2]: i3 = i1 /\ j3 = j1.
@@ -414,7 +414,7 @@ Variable T : prog V A this.
 
 Definition with_inv_set t := 
   t = Unfinished \/ exists t', t' \In T /\ t = WithInv pr I ii (erefl _) t'. 
-Definition with_inv_prog := @Prog _ _ _ with_inv_set (or_introl (erefl _)).
+Definition with_inv_prog := @Prog _ _ this with_inv_set (or_introl (erefl _)).
 End Prog.
 
 Notation getS i := (getStatelet i l).

@@ -149,8 +149,8 @@ Lemma ghC (p : B -> pre) (q : B -> A -> pre) :
         (forall i x, p x i -> i \In Coh W -> verify i e (q x)) ->
         conseq e (logvar (fun x => binarify (p x) (q x))).
 Proof.
-move=>H i /= [x Hp] Ci t Ht. 
-have S : alwsafe i t by apply: alw_imp (H i x Hp Ci Ci t Ht). 
+move=>H i /= [x Hp] Ci t Ht.
+have S: (always this i t (fun _ _ => True)) by apply: alw_imp (H i x Hp Ci Ci t Ht). 
 by apply/aftA=>// y; apply/aftI=>// /H; apply.
 Qed.
 

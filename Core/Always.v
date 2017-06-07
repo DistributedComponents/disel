@@ -17,19 +17,19 @@ Unset Printing Implicit Defensive.
 
 Section Always.
 
-Variable this : nid.
 Variable W : world.
+Variable this : nid.
 
 Notation coherent := (Coh W).
 
-Implicit Arguments proc [W this]. 
+Implicit Arguments proc [W].
 
 Fixpoint always_sc A (s1 : state) p scs (P : state -> proc A -> Prop) : Prop :=
   s1 \In coherent /\ 
   if scs is sc :: scs' then 
     forall s2, network_rely W this s1 s2 -> 
-      [/\ safe p sc s2, P s2 p &
-          forall s3 q, @pstep this W A s2 p sc s3 q -> always_sc s3 q scs' P]
+      [/\ safe p this sc s2, P s2 p &
+          forall s3 q, @pstep W A s2 p this sc s3 q -> always_sc s3 q scs' P]
   else forall s2, network_rely W this s1 s2 -> P s2 p.
 
 Definition always A s (p : proc A) P := forall scs, always_sc s p scs P.
@@ -45,13 +45,13 @@ Lemma alw_coh A s (p : proc A) P :
 Proof. by move/(_ [::]); move/alw_coh'. Qed.
 
 Lemma alw_safe' A s (p : proc A) sc scs P : 
-        always_sc s p (sc :: scs) P -> safe p sc s.
+        always_sc s p (sc :: scs) P -> safe p this sc s.
 Proof.
 by case: scs=>[|a l][]C/(_ s (rely_refl this C))[].
 Qed.    
 
 Lemma alw_safe A s (p : proc A) P :
-        always s p P -> forall sc, safe p sc s.
+        always s p P -> forall sc, safe p this  sc s.
 Proof. by move=>H sc; apply: alw_safe' (H [:: sc]). Qed.
 
 Lemma alw_refl' A s (p : proc A) sc P : always_sc s p sc P -> P s p.
@@ -76,7 +76,7 @@ Proof. by move=>S E scs; apply: alw_envs' (S scs) E. Qed.
 (* Always is preserved by this-stepping *)
 
 Lemma alw_step A s1 (p : proc A) sc s2 q P :
-        always s1 p P -> pstep s1 p sc s2 q -> always s2 q P.
+        always s1 p P -> pstep s1 p this sc s2 q -> always s2 q P.
 Proof.
 move=>Ls Ts; move: (Ls [:: sc])=>/= [C].
 case/(_ _ (rely_refl this C))=>_ _; move/(_ _ _ Ts)=>_. 
@@ -139,14 +139,14 @@ Proof. by move=>C H ps; apply: alw_ret'. Qed.
 Lemma alw_act A s1 (a : action W A this) (P : state -> proc A -> Prop) :
         s1 \In coherent ->
         (forall s2, network_rely W this s1 s2 -> exists S : a_safe a s2,
-        P s2 (Act a) /\
+        P s2 (Act this a) /\
         forall s3 v s4, a_step S s3 v -> 
                         network_rely W this s3 s4 -> P s4 (Ret v)) ->
-        always s1 (Act a) P. 
+        always s1 (Act this a) P. 
 Proof.
 move=>C H [|sc scs]; split=>// s2; case/H=>// H1[H2]H3//. 
 split=>//; first by case: sc.
-move=>s3 q /stepAct [v][pf][_ -> St].
+move=>s3 q /stepAct [v][pf][_ -> _ St].
 rewrite (proof_irrelevance H1 pf) in H3.
 apply: alw_ret'; last by move=>s4; apply: H3 St.
 by case: (step_coh (a_step_sem St)).
@@ -262,7 +262,7 @@ split=>//; last first.
   by move/(_ _ _ _ T)/IH; apply; exists k.
 move/(alw_envs Ls): E=>{Ls} Ls. 
 have Ls': always s2 p1 (fun s2 p2 =>
-  forall sc p v, p2 = Ret v -> p \In pp2 v -> safe p sc s2).
+  forall sc p v, p2 = Ret v -> p \In pp2 v -> safe p this sc s2).
 - by apply: alw_imp Ls=>s p _ I sc' q v E; move/(I _ _ E)/alw_safe. 
 case: sc=>//=; first by case: p1 {Ls} Ls'.
 move=>sc; case: (Ls [:: sc])=>C.
@@ -388,11 +388,11 @@ Qed.
 
 
 
-Lemma alw_inject (p : proc this V A)
-      (P : state -> proc this V A -> Prop) i j :
+Lemma alw_inject (p : proc V A)
+      (P : state -> proc V A -> Prop) i j :
         i \+ j \In Coh W ->
-        always i p P ->
-        always (i \+ j) (Inject w p)
+        always this i p P ->
+        always this (i \+ j) (Inject w p)
           (fun m q => exists i' j', 
              [/\ m = i' \+ j', i' \In Coh V, network_rely W2 this j j' &
                  (exists q', q = Inject w q' /\ P i' q') \/
@@ -433,10 +433,10 @@ move=>s p _ [i2][j2][->{s}] Ci2 S2 H; exists i2, j2; split=>//.
 by apply: rely_trans S1 S2.  
 Qed.
 
-Lemma aft_inject (p : proc this V A) (P : A -> state -> Prop) i j :
+Lemma aft_inject (p : proc V A) (P : A -> state -> Prop) i j :
         i \+ j \In Coh W ->
-        after i p P ->
-        after (i \+ j) (Inject w p)
+        after this i p P ->
+        after this (i \+ j) (Inject w p)
           (fun v m => exists i' j', 
              [/\ m = i' \+ j', i' \In Coh V, 
                  network_rely W2 this j j' & P v i']).
@@ -471,11 +471,11 @@ Variables (A : Type) (this: nid).
 Notation V := (mkWorld pr).
 Notation W := (mkWorld (ProtocolWithIndInv ii)).
 
-Lemma alw_ind_inv (p : proc this V A)
-      (P : state -> proc this V A -> Prop) i :
+Lemma alw_ind_inv (p : proc V A)
+      (P : state -> proc V A -> Prop) i :
         i \In Coh W ->
-        always i p P ->
-        always i (WithInv pr I ii (erefl _) p)
+        always this i p P ->
+        always this i (WithInv pr I ii (erefl _) p)
           (fun m q => m \In Coh W /\
                  ((exists q', q = WithInv pr I ii (erefl _) q' /\ P m q') \/
                   (exists v', q = Ret v' /\ P m (Ret v')))).
@@ -503,10 +503,10 @@ move/(alw_step Ls'): T=>{Ls'} Ls'.
 by apply: IH.
 Qed.
 
-Lemma aft_ind_inv (p : proc this V A) (P : A -> state -> Prop) i :
+Lemma aft_ind_inv (p : proc V A) (P : A -> state -> Prop) i :
         i \In Coh W ->
-        after i p P ->
-        after i (WithInv pr I ii (erefl _) p)
+        after this i p P ->
+        after this i (WithInv pr I ii (erefl _) p)
           (fun v m => m \In Coh W /\ P v m).
 Proof.
 move=>C /(alw_ind_inv C); apply: alw_imp=>{p i C} s q _.
