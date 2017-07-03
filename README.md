@@ -28,18 +28,19 @@ the libraries and will check all the proofs.
 
 * `Heaps` -- A theory of partial finite heaps; 
 
-* `Core` -- Disel implementation, metatheory and inference rules
-                  (Section 3);
+* `Core` -- Disel implementation, metatheory and inference rules;
 
 * `Examples` -- Case studies implemented in Disel
 
-	- `Calculator` -- the calculator system (Section 2);
+	- `Calculator` -- the calculator system;
 
 	- `Greeter` -- a toy "Hello Wrold"-like protocol, where
          participants can only exchange greetings with each other;
 
-	- `TwoPhaseCommit` -- Two Phase Commit protocol implementation
-		 (Section 4).
+	- `TwoPhaseCommit` -- Two Phase Commit protocol implementation;
+
+	- `Query` -- quarying protocol and its composition with Two Phase
+      Commit via hooks;
 
 * `shims` -- DiSeL runtime system
     - Note that in order to run the examples, you need OCaml installed.
