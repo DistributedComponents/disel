@@ -133,8 +133,6 @@ by move=>_; rewrite P; exists (0, PInit), [::].
 Qed.
 
 
-Check network_rely.
-
 (* [Run] Runnable coordinator code *)
 Program Definition run_coordinator :
   DHT [cn, _] (
