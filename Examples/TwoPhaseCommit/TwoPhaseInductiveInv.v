@@ -4,14 +4,18 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
+From DiSeL.Heaps
 Require Import pred prelude idynamic ordtype finmap pcm unionmap.
+From DiSeL.Heaps
 Require Import heap coding domain.
+From DiSeL.Core
 Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
+From DiSeL.Core
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
-Require Import InductiveInv.
+From DiSeL.Core
+Require Import InductiveInv While StatePredicates.
+From DiSeL.Examples
 Require Import TwoPhaseProtocol.
-Require Import While.
-Require Import StatePredicates.
 
 Require Import Omega.
 

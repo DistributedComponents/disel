@@ -1,5 +1,6 @@
 From mathcomp.ssreflect
 Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
+From DiSeL.Heaps
 Require Import pred prelude ordtype finmap.
 Set Implicit Arguments.
 Unset Strict Implicit.

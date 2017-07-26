@@ -3,12 +3,15 @@ Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
 From mathcomp
 Require Import path.
 Require Import Eqdep.
+From DiSeL.Heaps
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
-Require Import Actions.
-Require Import SeqLib.
-Require Import QueryProtocol.
+From DiSeL.Core
+Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely Actions.
+From DiSeL.Examples
+Require Import SeqLib QueryProtocol.
+From DiSeL.Core
 Require Import NewStatePredicates.
+From DiSeL.Core
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 
 Section QueryHooked.
@@ -1062,6 +1065,7 @@ Definition recv_resp_inv (rid : nat) to
           local_indicator data (getLc i) &
           msg_story i rid to data ((to, rid) :: reqs) resp].
 
+From DiSeL.Core
 Require Import While.
 
 Program Definition receive_resp_loop (rid : nat) to :

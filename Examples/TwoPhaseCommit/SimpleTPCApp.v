@@ -4,11 +4,15 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
+From DiSeL.Heaps
 Require Import pred prelude ordtype finmap pcm unionmap heap coding domain.
+From DiSeL.Core
 Require Import State Protocols Worlds NetworkSem Rely.
-Require Import HoareTriples InferenceRules.
-Require Import While.
+From DiSeL.Core
+Require Import HoareTriples InferenceRules While.
+From DiSeL.Examples
 Require Import TwoPhaseProtocol TwoPhaseCoordinator TwoPhaseParticipant.
+From DiSeL.Examples
 Require TwoPhaseInductiveProof.
 
 Section SimpleTpcApp.

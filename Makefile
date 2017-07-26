@@ -10,7 +10,7 @@ clean: Makefile.coq
 	rm -f Makefile.coq
 
 Makefile.coq: _CoqProject
-	coq_makefile -f _CoqProject > Makefile.coq
+	coq_makefile -arg -w -arg -notation-overridden -f _CoqProject -o Makefile.coq
 
 TPCMain.d.byte: default
 	ocamlbuild -libs unix -I extraction/TPC -I shims shims/TPCMain.d.byte
