@@ -24,7 +24,7 @@ Unset Printing Implicit Defensive.
 Section IndexedDynamic.
 Variable (I : Type) (sort : I -> Type).
 
-Structure idynamic := idyn (A : I) of sort A.
+Inductive idynamic := idyn (A : I) of sort A.
 
 Definition idyn_tp (x : idynamic) : I := let: idyn A _ := x in A.
 
