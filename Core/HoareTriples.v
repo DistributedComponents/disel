@@ -93,7 +93,7 @@ Lemma prog_unfin (W : world) A (s : spec A) (e : DTbin this W s) :
 Proof. by case: e; case. Qed.
 
 (* Packaging the definition into an type, _indexed_ by a specificaion s. *)
-Structure DT (W: world) A :=
+Inductive DT (W: world) A :=
   with_spec (s : spec A) of DTbin this W s.
 
 Definition spec_of W A (e : DT W A) := let: with_spec s _ := e in s.
