@@ -2,7 +2,7 @@ From mathcomp.ssreflect
 Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
 From mathcomp
 Require Import path.
-From Heaps
+From DiSeL.Heaps
 Require Import pred prelude idynamic ordtype finmap pcm coding unionmap heap.
 Set Implicit Arguments.
 Unset Strict Implicit.

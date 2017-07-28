@@ -4,16 +4,22 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
+From DiSeL.Heaps
 Require Import pred prelude idynamic ordtype finmap pcm unionmap.
+From DiSeL.Heaps
 Require Import heap coding domain.
+From DiSeL.Core
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
+From DiSeL.Core
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
-Require Import InductiveInv.
-Require Import While.
+From DiSeL.Core
+Require Import InductiveInv While.
+From DiSeL.Examples
 Require Import CalculatorProtocol CalculatorInvariant.
+From DiSeL.Examples
 Require Import CalculatorClientLib CalculatorServerLib.
-Require Import DelegatingCalculatorServer.
-Require Import SimpleCalculatorServers.
+From DiSeL.Examples
+Require Import DelegatingCalculatorServer SimpleCalculatorServers.
 
 Export CalculatorProtocol.
 

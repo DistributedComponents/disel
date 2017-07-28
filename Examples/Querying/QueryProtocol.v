@@ -3,9 +3,11 @@ Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
 From mathcomp
 Require Import path.
 Require Import Eqdep.
+From DiSeL.Heaps
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
-Require Import Actions.
+From DiSeL.Core
+Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely Actions.
+From DiSeL.Examples
 Require Import SeqLib.
 
 Set Implicit Arguments.

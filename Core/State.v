@@ -4,10 +4,10 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
+From DiSeL.Heaps
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-Require Import Freshness.
-Require Import DepMaps.
-Require Import EqTypeX.
+From DiSeL.Core
+Require Import Freshness DepMaps EqTypeX.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.

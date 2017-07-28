@@ -4,9 +4,13 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
+From DiSeL.Heaps
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
+From DiSeL.Core
 Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
+From DiSeL.Core
 Require Import Actions Injection Process Always.
+From DiSeL.Heaps
 Require Import domain.
 
 Set Implicit Arguments.
@@ -390,6 +394,7 @@ End Inject.
 
 
 Section InductiveInv.
+From DiSeL.Core
 Require Import InductiveInv.
 Variable pr : protocol.
 

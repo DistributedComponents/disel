@@ -3,14 +3,18 @@ COQBIN=$(dir $(shell which coqtop))/
 endif
 
 default: Makefile.coq
-	make -f Makefile.coq
+	$(MAKE) -f Makefile.coq
 
-clean: Makefile.coq
-	make -f Makefile.coq clean
+install: Makefile.coq
+	$(MAKE) -f Makefile.coq install
+
+clean:
+	if [ -f Makefile.coq ]; then \
+	  $(MAKE) -f Makefile.coq clean; fi
 	rm -f Makefile.coq
 
 Makefile.coq: _CoqProject
-	coq_makefile -f _CoqProject > Makefile.coq
+	coq_makefile -arg -w -arg -notation-overridden -f _CoqProject -o Makefile.coq
 
 TPCMain.d.byte: default
 	ocamlbuild -libs unix -I extraction/TPC -I shims shims/TPCMain.d.byte
@@ -18,4 +22,4 @@ TPCMain.d.byte: default
 CalculatorMain.d.byte: default
 	ocamlbuild -libs unix -I extraction/calculator -I shims shims/CalculatorMain.d.byte
 
-.PHONY: default clean
+.PHONY: default clean install

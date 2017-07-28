@@ -4,13 +4,18 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
+From DiSeL.Heaps
 Require Import pred prelude idynamic ordtype finmap pcm unionmap.
+From DiSeL.Heaps
 Require Import heap coding domain.
+From DiSeL.Core
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
+From DiSeL.Core
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
-Require Import InductiveInv.
+From DiSeL.Core
+Require Import InductiveInv StatePredicates.
+From DiSeL.Examples
 Require Import CalculatorProtocol.
-Require Import StatePredicates.
 
 Section CalculatorInductiveInv.
 
@@ -56,6 +61,7 @@ Notation coh' := (coh cal).
 Notation Sinv := (@S_inv cal (fun d _ => CalcInv d)).
 Notation Rinv := (@R_inv cal (fun d _ => CalcInv d)).
 Notation PI := proof_irrelevance.
+From DiSeL.Examples
 Require Import CalculatorProtocol.
 
 Program Definition s1: Sinv (server_send_trans f prec cs cls).

@@ -4,12 +4,19 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
+From DiSeL.Heaps
 Require Import pred prelude idynamic ordtype finmap pcm unionmap.
+From DiSeL.Heaps
 Require Import heap coding domain.
+From DiSeL.Core
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
+From DiSeL.Core
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
+From DiSeL.Core
 Require Import InductiveInv.
+From DiSeL.Examples
 Require Import CalculatorProtocol CalculatorInvariant.
+From DiSeL.Examples
 Require Import SeqLib.
 
 Section CalculatorRecieve.
@@ -128,6 +135,7 @@ Definition receive_loop_inv (rs : reqs) :=
      | None => loc i = st :-> rs
     end.
 
+From DiSeL.Core
 Require Import While.
 
 Program Definition receive_loop' :
