@@ -1,0 +1,29 @@
+opam-version: "1.2"
+name: "coq-disel-core"
+version: "dev"
+maintainer: "palmskog@gmail.com"
+
+homepage: "https://github.com/DistributedComponents/disel"
+dev-repo: "https://github.com/DistributedComponents/disel.git"
+bug-reports: "https://github.com/DistributedComponents/disel/issues"
+license: "Proprietary"
+
+build: [ make "-j" "%{jobs}%" ]
+install: [ make "install" ]
+remove: [ "sh" "-c" "rm -rf '%{lib}%/coq/user-contrib/DiSeL/Core'" ]
+depends: [
+  "coq " { ((>= "8.6" & < "8.7~") | (= "dev")) }
+  "coq-mathcomp-ssreflect" { ((>= "1.6.1" & < "1.7~") | (= "dev")) }
+  "coq-disel-heaps" {= "dev"}
+]
+
+tags: [
+  "category:Computer Science/Concurrent Systems and Protocols/Theory of concurrent systems"
+  "keyword:program verification"
+  "keyword:separation logic"
+  "keyword:distributed algorithms"
+]
+authors: [
+  "Ilya Sergey <>"
+  "James R. Wilcox <>"
+]

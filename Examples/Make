@@ -1,0 +1,22 @@
+SeqLib.v
+Greeter/Greeter.v
+Querying/QueryProtocol.v
+Querying/QueryHooked.v
+Calculator/CalculatorProtocol.v
+Calculator/CalculatorInvariant.v
+Calculator/CalculatorClientLib.v
+Calculator/CalculatorServerLib.v
+Calculator/SimpleCalculatorServers.v
+Calculator/DelegatingCalculatorServer.v
+Calculator/SimpleCalculatorApp.v
+TwoPhaseCommit/TwoPhaseProtocol.v
+TwoPhaseCommit/TwoPhaseCoordinator.v
+TwoPhaseCommit/TwoPhaseParticipant.v
+TwoPhaseCommit/SimpleTPCApp.v
+TwoPhaseCommit/TwoPhaseInductiveInv.v
+TwoPhaseCommit/TwoPhaseInductiveProof.v 
+Querying/QueryPlusTPC.v
+LockResource/LockProtocol.v
+LockResource/ResourceProtocol.v
+
+-R . DiSeL.Examples
