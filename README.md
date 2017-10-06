@@ -5,12 +5,15 @@ compositional verification of distributed systems.
 
 ## Building the Project
 
+A VM has been provided for your convenience and is described below. If
+you would like to use your own machine, the following dependencies are
+necessary.
+
 ### Requirements
 
 * Coq 8.6 (available from https://coq.inria.fr/download)
 * Mathematical Components 1.6.1 (http://math-comp.github.io/math-comp/)
-
-### Building
+* OCaml 4.0.1 or later (to compile and run the extracted applications)
 
 If Coq is not installed such that its binaries like `coqc` and
 `coq_makefile` are in the `PATH`, then the `COQBIN` environment variable
@@ -20,9 +23,6 @@ example:
 ```
 export COQBIN=/home/user/coq/bin/
 ```
-
-Next, run `make clean; make` from the root folder. This will build all
-the libraries and will check all the proofs.
 
 ## Project Structure
 
@@ -43,20 +43,8 @@ the libraries and will check all the proofs.
       Commit via hooks;
 
 * `shims` -- DiSeL runtime system
-    - Note that in order to run the examples, you need OCaml installed.
-      We tested with OCaml version 4.02.3, but others may work as well.
 
-    - Run `make CalculatorMain.d.byte` to build the Calculator
-      application using `extraction/calculator` as the build directory.
-      (Note that all the proofs will be checked as well.) Then run
-      `./scripts/calculator.sh` to execute the system in three processes
-      on the local machine.
-
-    - Run `make TPCMain.d.byte` from the root folder to build the
-      Two-Phase Commit application. Then run `./scripts/tpc.sh` to
-      execute the system in four processes on the local machine.
-
-## Description of the VM
+## VM Instructions
 
 Please download [the virtual machine]().
 
@@ -69,6 +57,17 @@ ssreflect have been installed, and a checkout of Disel is present in
 
 We recommend checking the proofs using the provided Makefile and
 running the two extracted applications.
+
+Checking the proofs can be accomplished by
+
+    cd ~/disel
+    make clean; make -j 4
+
+You may see lots of warnings about notations and "nothing to inject";
+these are expected.  Success is indicated by the build terminating
+without printing "error".
+
+Extracting and running the example applications is described below.
 
 ## Code corresponding to the paper
 
@@ -108,12 +107,17 @@ corresponds to the code:
     - The Disel language is defined in `Core/Actions.v`, `Core/Process.v`, and 
       `Core/HoareTriples.v`.
     - Inference rules are given in `Core/InferenceRules.v`.
-* Two-Phase Commit 
-    - 
-
-## Extracting and Running Disel Programs"
-
-
+* Two-Phase Commit and Querying (Section 4)
+    - The relevant directory is `Examples/TwoPhaseCommit`.
+    - The protocol as described in Section 4.1 is implemented in `TwoPhaseProtocol.v`.
+    - The implementations of the coordinator (described in 4.2) and the participant
+      are in `TwoPhaseCoordinator.v` and `TwoPhaseParticipant.v`.
+    - The strengthened invariant from 4.3 is stated in `TwoPhaseInductiveInv.v` and
+      proved to be preserved by all transitions in `TwoPhaseInductiveProof.v`.
+    - A runnable example is in `SimpleTPCApp.v`. Instructions for how to run it
+      are given below under "Extracting and Running Disel Programs".
+    - The querying protocol from Section 4.4 is implemented in the directory
+      `Examples/Querying`.
 
 ## Exploring further
 
@@ -123,3 +127,23 @@ that uses the calculator to evaluate arithmetic expressions and prove
 its correctness. As a more involved example, you could define a new
 protocol for leader election in a ring and prove that at most one node
 becomes leader.
+
+## Extracting and Running Disel Programs
+
+As described in Section 5.1, Disel programs can be extracted to OCaml and run.
+You can build the two examples as follows.
+
+- Run `make CalculatorMain.d.byte` to build the Calculator
+  application using `extraction/calculator` as the build directory.
+  (Note that all the proofs will be checked as well.) Then run
+  `./scripts/calculator.sh` to execute the system in three processes
+  on the local machine.
+
+- Run `make TPCMain.d.byte` from the root folder to build the
+  Two-Phase Commit application. Then run `./scripts/tpc.sh` to
+  execute the system in four processes on the local machine.
+
+## Validating Proof Size Statistics
+
+Section 5.2 and Table 1 describe the size of our development.
+[TODO: mention how to distinguish def/spec from impl from proof.]
