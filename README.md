@@ -3,6 +3,10 @@
 Implementation and case studies of Disel, a separation-style logic for
 compositional verification of distributed systems.
 
+This code accompanies the paper entitled "Programming and Proving with
+Distributed Protocols" by Sergey, Wilcox and Tatlock, conditionally
+accepted for publication at POPL 2018.
+
 ## Building the Project
 
 A VM has been provided for your convenience and is described below. If
