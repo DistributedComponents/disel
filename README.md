@@ -56,6 +56,20 @@ the libraries and will check all the proofs.
       Two-Phase Commit application. Then run `./scripts/tpc.sh` to
       execute the system in four processes on the local machine.
 
+## Description of the VM
+
+Please download [the virtual machine]().
+
+If prompted for login information, both the username and password are
+"popl" (without quotes).
+
+For your convenience, all necessary software, including Coq 8.6 and
+ssreflect have been installed, and a checkout of Disel is present in
+`~/disel`.
+
+We recommend checking the proofs using the provided Makefile and
+running the two extracted applications.
+
 ## Code corresponding to the paper
 
 The following describes how [the paper](homes.cs.washington.edu/~jrw12/disel.pdf)
@@ -98,4 +112,14 @@ corresponds to the code:
     - 
 
 ## Extracting and Running Disel Programs"
-      
+
+
+
+## Exploring further
+
+We encourage you to explore Disel further by extending one of the
+examples or trying your own. For example, you could build an application
+that uses the calculator to evaluate arithmetic expressions and prove
+its correctness. As a more involved example, you could define a new
+protocol for leader election in a ring and prove that at most one node
+becomes leader.
