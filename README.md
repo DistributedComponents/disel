@@ -55,3 +55,47 @@ the libraries and will check all the proofs.
     - Run `make TPCMain.d.byte` from the root folder to build the
       Two-Phase Commit application. Then run `./scripts/tpc.sh` to
       execute the system in four processes on the local machine.
+
+## Code corresponding to the paper
+
+The following describes how [the paper](homes.cs.washington.edu/~jrw12/disel.pdf)
+corresponds to the code:
+
+* The Calculator (Section 2)
+    - The directory `Examples/Calculator` contains the relevant files.
+    - The protocol is defined in `CalculatorProtocol.v`,
+      including the state space, coherence predicate, and four transitions
+      described in Figure 2. Note that the coherence predicate is stronger than 
+      the one given in the paper: it incorporates Inv_1 from Section 2.3. This is
+      discussed further below.
+    - The program that implements blocking receive of server requests from
+      Section 2.2 is defined in `CalculatorServerLib.v`, 
+      as `blocking_receive_req`.
+    - The simple server from Section 2.3, as well as the batching and memoizing
+      servers from Figure 3 are implemented in 
+      `SimpleCalculatorServers.v`. They are all implemented in
+      terms of the higher-order `server_loop` function. The invariant Inv1 from 
+      Section 2.3 is incorporated into the protocol itself, as part of the coherence
+      predicate. 
+    - The simple client from Section 2.4 is implemented in 
+      `CalculatorClientLib.v`. The invariant Inv2 is proved as
+      a separate inductive invariant using the WithInv rule in 
+      `CalculatorInvariant.v`. It is used to prove the clients
+      satisfy their specifications.
+    - The delegating server is in `DelegatingCalculatorServer.v`.
+      It again uses the invariant Inv2.
+    - A runnable example using extraction to OCaml is given in 
+      `SimpleCalculatorApp.v`. It consists of one client and two
+      servers, one of which delegates to the other. Instructions for how to run
+      the example are given below under "Extracting and Running Disel Programs".
+* The Logic and its Soundness (Section 3)
+    - The definitions from Figure 6 in Section 3.1 are given in `Core/State.v`
+      `Core/Protocols.v`, and `Core/Worlds.v`.
+    - The Disel language is defined in `Core/Actions.v`, `Core/Process.v`, and 
+      `Core/HoareTriples.v`.
+    - Inference rules are given in `Core/InferenceRules.v`.
+* Two-Phase Commit 
+    - 
+
+## Extracting and Running Disel Programs"
+      
