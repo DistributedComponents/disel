@@ -16,9 +16,6 @@ Import Prenex Implicits.
 Module CalculatorProtocol.
 Section CalculatorProtocol.
 
-(* TODO: Implement the simple calculator protocol for a partially
-defined function (implemented via option type). *)
-
 Definition input := seq nat.
 
 (* Partially defined function, e.g., 
