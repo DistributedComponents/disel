@@ -34,12 +34,12 @@ the libraries and will check all the proofs.
 
 	- `Calculator` -- the calculator system;
 
-	- `Greeter` -- a toy "Hello Wrold"-like protocol, where
+	- `Greeter` -- a toy "Hello World"-like protocol, where
          participants can only exchange greetings with each other;
 
 	- `TwoPhaseCommit` -- Two Phase Commit protocol implementation;
 
-	- `Query` -- quarying protocol and its composition with Two Phase
+	- `Query` -- querying protocol and its composition with Two Phase
       Commit via hooks;
 
 * `shims` -- DiSeL runtime system
