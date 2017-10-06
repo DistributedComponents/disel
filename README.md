@@ -75,7 +75,7 @@ Extracting and running the example applications is described below.
 
 ## Code corresponding to the paper
 
-The following describes how [the paper](homes.cs.washington.edu/~jrw12/disel.pdf)
+The following describes how [the paper](http://homes.cs.washington.edu/~jrw12/disel.pdf)
 corresponds to the code:
 
 * The Calculator (Section 2)
