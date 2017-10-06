@@ -108,9 +108,17 @@ corresponds to the code:
 * The Logic and its Soundness (Section 3)
     - The definitions from Figure 6 in Section 3.1 are given in `Core/State.v`
       `Core/Protocols.v`, and `Core/Worlds.v`.
-    - The Disel language is defined in `Core/Actions.v`, `Core/Process.v`, and 
-      `Core/HoareTriples.v`.
-    - Inference rules are given in `Core/InferenceRules.v`.
+    - The primitives of Disel language is defined in `Core/Actions.v`
+      (defines send/receive wrappers as in Definitions 3.2 and 3.3).
+	- `Core/Process.v`, `Core/Always.v` and `Core/HoareTriples.v`
+      define traces, modal predicates (`always` is the formalization
+      of post-safety from Definition 3.6). Definition 3.7 from the
+      paper corresponds to `has_spec` from `Core/HoareTriples.v`. The
+      Theorem 3.8 follows from the soundness of the shallow embedding
+      into Coq: any well-typed program has a specification ascribed to it.
+    - Inference rules are represented by lemmas named `*_rule` in
+      `Core/InferenceRules.v`. For example, `bind_rule` is an
+      implementation of `Bind` from Figure 8. 
 * Two-Phase Commit and Querying (Section 4)
     - The relevant directory is `Examples/TwoPhaseCommit`.
     - The protocol as described in Section 4.1 is implemented in `TwoPhaseProtocol.v`.
@@ -147,7 +155,10 @@ You can build the two examples as follows.
   Two-Phase Commit application. Then run `./scripts/tpc.sh` to
   execute the system in four processes on the local machine.
 
-## Validating Proof Size Statistics
+## Proof Size Statistics
 
-Section 5.2 and Table 1 describe the size of our development.
-[TODO: mention how to distinguish def/spec from impl from proof.]
+Section 5.2 and Table 1 describe the size of our development. Those
+obtained by using `coqwc` tool on manually dissected files, according
+to our vision of what should count as a program, spec or a proof. 
+These numbers might slightly differ from reported in the paper due to
+the evolution of the project since the last submission.
