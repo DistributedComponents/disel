@@ -67,7 +67,10 @@ let main () =
           | 3 -> SimpleTPCApp.p_runner3 ()
           | n -> usage ("unknown participant name " ^ string_of_int n)
         end
-     | Coordinator -> SimpleTPCApp.c_runner ()
+     | Coordinator ->
+        try
+          SimpleTPCApp.c_runner ()
+        with _ -> print_endline "A participant closed its connection. Coordinator exiting."
     end
   | _, _ -> usage "-mode and -me must be given"
 

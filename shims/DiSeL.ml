@@ -57,13 +57,13 @@ let rec get_msg = function
      try
        Some (recv_msg fd)
      with e ->
-       Printf.printf "Got exception: %s\n" (Printexc.to_string e);
-       Printexc.print_backtrace stdout;
+       (* Printf.printf "Got exception: %s\n" (Printexc.to_string e);
+       Printexc.print_backtrace stdout; *)
        errors := !errors + 1;
        if !errors < max_errors
        then get_msg fds
        else begin
-           Printf.printf "Too many errors; aborting.\n%!";
+           (* Printf.printf "Too many errors; aborting.\n%!"; *)
            raise e
          end
 
