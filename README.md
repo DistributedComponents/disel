@@ -145,11 +145,17 @@ becomes leader.
 As described in Section 5.1, Disel programs can be extracted to OCaml and run.
 You can build the two examples as follows.
 
-- Run `make CalculatorMain.d.byte` to build the Calculator
-  application using `extraction/calculator` as the build directory.
+- From `~/disel`, run `make CalculatorMain.d.byte` to build the calculator
+  application. The extracted code will be placed in `extraction/calculator`.
   (Note that all the proofs will be checked as well.) Then run
-  `./scripts/calculator.sh` to execute the system in three processes
-  on the local machine.
+  `~/disel/scripts/calculator.sh` to execute the system in three processes
+  locally. The system will make several addition requests to a delegating
+  calculator. The expected output of the script ends with the line
+
+```
+client got result list [([1; 2], 3); ([3; 4], 7); ([5; 6], 11); ([7; 8], 15); ([9; 10], 19)]
+```
+   which indicates 1 + 2 = 3, ..., 9 + 10 = 19.
 
 - Run `make TPCMain.d.byte` from the root folder to build the
   Two-Phase Commit application. Then run `./scripts/tpc.sh` to
