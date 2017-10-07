@@ -10,14 +10,14 @@ Tatlock, conditionally accepted for publication at POPL 2018.
 ## Building the Project
 
 A VM has been provided for your convenience and is described below. If
-you would like to use your own machine, the following dependencies are
-necessary.
+you would like to use your own machine instead, you should clone this branch of
+the GitHub repository; the following dependencies are necessary.
 
 ### Requirements
 
 * Coq 8.6 (available from https://coq.inria.fr/download)
 * Mathematical Components 1.6.1 (http://math-comp.github.io/math-comp/)
-* OCaml 4.0.1 or later (to compile and run the extracted applications)
+* OCaml 4.02.3 or later (to compile and run the extracted applications)
 
 If Coq is not installed such that its binaries like `coqc` and
 `coq_makefile` are in the `PATH`, then the `COQBIN` environment variable
@@ -50,7 +50,9 @@ export COQBIN=/home/user/coq/bin/
 
 ## VM Instructions
 
-Please download [the virtual machine]().
+Please download
+[the virtual machine](http://homes.cs.washington.edu/~jrw12/popl18-disel-artifact.ova),
+import it into VirtualBox, and boot the machine.
 
 If prompted for login information, both the username and password are
 "popl" (without quotes).
@@ -60,9 +62,11 @@ ssreflect have been installed, and a checkout of Disel is present in
 `~/disel`.
 
 We recommend checking the proofs using the provided Makefile and
-running the two extracted applications.
+running the two extracted applications. Additionally, you might be interested
+to compare the definitions and theorems from some parts of the paper to their
+formalizations in Coq.
 
-Checking the proofs can be accomplished by
+Checking the proofs can be accomplished by opening a terminal and running
 
     cd ~/disel
     make clean; make -j 4
@@ -138,7 +142,8 @@ examples or trying your own. For example, you could build an application
 that uses the calculator to evaluate arithmetic expressions and prove
 its correctness. As a more involved example, you could define a new
 protocol for leader election in a ring and prove that at most one node
-becomes leader.
+becomes leader. To get started, we recommend following the Calculator example
+and modifying it as necessary.
 
 ## Extracting and Running Disel Programs
 
@@ -150,16 +155,25 @@ You can build the two examples as follows.
   (Note that all the proofs will be checked as well.) Then run
   `~/disel/scripts/calculator.sh` to execute the system in three processes
   locally. The system will make several addition requests to a delegating
-  calculator. The expected output of the script ends with the line
+  calculator. (See the definition of `client_input` in
+  `Examples/Calculator/SimpleCalculatorApp.v`.) A log of messages is
+  printed to the console. The expected output of the script ends with the line
 
 ```
 client got result list [([1; 2], 3); ([3; 4], 7); ([5; 6], 11); ([7; 8], 15); ([9; 10], 19)]
 ```
+
    which indicates 1 + 2 = 3, ..., 9 + 10 = 19.
 
 - Run `make TPCMain.d.byte` from the root folder to build the
   Two-Phase Commit application. Then run `./scripts/tpc.sh` to
   execute the system in four processes on the local machine.
+  The system will achieve consensus on several values. (See
+  the definition of `data_seq` in `Examples/TwoPhaseCommit/SimpleTPCApp.v`.)
+  Each participant votes on whether to commit the value or abort it.
+  (See the definitions of `choice_seq1`, `choice_seq2`, and `choice_seq3`.)
+  A log of messages from the coordinator's point of view is printed to the
+  console. When the four commits have been made, the nodes coordinator exit.
 
 ## Proof Size Statistics
 
@@ -167,4 +181,4 @@ Section 5.2 and Table 1 describe the size of our development. Those
 were obtained by using the `coqwc` tool on manually dissected files, 
 according to our vision of what should count as a program, spec, or a proof. 
 These numbers might slightly differ from reported in the paper due to
-the evolution of the project since the last submission.
+the evolution of the project since the submission.
