@@ -158,7 +158,7 @@ You can build the two examples as follows.
 ## Proof Size Statistics
 
 Section 5.2 and Table 1 describe the size of our development. Those
-obtained by using `coqwc` tool on manually dissected files, according
-to our vision of what should count as a program, spec or a proof. 
+were obtained by using the `coqwc` tool on manually dissected files, 
+according to our vision of what should count as a program, spec, or a proof. 
 These numbers might slightly differ from reported in the paper due to
 the evolution of the project since the last submission.
