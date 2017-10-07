@@ -52,14 +52,17 @@ export COQBIN=/home/user/coq/bin/
 
 Please download
 [the virtual machine](http://homes.cs.washington.edu/~jrw12/popl18-disel-artifact.ova),
-import it into VirtualBox, and boot the machine.
+import it into VirtualBox, and boot the machine. This VM image has been tested with
+VirtualBox versions 5.1.24 and 5.1.28 with Oracle VM VirtualBox Extension Pack. Versions
+4.X are known not to work with this image.
 
 If prompted for login information, both the username and password are
 "popl" (without quotes).
 
 For your convenience, all necessary software, including Coq 8.6 and
 ssreflect have been installed, and a checkout of Disel is present in
-`~/disel`.
+`~/disel`. Additionally, emacs and Proof General are installed so that
+you can browse the sources.
 
 We recommend checking the proofs using the provided Makefile and
 running the two extracted applications. Additionally, you might be interested
@@ -154,16 +157,40 @@ You can build the two examples as follows.
   application. The extracted code will be placed in `extraction/calculator`.
   (Note that all the proofs will be checked as well.) Then run
   `~/disel/scripts/calculator.sh` to execute the system in three processes
-  locally. The system will make several addition requests to a delegating
-  calculator. (See the definition of `client_input` in
-  `Examples/Calculator/SimpleCalculatorApp.v`.) A log of messages is
-  printed to the console. The expected output of the script ends with the line
+  locally. The system will make several requests to a delegating
+  calculator to add up some numbers. (See the definition of `client_input` in
+  `Examples/Calculator/SimpleCalculatorApp.v`.) A log of messages from the
+  client perspective is printed to the console. Logs of the servers are
+  available in the files `server1.log` (the delegating server) and
+  `server3.log` (the server that actually computes).
+
+  Each log contains a debugging info about the state of each node and the
+  messages it sends and receives. For example, the first message sent by the
+  client is logged as
+
+```
+sending msg in protocol 1 with tag = 0, contents = [1; 2] to 1
+```
+
+  Tag 0 indicates a request in the Calculator protocol. Contents `1; 2`
+  indicate the arguments to the function being calculated (in this case,
+  addition). The message is sent to node 1, which is the delegating server.
+
+  The client then receives a response logged as
+
+```
+got msg in protocol 1 with tag = 1, contents = [3; 1; 2] from 1
+```
+
+  Tag 1 indicates a response. The contents mean that the answer to
+  `1 + 2` is `3`.
+
+  Several more rounds of messages are exchanged. The final line summarizes
+  the entire execution.
 
 ```
 client got result list [([1; 2], 3); ([3; 4], 7); ([5; 6], 11); ([7; 8], 15); ([9; 10], 19)]
 ```
-
-   which indicates 1 + 2 = 3, ..., 9 + 10 = 19.
 
 - Run `make TPCMain.d.byte` from the root folder to build the
   Two-Phase Commit application. Then run `./scripts/tpc.sh` to
@@ -173,7 +200,59 @@ client got result list [([1; 2], 3); ([3; 4], 7); ([5; 6], 11); ([7; 8], 15); ([
   Each participant votes on whether to commit the value or abort it.
   (See the definitions of `choice_seq1`, `choice_seq2`, and `choice_seq3`.)
   A log of messages from the coordinator's point of view is printed to the
-  console. When the four commits have been made, the nodes coordinator exit.
+  console. Participant logs are available in `participant1.log`,
+  `participant2.log`, and `participant3.log`.
+
+  The protocol executes a sequence of four rounds, since there are four
+  elements in `data_seq`. Each round consists of two phases. The first messages
+  sent by the coordinator are prepare messages which request votes about
+  the first data item. They are logged as
+
+```
+sending msg in protocol 0 with tag = 0, contents = [0; 1; 2] to 1
+sending msg in protocol 0 with tag = 0, contents = [0; 1; 2] to 2
+sending msg in protocol 0 with tag = 0, contents = [0; 1; 2] to 3
+```
+
+  Tag 0 indicates a prepare message. The contents indicate the index of the 
+  current request (0, since this is the first data item) and the actual data
+  to commit (in this case, `[1; 2]`, as specified in `data_seq`). A separate
+  prepare message is sent to each participant.
+
+  The participants respond with votes, which are logged as follows
+
+```
+got msg in protocol 0 with tag = 1, contents = [0] from 1
+got msg in protocol 0 with tag = 1, contents = [0] from 3
+got msg in protocol 0 with tag = 1, contents = [0] from 2
+```
+
+  Tag 1 indicates a Yes vote. The messages are ordered nondeterministically
+  based on the operating system's and network's scheduling decisions.
+
+  Since all participants voted yes, the coordinator proceeds to commit the
+  data by sending Commit messages (tag 3) to all participants.
+
+```
+sending msg in protocol 0 with tag = 3, contents = [0] to 1
+sending msg in protocol 0 with tag = 3, contents = [0] to 2
+sending msg in protocol 0 with tag = 3, contents = [0] to 3
+```
+
+  Participants acknowledge the commit with AckCommit messages (tag 5)
+
+```
+got msg in protocol 0 with tag = 5, contents = [0] from 3
+got msg in protocol 0 with tag = 5, contents = [0] from 1
+got msg in protocol 0 with tag = 5, contents = [0] from 2
+```
+
+  This completes the first round. The remaining three rounds execute
+  similarly, based on the decisions from the choice sequences. When any
+  participant votes no (tag 2), the coordinator instead aborts the
+  transaction by sending Abort messages (tag 4). In that case, participants
+  respond with AckAbort messages (tag 6). Once all four rounds are over,
+  all nodes exit.
 
 ## Proof Size Statistics
 
