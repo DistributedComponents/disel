@@ -73,7 +73,7 @@ cv/*.out
 # -----------------------------------------------------------------------------
 
 \#*\#
-*.vo 
+*.vo
 *.v.d
 *.glob
 .coq-native
@@ -82,3 +82,4 @@ extraction/**/*.mli
 extraction/**/*.ml
 _build
 *.d.byte
+Makefile.coq.conf

@@ -15,9 +15,9 @@ the GitHub repository; the following dependencies are necessary.
 
 ### Requirements
 
-* Coq 8.6 (available from https://coq.inria.fr/download)
+* Coq 8.7 (available from https://coq.inria.fr/download)
 * Mathematical Components 1.6.1 (http://math-comp.github.io/math-comp/)
-* OCaml 4.02.3 or later (to compile and run the extracted applications)
+* OCaml 4.05.0 or later (to compile and run the extracted applications)
 
 If Coq is not installed such that its binaries like `coqc` and
 `coq_makefile` are in the `PATH`, then the `COQBIN` environment variable
