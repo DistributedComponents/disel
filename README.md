@@ -31,7 +31,7 @@ export COQBIN=/home/user/coq/bin/
 
 To build the whole project, including examples, simply run `make`
 in the root directory of the repository. For a faster build, use
-several parallel make jobs, e.g., `make -j4`.
+several parallel make jobs, e.g., `make -j 4`.
 
 ### Installation via OPAM
 
