@@ -11,10 +11,10 @@ install: Makefile.coq
 clean:
 	if [ -f Makefile.coq ]; then \
 	  $(MAKE) -f Makefile.coq clean; fi
-	rm -f Makefile.coq
+	rm -f Makefile.coq Makefile.coq.conf
 
 Makefile.coq: _CoqProject
-	coq_makefile -arg -w -arg -notation-overridden -f _CoqProject -o Makefile.coq
+	coq_makefile -f _CoqProject -o Makefile.coq
 
 TPCMain.d.byte: default
 	ocamlbuild -libs unix -I extraction/TPC -I shims shims/TPCMain.d.byte
