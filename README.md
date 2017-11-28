@@ -29,17 +29,15 @@ example:
 export COQBIN=/home/user/coq/bin/
 ```
 
-To build the whole project, including examples, simply run
-```
-make
-```
-in the root directory. For a faster build, use
+To build the whole project, including examples, simply run `make`
+in the root directory of the repository. For a faster build, use
 several parallel make jobs, e.g., `make -j4`.
 
 ### Installation via OPAM
 
-The framework components of the project may be installed into Coq's `user-contrib`
-for easy use in other developments via [OPAM](https://opam.ocaml.org/doc/Install.html);
+The framework components of the project may be installed into Coq's
+`user-contrib` directory for easy use in other developments via
+[OPAM](https://opam.ocaml.org/doc/Install.html);
 this will automatically install all requirements.
 
 Make sure OPAM is installed and use the following commands:
