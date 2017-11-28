@@ -19,14 +19,37 @@ the GitHub repository; the following dependencies are necessary.
 * Mathematical Components 1.6.2 (http://math-comp.github.io/math-comp/)
 * OCaml 4.05.0 or later (to compile and run the extracted applications)
 
+### Building Manually
+
 If Coq is not installed such that its binaries like `coqc` and
 `coq_makefile` are in the `PATH`, then the `COQBIN` environment variable
 must be set to point to the directory containing such binaries.  For
 example:
-
 ```
 export COQBIN=/home/user/coq/bin/
 ```
+
+To build the whole project, including examples, simply run
+```
+make
+```
+in the root directory. For a faster build, use
+several parallel make jobs, e.g., `make -j4`.
+
+### Installation via OPAM
+
+The framework components of the project may be installed into Coq's `user-contrib`
+for easy use in other developments via [OPAM](https://opam.ocaml.org/doc/Install.html);
+this will automatically install all requirements.
+
+Make sure OPAM is installed and use the following commands:
+
+```
+opam repo add coq-released https://coq.inria.fr/opam/released
+opam repo add distributedcomponents-dev http://opam-dev.distributedcomponents.net
+opam install disel-core
+```
+
 
 ## Project Structure
 
