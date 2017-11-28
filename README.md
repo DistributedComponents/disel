@@ -36,9 +36,9 @@ several parallel make jobs, e.g., `make -j4`.
 ### Installation via OPAM
 
 The framework components of the project may be installed into Coq's
-`user-contrib` directory for easy use in other developments via
-[OPAM](https://opam.ocaml.org/doc/Install.html);
-this will automatically install all requirements.
+`user-contrib` directory via [OPAM](https://opam.ocaml.org/doc/Install.html)
+for easy use in other developments; this will automatically install all
+requirements.
 
 Make sure OPAM is installed and use the following commands:
 
