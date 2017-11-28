@@ -1,4 +1,7 @@
-SeqLib.v
+-Q . DiSeL.Examples
+-arg "-w -notation-overridden,-local-declaration,-redundant-canonical-projection,-projection-no-head-constant"
+
+./SeqLib.v
 Greeter/Greeter.v
 Querying/QueryProtocol.v
 Querying/QueryHooked.v
@@ -18,5 +21,3 @@ TwoPhaseCommit/TwoPhaseInductiveProof.v
 Querying/QueryPlusTPC.v
 LockResource/LockProtocol.v
 LockResource/ResourceProtocol.v
-
--R . DiSeL.Examples
