@@ -10,6 +10,7 @@ From DiSeL.Core
 Require Import Freshness State EqTypeX.
 From DiSeL.Core
 Require Import Protocols Worlds NetworkSem Rely.
+Require FunctionalExtensionality.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -194,7 +195,7 @@ Definition stsI sts := map (fun stt =>
 Definition rtsI rts := map (fun rtt =>
                           @rcv_transI (rt rtt) (@rt_inv rtt)) rts.
 
-Require Import Coq.Logic.FunctionalExtensionality.
+Import FunctionalExtensionality.
 
 Variable ii : InductiveInv.
 

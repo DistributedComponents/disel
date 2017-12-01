@@ -10,6 +10,8 @@ From DiSeL.Core
 Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
 From DiSeL.Core
 Require Import Actions Injection Process.
+From DiSeL.Core
+Require InductiveInv.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -456,11 +458,9 @@ End AlwaysInject.
 Notation alwsafe_sc s p scs := (always_sc s p scs (fun _ _ => True)).
 Notation alwsafe s p := (always s p (fun _ _ => True)).
 
-
 Module AlwaysInductiveInv.
 Section AlwaysInductiveInv.
-From DiSeL.Core
-Require Import InductiveInv.
+Import InductiveInv.
 Variable pr : protocol.
 
 (* Decompose the initial protocol *)
