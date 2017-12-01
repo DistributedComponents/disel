@@ -8,6 +8,7 @@ From DiSeL.Heaps
 Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
 From DiSeL.Core
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem.
+Require Classical_Prop.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -177,7 +178,7 @@ Definition tryrecv_act_step s1 s2 (r : option (nid * nat * seq nat)) :=
       s2 = upd l (DStatelet f' s') s1 &
       r = Some (from, tag tms, tms_cont tms)]).
 
-Require Import Classical_Prop.
+Import Classical_Prop.
 
 Lemma tryrecv_act_step_total s:
   tryrecv_act_safe s -> exists s' r , tryrecv_act_step s s' r.
