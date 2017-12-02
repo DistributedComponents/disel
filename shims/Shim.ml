@@ -20,8 +20,8 @@ let get_addr_port cfg name =
 let get_name_for_read_fd fd =
   Hashtbl.find read_fds fd
 
-let send_chunk (fd : file_descr) (buf : string) : unit =
-  let len = String.length buf in
+let send_chunk (fd : file_descr) (buf : bytes) : unit =
+  let len = Bytes.length buf in
   (* Printf.printf "sending chunk of length %d" len; print_newline (); *)
   let n = Unix.send fd (Util.raw_bytes_of_int len) 0 4 [] in
   if n < 4 then
@@ -64,8 +64,9 @@ let get_write_fd name =
     let (ip, port) = get_addr_port cfg name in
     let entry = gethostbyname ip in
     let node_addr = ADDR_INET (Array.get entry.h_addr_list 0, port) in
+    let chunk = Bytes.of_string (string_of_nat cfg.me) in
     connect write_fd node_addr;
-    send_chunk write_fd (string_of_nat cfg.me);
+    send_chunk write_fd chunk;
     Hashtbl.add write_fds name write_fd;
     write_fd
 
@@ -84,10 +85,11 @@ let new_conn () =
   print_endline "new connection!";
   let (node_fd, node_addr) = accept listen_fd in
   let chunk = receive_chunk node_fd in
-  let node_name = nat_of_string chunk in
-  Hashtbl.add read_fds node_fd node_name;
-  (* ignore (get_write_fd node_name); *)
-  Printf.printf "done processing new connection from node %s" chunk;
+  let node = Bytes.to_string chunk in
+  let name = nat_of_string node in
+  Hashtbl.add read_fds node_fd name;
+  (* ignore (get_write_fd name); *)
+  Printf.printf "done processing new connection from node %s" node;
   print_newline ()
 
 let check_for_new_connections () =
@@ -107,7 +109,7 @@ let deserialize_msg s =
 
 let recv_msg fd =
   let chunk = receive_chunk fd in
-  let (l, tag, msg) = deserialize_msg chunk in
+  let (l, tag, msg) = deserialize_msg (Bytes.to_string chunk) in
   let src = get_name_for_read_fd fd in
   Printf.printf "got msg in protocol %a with tag = %a, contents = %a from %s" print_nat l print_nat tag (print_list print_nat) msg (string_of_nat src);
   print_newline ();
@@ -118,7 +120,8 @@ let send_msg l dst tag msg =
   print_newline ();
   let fd = get_write_fd dst in
   let s = serialize_msg l tag msg in
-  send_chunk fd s
+  let chunk = Bytes.of_string s in
+  send_chunk fd chunk
 
 let get_current_state () =
   let cfg = get_cfg "get_current_sate" in
