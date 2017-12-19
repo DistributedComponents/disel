@@ -9,7 +9,7 @@ addons:
       - aspcud
 env:
   matrix:
-    - COQ_VERSION=8.7.0 SSREFLECT_VERSION=1.6.4
+    - COQ_VERSION=8.7.1 SSREFLECT_VERSION=1.6.4
 script: bash -ex .travis-ci.sh
 sudo: false
 notifications:
