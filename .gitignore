@@ -83,3 +83,4 @@ extraction/**/*.ml
 _build
 *.d.byte
 Makefile.coq.conf
+.coqdeps.d
