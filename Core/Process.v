@@ -23,15 +23,17 @@ Variable this : nid.
 Inductive proc (W : world) A :=
   Unfinished | Ret of A | Act of action W A this |
   Seq B of proc W B & B -> proc W A |
+  Par B C of proc W B & proc W C & (B * C) -> proc W A |
   Inject V K of injects V W K & proc V A |
   WithInv p I (ii : InductiveInv p I) of
-          W = mkWorld (ProtocolWithIndInv ii) & proc (mkWorld p) A.  
+          W = mkWorld (ProtocolWithIndInv ii) & proc (mkWorld p) A. 
 
 Definition pcat W A B (t : proc W A) (k : A -> Pred (proc W B)) :=
   [Pred s | exists q, s = Seq t q /\ forall x, q x \In k x].
 
 Inductive schedule :=
-  ActStep | SeqRet | SeqStep of schedule |  
+  ActStep | SeqRet | SeqStep of schedule |
+  ParRet | ParStepL of schedule | ParStepR of schedule |
   InjectStep of schedule | InjectRet |
   WithInvStep of schedule | WithInvRet.
 
@@ -41,6 +43,7 @@ Implicit Arguments Unfinished [this W A].
 Implicit Arguments Ret [this W A].
 Implicit Arguments Act [this W A].
 Implicit Arguments Seq [this W A B].
+Implicit Arguments Par [this W A B C].
 Implicit Arguments WithInv [this W A].
 
 Section ProcessSemantics.
@@ -56,6 +59,12 @@ Fixpoint step (W : world) A (s1 : state) (p1 : proc this W A)
   | SeqRet, Seq _ (Ret v) k => s2 = s1 /\ p2 = k v
   | SeqStep sc', Seq _ p' k1 => 
     exists p'', step s1 p' sc' s2 p'' /\ p2 = Seq p'' k1
+  (* Parallel Execution *)
+  | ParRet, Par _ _ (Ret vb) (Ret vc) k => s2 = s1 /\ p2 = k (vb, vc)
+  | ParStepL sc', Par _ _ pl pr k =>
+    exists pl', step s1 pl sc' s2 pl' /\ p2 = Par pl' pr k
+  | ParStepR sc', Par _ _ pl pr k =>
+    exists pr', step s1 pr sc' s2 pr' /\ p2 = Par pl pr' k
   (* Injection of a non-reduced term *)
   | InjectRet, Inject V K pf (Ret v) =>
      exists s1', [/\ s2 = s1, p2 = Ret v & extends pf s1 s1']
@@ -77,6 +86,9 @@ Fixpoint good (W : world) A (p : proc this W A) sc  : Prop :=
   | ActStep, Act _ => True
   | SeqRet, Seq _ (Ret _) _ => True
   | SeqStep sc', Seq _ p' _ => good p' sc'
+  | ParRet, Par _ _ (Ret _) (Ret _) _ => True
+  | ParStepL sc', Par _ _ pl _ _ => good pl sc'
+  | ParStepR sc', Par _ _ _ pr _ => good pr sc'
   | InjectStep sc', Inject _ _ _ p' => good p' sc'
   | InjectRet, Inject _ _ _ (Ret _) => True
   | WithInvStep sc', WithInv _ _ _ _ p' => good p' sc'
@@ -101,6 +113,9 @@ Fixpoint safe (W : world) A (p : proc this W A) sc (s : state)  : Prop :=
   | ActStep, Act a => a_safe a s
   | SeqRet, Seq _ (Ret _) _ => True
   | SeqStep sc', Seq _ p' _ => safe p' sc' s
+  | ParRet, Par _ _ (Ret _) (Ret _) _ => True
+  | ParStepL sc', Par _ _ pl _ _ => safe pl sc' s
+  | ParStepR sc', Par _ _ _ pr _ => safe pr sc' s
   | InjectStep sc', Inject V K pf p' =>
       exists s', extends pf s s' /\ safe p' sc' s'
   | InjectRet, Inject V K pf (Ret _) => exists s', extends pf s s'
@@ -130,14 +145,33 @@ Lemma proc_progress W A s (p : proc this W A) sc :
         s \In Coh W -> safe p sc s -> good p sc ->  
         exists s' (p' : proc this W A), pstep s p sc s' p'.
 Proof.
-move=>C H1 H2; elim: sc W A s p H2 H1 C=>[||sc IH|sc IH||sc IH|]W A s. 
+move=>C H1 H2; elim: sc W A s p H2 H1 C=>[||sc IH||sc IH|sc IH|sc IH||sc IH|]W A s. 
 - case=>//=a _/= H; move/a_step_total: (H)=>[s'][r]H'.
   by exists s', (Ret r); split=>//=; exists r, H.  
 - by case=>//; move=>B p k/=; case: p=>//b _ _; exists s, (k b). 
 - case=>//B p k/=H1 H2 C.
   case: (IH W B s p H1 H2 C)=>s'[p'][G1 G2].
-  by exists s', (Seq p' k); split=>//; exists p'. 
-- case=>// V K pf p/=H1 [z][E]H2 C. 
+  by exists s', (Seq p' k); split=>//; exists p'.
+- case=>//.
+  move=>B C pB pC k//.
+  case pB=>//b.
+  case pC=>//c H1 H2 HC.
+  by exists s, (k (b, c)).
+- case=>// B C pB pC k/= Hgood Hsafe Hcoh.
+  case: (IH W B s pB Hgood Hsafe Hcoh)=> s' [pB']HstepB'.
+  exists s', (Par pB' pC k).
+  split=>//=.
+  exists pB'.
+  split=>//=.
+  apply HstepB'.
+- case=>// B C pB pC k/= Hgood Hsafe Hcoh.
+  case: (IH W C s pC Hgood Hsafe Hcoh)=> s' [pC']HstepC'.
+  exists s', (Par pB pC' k).
+  split=>//=.
+  exists pC'.
+  split=>//=.
+  apply HstepC'.
+- case=>// V K pf p/=H1 [z][E]H2 C.
   case: (E)=>s3[Z] C1 C2.
   case: (IH V A z p H1 H2 C1) =>s'[p']H3; case: H3=>S St.
   exists (s' \+ s3), (Inject pf p'); split=>//; first by exists z.  
@@ -148,7 +182,7 @@ move=>C H1 H2; elim: sc W A s p H2 H1 C=>[||sc IH|sc IH||sc IH|]W A s.
   have C' : s \In Coh (mkWorld pr) by subst W; apply: (with_inv_coh C). 
   case: (IH (mkWorld pr) A s p H1 H2 C')=>s'[p']H3.
   exists s', (WithInv pr I ii E p'); split=>//=.
-  by exists p'; split=>//; case: H3. 
+  by exists p'; split=>//; case: H3.
 - case=>//pr I ii E; case=>//v/=_ _ C.          
   by exists s, (Ret v); split=>//=; exists s. 
 Qed.
@@ -173,22 +207,62 @@ by apply: (a_safe_coh pf).
 Qed.
 
 Lemma stepSeq W A B s1 (t : proc this W B) k sc s2 (q : proc this W A) :
-        pstep s1 (Seq t k) sc s2 q <->
-        (exists v, [/\ sc = SeqRet, t = Ret v, q = k v, s2 = s1 &
-                       s1 \In Coh W]) \/
-         exists sc' p',
-           [/\ sc = SeqStep sc', q = Seq p' k & pstep s1 t sc' s2 p'].
+  pstep s1 (Seq t k) sc s2 q <->
+  (exists v, [/\ sc = SeqRet, t = Ret v, q = k v, s2 = s1 &
+    s1 \In Coh W]) \/
+  exists sc' p',
+    [/\ sc = SeqStep sc', q = Seq p' k & pstep s1 t sc' s2 p'].
 Proof.
 split; last first.
 - case; first by case=>v [->->->->]. 
   by case=>sc' [t'][->->][S H]; do !split=>//; exists t'. 
-case; case: sc=>//[|sc] C. 
-- by case: t=>//= v _ [->->]; left; exists v. 
-by move=>G /= [p' [H1 ->]]; right; exists sc, p'.
+- case; case: sc=>//[|sc] C. 
+  + by case: t=>//= v _ [->->]; left; exists v. 
+  + by move=>G /= [p' [H1 ->]]; right; exists sc, p'.
 Qed.
 
-Lemma stepInject V W K A (em : injects V W K) 
-                s1 (t : proc this V A) sc s2 (q : proc this W A) :
+Lemma stepPar W A B C pB pC (k : B * C -> proc this W A) sc s1 s2 q : 
+  pstep s1 (Par pB pC k) sc s2 q <->
+  (exists b c, [/\ sc = ParRet, pB = Ret b, pC = Ret c, q = k (b, c), s2 = s1 & s1 \In Coh W]) \/
+  (exists sc' pB', [/\ sc = ParStepL sc', q = Par pB' pC k & pstep s1 pB sc' s2 pB']) \/
+  (exists sc' pC', [/\ sc = ParStepR sc', q = Par pB pC' k & pstep s1 pC sc' s2 pC']).
+Proof.  
+  split; last first.
+  - case.
+    + by case=> b [c][->->->->->]Hcoh; split=>//.
+    + case. case=> sc' [pB'][->->]. case=>//.
+      intros.
+      split.
+      assumption.
+      simpl.
+      assumption.
+      simpl.
+      exists pB'.
+      split.
+      assumption.
+      reflexivity.
+    + case=> sc' [pB'][->->]. case=>//.
+      intros.
+      split.
+      assumption.
+      simpl.
+      assumption.
+      simpl.
+      exists pB'.
+      split.
+      assumption.
+      reflexivity.
+  - case. case: sc=>//[|sc|sc] Hcoh.
+    + case: pB=>//=b; case pC=>//=c _ [->->].
+      by left; exists b, c.
+    + move=> Hsafe/= [pB' [H1 ->]].
+      by right; left; exists sc, pB'.
+    + move=> Hsafe/= [pC' [H1 ->]].
+      by right; right; exists sc, pC'.
+Qed.
+
+Lemma stepInject V W K A (em : injects V W K)
+      s1 (t : proc this V A) sc s2 (q : proc this W A) :
   pstep s1 (Inject em t) sc s2 q <->
   (* Case 1 : stepped to the final state s1' of the inner program*)
   (exists s1' v, [/\ sc = InjectRet, t = Ret v, q = Ret v, s2 = s1 &
@@ -249,13 +323,17 @@ elim: sc W A s1 s2 t q=>/=.
 - move=>W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
   + by move=>a/stepAct [v][pf][Z1]Z2 H; subst q; apply: (a_step_sem H).
   + by move=>???; case. 
+  + by move=>?????; case.
   + by move=>????; case.
   by move=>?????; case.   
 - move=>W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
   + move=>B p p0/stepSeq; case=>[[v][_]??? C|[sc'][p'][]]//.
-    by subst p s2; apply: Idle. 
-  by move=>????/stepInject; case=>[[?][?][?]|[?][?][?][?][?][?]]//.
-  by move=>?????; case.   
+    by subst p s2; apply: Idle.
+    intros.
+    inversion H.
+    inversion H2.
+      by move=>????/stepInject; case=>[[?][?][?]|[?][?][?][?][?][?]]//.
+   by move=>?????; case.   
 - move=>sc HI W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
   + move=>B p p0/stepSeq; case=>[[?][?]|[sc'][p'][][]? ?]//.
     by subst sc' q; apply: HI.

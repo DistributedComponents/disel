@@ -29,13 +29,15 @@ Notation coherent := (Coh W).
 
 Implicit Arguments proc [W this]. 
 
+Variable local_rely : world -> nid -> state -> state -> Prop.
+
 Fixpoint always_sc A (s1 : state) p scs (P : state -> proc A -> Prop) : Prop :=
   s1 \In coherent /\ 
   if scs is sc :: scs' then 
-    forall s2, network_rely W this s1 s2 -> 
-      [/\ safe p sc s2, P s2 p &
-          forall s3 q, @pstep this W A s2 p sc s3 q -> always_sc s3 q scs' P]
-  else forall s2, network_rely W this s1 s2 -> P s2 p.
+    forall s2, network_rely W this s1 s2 -> forall s3, local_rely W this s2 s3 ->
+      [/\ safe p sc s3, P s3 p &
+          forall s4 q, @pstep this W A s3 p sc s4 q -> forall s5, local_rely W this s4 s5 -> always_sc s5 q scs' P]
+  else forall s2, network_rely W this s1 s2 -> forall s3, local_rely W this s2 s3 -> P s3 p.
 
 Definition always A s (p : proc A) P := forall scs, always_sc s p scs P.
 
