@@ -86,7 +86,7 @@ Fixpoint good (W : world) A (p : proc this W A) sc  : Prop :=
   | ActStep, Act _ => True
   | SeqRet, Seq _ (Ret _) _ => True
   | SeqStep sc', Seq _ p' _ => good p' sc'
-  | ParRet, Par _ _ (Ret _) (Ret _) _ => True
+  | ParRet, Par _ _ (Ret _) (Ret _) _ => true
   | ParStepL sc', Par _ _ pl _ _ => good pl sc'
   | ParStepR sc', Par _ _ _ pr _ => good pr sc'
   | InjectStep sc', Inject _ _ _ p' => good p' sc'
@@ -152,7 +152,7 @@ move=>C H1 H2; elim: sc W A s p H2 H1 C=>[||sc IH||sc IH|sc IH|sc IH||sc IH|]W A
 - case=>//B p k/=H1 H2 C.
   case: (IH W B s p H1 H2 C)=>s'[p'][G1 G2].
   by exists s', (Seq p' k); split=>//; exists p'.
-- case=>//.
+- case=>//=.
   move=>B C pB pC k//.
   case pB=>//b.
   case pC=>//c H1 H2 HC.
@@ -337,10 +337,41 @@ elim: sc W A s1 s2 t q=>/=.
 - move=>sc HI W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
   + move=>B p p0/stepSeq; case=>[[?][?]|[sc'][p'][][]? ?]//.
     by subst sc' q; apply: HI.
-  by move=>????; case=>? _.
-  by move=>?????; case.   
+  by move=>?????; case=>? _.
+  move=>???? Hyp.  inversion Hyp. inversion H1. 
+  move=>????? Hyp.  inversion Hyp. inversion H1.
+- move=>W A s1 s2 p q; case: p; do?[by case| by move=>?; case].
+  + by move=>???; case.
+  + move=>B C pB pC k /stepPar.
+    case.
+    * move=>[b][c][_]??? -> ?.
+      by apply: Idle.
+    * case; by move=>[?][?][?].
+  + by move=>????; case.
+  + by move=>?????; case.
 - move=>sc HI W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
-  + by move=>B p p0; case. 
+  + by move=>???; case.
+  + move=> B C pB pC k /stepPar; case.
+    * by move=>[?][?][?].
+    * case; first last.
+      - by move=>[?][?][?].
+      - move=>[sc'][pB'][[<-]][H].
+        apply HI.
+  + by move=>????; case.
+  + by move=>?????; case.
+- move=>sc HI W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
+  + by move=>???; case.
+  + move=> B C pB pC k /stepPar; case.
+    * by move=>[?][?][?].
+    * case.
+      - by move=>[?][?][?].
+      - move=>[sc'][pB'][[<-]][H].
+        apply HI.
+  + by move=>????; case.
+  + by move=>?????; case.
+- move=>sc HI W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
+  + by move=>B p p0; case.
+  + by move=>?????; case.
   move=>V K pf p/stepInject; case=>[[?][?][?]|[sc'][t'][s1'][s2'][s][][]????]//. 
   subst sc' q s1 s2=>C; move/HI=>S; apply: (sem_extend pf)=>//.
   apply/(cohE pf); exists s2', s; case: (step_coh S)=>C1 C2; split=>//.
@@ -349,12 +380,14 @@ elim: sc W A s1 s2 t q=>/=.
   by move=>?????; case.   
 - move=>W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
   + by move=>???; case.
+  + by move=>?????; case.
   + move=>V K i p; case/stepInject=>[[s1'][v][_]??? X|[?][?][?][?][?][?]]//.
     by subst p q s2; apply: Idle; split=>//; case: X=>x []. 
   by move=>?????; case.
 
 - move=>sc HI W A s1 s2 p q; case: p;
-           do?[by case|by move=>?; case|by move=>???; case|by move=>????; case].
+          do?[by case|by move=>?; case|by move=>???; case|by move=>????; case].
+  by move=>?????; case.
   move=>pr I ii E p; case/(stepWithInv s1); first by case=>?; case.
   case=>sc'[t'][][]Z1 Z2 _ C1; subst q sc'.
   by move/HI=>T; subst W; apply: with_inv_step. 
