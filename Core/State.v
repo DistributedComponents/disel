@@ -31,9 +31,11 @@ Unset Printing Implicit Defensive.
 
 Section TaggedMessages. 
 
+  Definition tag_type := nat.
+
   Structure TaggedMessage :=
     TMsg {
-        tag: nat;
+        tag: tag_type;
         (* Okay, this is a big omissin, but for now I'm sick and tired
            to deal with casts everywhere, so for the moment the
            contents of the messages are going to be just sequences of
@@ -154,6 +156,8 @@ Section Local.
 
   Variable U : Type.
 
+  Definition tid := nat.
+
   Definition nid := nat.
 
   (* Local state of a a protocol is simply a partial map from node ids
@@ -170,10 +174,17 @@ Definition um_all {A:ordType} {B} (p : A -> B -> bool) (u : union_map A B) : boo
 Definition um_some {A:ordType} {B} (p : A -> B -> bool) (u : union_map A B) : bool :=
   gen_rect false false (fun k v f rec Hval Hpath => p k v || rec) u.
 
+Section SendGuards.
+
+  Definition send_guards : Type := finMap [ordType of (Label * tag_type * nid)] unit.
+
+  Definition no_guards : send_guards := finmap.nil _ _.
+
+End SendGuards.
 
 Section Statelets.
 
-  Definition big_valid {U : encoded_pcm} (lst : lstate_type U) : bool :=
+  Definition big_valid {U V : encoded_pcm} (lst : lstate_type U) : bool :=
     valid lst &&
     valid (gen_rect (P := fun _ => U) Unit Unit (fun k v f rec Hval Hpath => v \+ rec) lst).
 
@@ -192,13 +203,13 @@ Section Statelets.
            real, second heap is a ghost one. Let's deal with this
            model for now before we figure out how to discharge
            equalities in a better way *)
-        dstate     : lstate_type heap;
+        dstate     : lstate_type (heap * send_guards);
         dsoup      : soup
     }.
 
   Fixpoint empty_lstate (ns : seq nid) :=
     if ns is n :: ns'
-    then n \\-> Heap.empty \+ (empty_lstate ns')
+    then (n \\-> (Heap.empty, no_guards)) \+ (empty_lstate ns')
     else  Unit.
     
   (* Definition empty_dstatelet ns : dstatelet := *)

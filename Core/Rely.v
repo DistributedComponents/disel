@@ -28,7 +28,7 @@ Fixpoint network_rely' n s1 s2 :=
   if n is n'.+1
   then exists z s3,
         [/\ this != z, network_step w z s1 s3 & network_rely' n' s3 s2]
-    else s1 = s2 /\ s1 \In Coh w.
+  else s1 = s2 /\ s1 \In Coh w.
 
 Definition network_rely s1 s2 := exists n, network_rely' n s1 s2.
 
