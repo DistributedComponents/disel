@@ -14,17 +14,19 @@ Require Import Actions Injection InductiveInv.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+Variable lock : Type.
 
 Section ProcessSyntax.
 
-Variable this : nid.
+Variable this_node : nid.
 
 (* Syntax for process *)
 Inductive proc (W : world) A :=
-  Unfinished | Ret of A | Act of action W A this |
+  Unfinished | Ret of A | Act of action W A this_node |
   Seq B of proc W B & B -> proc W A |
   Par B C of proc W B & proc W C & (B * C) -> proc W A |
   Inject V K of injects V W K & proc V A |
+  WithLock of lock & proc W A |
   WithInv p I (ii : InductiveInv p I) of
           W = mkWorld (ProtocolWithIndInv ii) & proc (mkWorld p) A. 
 
@@ -35,23 +37,25 @@ Inductive schedule :=
   ActStep | SeqRet | SeqStep of schedule |
   ParRet | ParStepL of schedule | ParStepR of schedule |
   InjectStep of schedule | InjectRet |
+  WithLockStep of schedule | WithLockRet |
   WithInvStep of schedule | WithInvRet.
 
 End ProcessSyntax.
 
-Implicit Arguments Unfinished [this W A].
-Implicit Arguments Ret [this W A].
-Implicit Arguments Act [this W A].
-Implicit Arguments Seq [this W A B].
-Implicit Arguments Par [this W A B C].
-Implicit Arguments WithInv [this W A].
+Implicit Arguments Unfinished [this_node W A].
+Implicit Arguments Ret [this_node W A].
+Implicit Arguments Act [this_node W A].
+Implicit Arguments Seq [this_node W A B].
+Implicit Arguments Par [this_node W A B C].
+Implicit Arguments WithLock [this_node W A].
+Implicit Arguments WithInv [this_node W A].
 
 Section ProcessSemantics.
 
-Variable this : nid.
+Variable this_node : nid.
 
-Fixpoint step (W : world) A (s1 : state) (p1 : proc this W A)
-         sc (s2 : state) (p2 : proc this W A) : Prop :=
+Fixpoint step (W : world) A (s1 : state) (p1 : proc this_node W A)
+         sc (s2 : state) (p2 : proc this_node W A) : Prop :=
   match sc, p1 with
   (* Action - make a step *)  
   | ActStep, Act a => exists v pf, @a_step _ _ _ a s1 pf s2 v /\ p2 = Ret v
@@ -65,6 +69,11 @@ Fixpoint step (W : world) A (s1 : state) (p1 : proc this W A)
     exists pl', step s1 pl sc' s2 pl' /\ p2 = Par pl' pr k
   | ParStepR sc', Par _ _ pl pr k =>
     exists pr', step s1 pr sc' s2 pr' /\ p2 = Par pl pr' k
+  (* CSL Style Locks *)
+  | WithLockRet, WithLock _ (Ret v) =>
+    [/\ s2 = s1 & p2 = Ret v]
+  | WithLockStep sc', WithLock l p' =>
+    exists p'', step s1 p' sc' s2 p'' /\ p2 = WithLock l p''
   (* Injection of a non-reduced term *)
   | InjectRet, Inject V K pf (Ret v) =>
      exists s1', [/\ s2 = s1, p2 = Ret v & extends pf s1 s1']
@@ -81,7 +90,7 @@ Fixpoint step (W : world) A (s1 : state) (p1 : proc this W A)
   | _, _ => False
   end.
 
-Fixpoint good (W : world) A (p : proc this W A) sc  : Prop :=
+Fixpoint good (W : world) A (p : proc this_node W A) sc  : Prop :=
   match sc, p with
   | ActStep, Act _ => True
   | SeqRet, Seq _ (Ret _) _ => True
@@ -89,6 +98,8 @@ Fixpoint good (W : world) A (p : proc this W A) sc  : Prop :=
   | ParRet, Par _ _ (Ret _) (Ret _) _ => true
   | ParStepL sc', Par _ _ pl _ _ => good pl sc'
   | ParStepR sc', Par _ _ _ pr _ => good pr sc'
+  | WithLockRet, WithLock _ (Ret _) => True
+  | WithLockStep sc', WithLock _ p => good p sc'
   | InjectStep sc', Inject _ _ _ p' => good p' sc'
   | InjectRet, Inject _ _ _ (Ret _) => True
   | WithInvStep sc', WithInv _ _ _ _ p' => good p' sc'
@@ -104,11 +115,11 @@ The safety (in order to make the following step) with respect to the
 schedule is defined inductively on the shape of the program and the
 schedule. Omitting the schedule is not a good idea, at it's required
 in order to "sequentialize" the execution of the program
-structure. Once it's dropped, this structure is lost.
+structure. Once it's dropped, this_node structure is lost.
 
  *)
 
-Fixpoint safe (W : world) A (p : proc this W A) sc (s : state)  : Prop :=
+Fixpoint safe (W : world) A (p : proc this_node W A) sc (s : state)  : Prop :=
   match sc, p with
   | ActStep, Act a => a_safe a s
   | SeqRet, Seq _ (Ret _) _ => True
@@ -116,6 +127,8 @@ Fixpoint safe (W : world) A (p : proc this W A) sc (s : state)  : Prop :=
   | ParRet, Par _ _ (Ret _) (Ret _) _ => True
   | ParStepL sc', Par _ _ pl _ _ => safe pl sc' s
   | ParStepR sc', Par _ _ _ pr _ => safe pr sc' s
+  | WithLockRet, WithLock _ (Ret _) => True
+  | WithLockStep sc', WithLock _ p => safe p sc' s
   | InjectStep sc', Inject V K pf p' =>
       exists s', extends pf s s' /\ safe p' sc' s'
   | InjectRet, Inject V K pf (Ret _) => exists s', extends pf s s'
@@ -124,12 +137,12 @@ Fixpoint safe (W : world) A (p : proc this W A) sc (s : state)  : Prop :=
   | _, _ => True
   end.
 
-Definition pstep (W : world) A s1 (p1 : proc this W A) sc s2 p2 := 
+Definition pstep (W : world) A s1 (p1 : proc this_node W A) sc s2 p2 := 
   [/\ s1 \In Coh W, safe p1 sc s1 & step s1 p1 sc s2 p2].
 
 (* Some sanity lemmas wrt. stepping *)
 
-Lemma pstep_safe (W : world) A s1 (t : proc this W A) sc s2 q : 
+Lemma pstep_safe (W : world) A s1 (t : proc this_node W A) sc s2 q : 
         pstep s1 t sc s2 q -> safe t sc s1.
 Proof. by case. Qed.
 
@@ -138,14 +151,14 @@ Proof. by case. Qed.
 
 The following lemma established the operational "progress" property: a
 program, which is safe and also the schedule is appropriate. Together,
-this implies that we can do a step. 
+this_node implies that we can do a step. 
  *)
 
-Lemma proc_progress W A s (p : proc this W A) sc : 
+Lemma proc_progress W A s (p : proc this_node W A) sc : 
         s \In Coh W -> safe p sc s -> good p sc ->  
-        exists s' (p' : proc this W A), pstep s p sc s' p'.
+        exists s' (p' : proc this_node W A), pstep s p sc s' p'.
 Proof.
-move=>C H1 H2; elim: sc W A s p H2 H1 C=>[||sc IH||sc IH|sc IH|sc IH||sc IH|]W A s. 
+move=>C H1 H2; elim: sc W A s p H2 H1 C=>[||sc IH||sc IH|sc IH|sc IH||sc IH||sc IH|]W A s. 
 - case=>//=a _/= H; move/a_step_total: (H)=>[s'][r]H'.
   by exists s', (Ret r); split=>//=; exists r, H.  
 - by case=>//; move=>B p k/=; case: p=>//b _ _; exists s, (k b). 
@@ -178,6 +191,18 @@ move=>C H1 H2; elim: sc W A s p H2 H1 C=>[||sc IH||sc IH|sc IH|sc IH||sc IH|]W A
   by subst s; exists z, s', s3, p'. 
 - case=>//V K pf; case=>// v/=_[s'] E C.          
   by exists s, (Ret v); split=>//=; exists s'.
+- case=>// l p /= Hgood Hsafe Hcoh.
+  case: (IH W A s p Hgood Hsafe Hcoh) => s'[p']Hstep.
+  exists s', (WithLock l p').
+  split=>//=.
+  exists p'.
+  split.
+  apply Hstep.
+  reflexivity.
+- case=>//l; case=>// v /=_ _ Hcoh.
+  exists s, (Ret v).
+  split=>//.
+  
 - case=>//pr I ii E p/= H1 H2 C.
   have C' : s \In Coh (mkWorld pr) by subst W; apply: (with_inv_coh C). 
   case: (IH (mkWorld pr) A s p H1 H2 C')=>s'[p']H3.
@@ -189,15 +214,15 @@ Qed.
 
 (* Some view lemmas for processes and corresponding schedules *)
 
-Lemma stepUnfin W A s1 sc s2 (t : proc this W A) : 
+Lemma stepUnfin W A s1 sc s2 (t : proc this_node W A) : 
         pstep s1 Unfinished sc s2 t <-> False.
 Proof. by split=>//; case; case: sc. Qed.
 
-Lemma stepRet W A s1 sc s2 (t : proc this W A) v : 
+Lemma stepRet W A s1 sc s2 (t : proc this_node W A) v : 
         pstep s1 (Ret v) sc s2 t <-> False.
 Proof. by split=>//; case; case: sc. Qed.
 
-Lemma stepAct W A s1 a sc s2 (t : proc this W A) : 
+Lemma stepAct W A s1 a sc s2 (t : proc this_node W A) : 
         pstep s1 (Act a) sc s2 t <->
         exists v pf, [/\ sc = ActStep, t = Ret v & @a_step _ _ _ a s1 pf s2 v].
 Proof.
@@ -206,7 +231,7 @@ case=>v[pf] [->-> H]; split=>//; last by exists v, pf.
 by apply: (a_safe_coh pf). 
 Qed.
 
-Lemma stepSeq W A B s1 (t : proc this W B) k sc s2 (q : proc this W A) :
+Lemma stepSeq W A B s1 (t : proc this_node W B) k sc s2 (q : proc this_node W A) :
   pstep s1 (Seq t k) sc s2 q <->
   (exists v, [/\ sc = SeqRet, t = Ret v, q = k v, s2 = s1 &
     s1 \In Coh W]) \/
@@ -221,7 +246,7 @@ split; last first.
   + by move=>G /= [p' [H1 ->]]; right; exists sc, p'.
 Qed.
 
-Lemma stepPar W A B C pB pC (k : B * C -> proc this W A) sc s1 s2 q : 
+Lemma stepPar W A B C pB pC (k : B * C -> proc this_node W A) sc s1 s2 q : 
   pstep s1 (Par pB pC k) sc s2 q <->
   (exists b c, [/\ sc = ParRet, pB = Ret b, pC = Ret c, q = k (b, c), s2 = s1 & s1 \In Coh W]) \/
   (exists sc' pB', [/\ sc = ParStepL sc', q = Par pB' pC k & pstep s1 pB sc' s2 pB']) \/
@@ -230,28 +255,15 @@ Proof.
   split; last first.
   - case.
     + by case=> b [c][->->->->->]Hcoh; split=>//.
-    + case. case=> sc' [pB'][->->]. case=>//.
-      intros.
-      split.
+    + case. case=> sc' [pB'][->->]. case=>//Hcoh Hsafe Hstep.
+      split; first by assumption.
       assumption.
-      simpl.
-      assumption.
-      simpl.
-      exists pB'.
-      split.
-      assumption.
-      reflexivity.
+      by exists pB'; split.
     + case=> sc' [pB'][->->]. case=>//.
       intros.
-      split.
+      split; first by assumption.
       assumption.
-      simpl.
-      assumption.
-      simpl.
-      exists pB'.
-      split.
-      assumption.
-      reflexivity.
+      by exists pB'; split.
   - case. case: sc=>//[|sc|sc] Hcoh.
     + case: pB=>//=b; case pC=>//=c _ [->->].
       by left; exists b, c.
@@ -261,8 +273,23 @@ Proof.
       by right; right; exists sc, pC'.
 Qed.
 
+Lemma stepWithLock W A l (p : proc this_node W A) sc s1 s2 q :
+  pstep s1 (WithLock l p) sc s2 q <->
+  (exists v, [/\ sc = WithLockRet, p = Ret v, q = (Ret v), s2 = s1 & s1 \In Coh W]) \/
+  (exists sc' p', [/\ sc = WithLockStep sc', q = WithLock l p' & pstep s1 p sc' s2 p']).
+Proof.
+  split; last first.
+  - case.
+    + case=> v[->->->->] H2.
+      split; by try assumption.
+    + case=> sc'[p'][->->]. case=>//Hcoh Hsafe Hstep.
+      split; try assumption.
+      by exists p'.
+  - case. case: sc=>//[sc|] Hcoh.
+    
+      
 Lemma stepInject V W K A (em : injects V W K)
-      s1 (t : proc this V A) sc s2 (q : proc this W A) :
+      s1 (t : proc this_node V A) sc s2 (q : proc this_node W A) :
   pstep s1 (Inject em t) sc s2 q <->
   (* Case 1 : stepped to the final state s1' of the inner program*)
   (exists s1' v, [/\ sc = InjectRet, t = Ret v, q = Ret v, s2 = s1 &
@@ -289,7 +316,7 @@ by case: X=>t'' [E] Cs' _; rewrite (coh_prec (cohS C) E _ Cs').
 Qed.
 
 Lemma stepWithInv W A pr I (ii : InductiveInv pr I) s1 
-      (t : proc this (mkWorld pr) A) sc s2 (q : proc this W A) pf :
+      (t : proc this_node (mkWorld pr) A) sc s2 (q : proc this_node W A) pf :
   pstep s1 (WithInv pr I ii pf t) sc s2 q <-> 
   (exists v, [/\ sc = WithInvRet, t = Ret v, q = Ret v, s2 = s1,
                  s1 \In Coh W & W = mkWorld (ProtocolWithIndInv ii)]) \/
@@ -316,8 +343,8 @@ programs respect the global network semantics.
 
  *)
 
-Lemma pstep_network_sem (W : world) A s1 (t : proc this W A) sc s2 q :
-        pstep s1 t sc s2 q -> network_step W this s1 s2.
+Lemma pstep_network_sem (W : world) A s1 (t : proc this_node W A) sc s2 q :
+        pstep s1 t sc s2 q -> network_step W this_node s1 s2.
 Proof.
 elim: sc W A s1 s2 t q=>/=.
 - move=>W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
@@ -406,7 +433,7 @@ it leverages the proof of the fact that each transition preserves the invariant.
 *)
 
 Lemma pstep_inv A pr I (ii : InductiveInv pr I) s1 s2 sc
-      (t t' : proc this (mkWorld pr) A):
+      (t t' : proc this_node (mkWorld pr) A):
   s1 \In Coh (mkWorld (ProtocolWithIndInv ii)) ->
   pstep s1 t sc s2 t' -> 
   s2 \In Coh (mkWorld (ProtocolWithIndInv ii)).

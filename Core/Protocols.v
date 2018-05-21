@@ -16,10 +16,10 @@ Unset Printing Implicit Defensive.
 (* Definition of the protocols, including coherence predicate, tags,
    messages and transitions.  *)
 
-Definition getLocal (n : nid) (d : dstatelet) : heap :=
+Definition getLocal (n : nid) (d : dstatelet) : heap * send_guards :=
   match find n (dstate d) with
   | Some h => h
-  | None => Unit
+  | None => (Unit, no_guards)
   end.
 
 Lemma getLocalU n m d s :
@@ -119,7 +119,7 @@ Variable nodes: dstatelet -> pred nid.
 
 Variable coh : cohpred nodes.
 
-Notation lstate := heap%type.
+Notation lstate := (heap * send_guards)%type.
 
 Definition send_step_t (send_safe : nid -> nid -> dstatelet -> seq nat -> Prop) :=
   forall (this to : nid) (d : dstatelet)
@@ -148,7 +148,7 @@ Structure send_trans := SendTrans
                                        this \in nodes d /\ to \in nodes d;  
 
       (* Send is a partially defined function, initially it is allowed
-         to observe the entire statelet d to avoif a complex
+         to observe the entire statelet d to avoid a complex
          precondition *)
       send_step : send_step_t send_safe;
 

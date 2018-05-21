@@ -39,7 +39,7 @@ heap argument), relating the local state wrt. the client protocol (2ns
 heap argument), message to be sent, and the destination node id.
 
 *)
-Definition hook_type := heap -> heap -> seq nat -> nid -> Prop.
+Definition hook_type := (heap * send_guards) -> (heap * send_guards) -> seq nat -> nid -> Prop.
 
 Definition hooks := union_map hook_domain hook_type.
 Definition world := (context * hooks)%type.

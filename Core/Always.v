@@ -22,22 +22,28 @@ Unset Printing Implicit Defensive.
 
 Section Always.
 
-Variable this : nid.
+Variable this_node : nid.
+Variable this_thread : tid. 
 Variable W : world.
 
 Notation coherent := (Coh W).
 
-Implicit Arguments proc [W this]. 
+Implicit Arguments proc [W this_node]. 
 
-Variable local_rely : world -> nid -> state -> state -> Prop.
+Variable local_rely : world -> nid -> tid -> state -> state -> Prop.
 
 Fixpoint always_sc A (s1 : state) p scs (P : state -> proc A -> Prop) : Prop :=
   s1 \In coherent /\ 
   if scs is sc :: scs' then 
-    forall s2, network_rely W this s1 s2 -> forall s3, local_rely W this s2 s3 ->
+    forall s2, network_rely W this_node s1 s2 ->
+    forall s3, local_rely W this_node this_thread s2 s3 ->
       [/\ safe p sc s3, P s3 p &
-          forall s4 q, @pstep this W A s3 p sc s4 q -> forall s5, local_rely W this s4 s5 -> always_sc s5 q scs' P]
-  else forall s2, network_rely W this s1 s2 -> forall s3, local_rely W this s2 s3 -> P s3 p.
+          forall s4 q, @pstep this_node W A s3 p sc s4 q ->
+          forall s5, local_rely W this_node this_thread s4 s5 ->
+          always_sc s5 q scs' P]
+  else forall s2, network_rely W this_node s1 s2 ->
+       forall s3, local_rely W this_node this_thread s2 s3 ->
+                  P s3 p.
 
 Definition always A s (p : proc A) P := forall scs, always_sc s p scs P.
 
@@ -54,7 +60,7 @@ Proof. by move/(_ [::]); move/alw_coh'. Qed.
 Lemma alw_safe' A s (p : proc A) sc scs P : 
         always_sc s p (sc :: scs) P -> safe p sc s.
 Proof.
-by case: scs=>[|a l][]C/(_ s (rely_refl this C))[].
+by case: scs=>[|a l][]C/(_ s (rely_refl this_node C))[].
 Qed.    
 
 Lemma alw_safe A s (p : proc A) P :
@@ -63,39 +69,39 @@ Proof. by move=>H sc; apply: alw_safe' (H [:: sc]). Qed.
 
 Lemma alw_refl' A s (p : proc A) sc P : always_sc s p sc P -> P s p.
 Proof.
-by case: sc=>[|a l][C]/(_ s (rely_refl this C))//; case.
+by case: sc=>[|a l][C]/(_ s (rely_refl this_node C))//; case.
 Qed.
 
 Lemma alw_refl A s (p : proc A) P : always s p P -> P s p.
 Proof. by move/(_ [::])/alw_refl'. Qed.
 
 Lemma alw_envs' A s1 (p : proc A) scs s2 P : 
-        always_sc s1 p scs P -> network_rely W this s1 s2 -> always_sc s2 p scs P.
+        always_sc s1 p scs P -> network_rely W this_node s1 s2 -> always_sc s2 p scs P.
 Proof.
 by case: scs=>//[|a l][C]H R; move/rely_coh: (R)=>/=[]H1 H2;
    split=>//s3 R'; apply: H; apply: (rely_trans R).
 Qed.
  
 Lemma alw_envs A s1 (p : proc A) s2 P :
-        always s1 p P -> network_rely W this s1 s2 -> always s2 p P.
+        always s1 p P -> network_rely W this_node s1 s2 -> always s2 p P.
 Proof. by move=>S E scs; apply: alw_envs' (S scs) E. Qed.
 
-(* Always is preserved by this-stepping *)
+(* Always is preserved by this_node-stepping *)
 
 Lemma alw_step A s1 (p : proc A) sc s2 q P :
         always s1 p P -> pstep s1 p sc s2 q -> always s2 q P.
 Proof.
 move=>Ls Ts; move: (Ls [:: sc])=>/= [C].
-case/(_ _ (rely_refl this C))=>_ _; move/(_ _ _ Ts)=>_. 
+case/(_ _ (rely_refl this_node C))=>_ _; move/(_ _ _ Ts)=>_. 
 move=>scs; move: (Ls (sc :: scs))=>/= [_].
-by case/(_ _ (rely_refl this C))=>_ _; move/(_ _ _ Ts). 
+by case/(_ _ (rely_refl this_node C))=>_ _; move/(_ _ _ Ts). 
 Qed.
 
 (* Relaxing the predicate P wrt. rely *)
 Lemma alwp_envsq A s1 (p1 : proc A) scs (P : _ -> _ -> Prop) : 
         always_sc s1 p1 scs P ->
         always_sc s1 p1 scs 
-          (fun s2 p2 => forall s3, network_rely W this s2 s3 -> P s3 p2).
+          (fun s2 p2 => forall s3, network_rely W this_node s2 s3 -> P s3 p2).
 Proof.
 elim: scs s1 p1=>[|sc scs IH] /= s1 p1 [C H]; split=>// s2 M.
 - by move=>s3 /(rely_trans M); apply: H. 
@@ -106,13 +112,13 @@ Qed.
 
 Lemma alw_envsq A s1 (p1 : proc A) (P : _ -> _ -> Prop) : 
         always s1 p1 P ->
-        always s1 p1 (fun s2 p2 => forall s3, network_rely W this s2 s3 -> P s3 p2).
+        always s1 p1 (fun s2 p2 => forall s3, network_rely W this_node s2 s3 -> P s3 p2).
 Proof. by move=>H scs; apply: alwp_envsq (H scs). Qed.
 
 
 Lemma alw_unfin' A s1 scs (P : state -> proc A -> Prop) :
         s1 \In coherent -> 
-        (forall s2, network_rely W this s1 s2 -> P s2 Unfinished) -> 
+        (forall s2, network_rely W this_node s1 s2 -> P s2 Unfinished) -> 
         always_sc s1 Unfinished scs P.
 Proof. 
 case: scs=>[|sc scs] C H; split=>// s2 E.
@@ -122,13 +128,13 @@ Qed.
 
 Lemma alw_unfin A s1 (P : state -> proc A -> Prop) :
         s1 \In coherent -> 
-        (forall s2, network_rely W this s1 s2 -> P s2 Unfinished) ->
+        (forall s2, network_rely W this_node s1 s2 -> P s2 Unfinished) ->
         always s1 Unfinished P.
 Proof. by move=>C H scs; apply: alw_unfin'. Qed.
 
 Lemma alw_ret' A s1 (v : A) scs (P : state -> proc A -> Prop) : 
         s1 \In coherent -> 
-        (forall s2, network_rely W this s1 s2 -> P s2 (Ret v)) -> 
+        (forall s2, network_rely W this_node s1 s2 -> P s2 (Ret v)) -> 
         always_sc s1 (Ret v) scs P.
 Proof. 
 case: scs=>[|sc scs] C H; split=>// s2 E.
@@ -139,16 +145,16 @@ Qed.
 
 Lemma alw_ret A s1 (v : A) (P : state -> proc A -> Prop) : 
         s1 \In coherent -> 
-        (forall s2, network_rely W this s1 s2 -> P s2 (Ret v)) -> 
+        (forall s2, network_rely W this_node s1 s2 -> P s2 (Ret v)) -> 
         always s1 (Ret v) P.
 Proof. by move=>C H ps; apply: alw_ret'. Qed.
 
-Lemma alw_act A s1 (a : action W A this) (P : state -> proc A -> Prop) :
+Lemma alw_act A s1 (a : action W A this_node) (P : state -> proc A -> Prop) :
         s1 \In coherent ->
-        (forall s2, network_rely W this s1 s2 -> exists S : a_safe a s2,
+        (forall s2, network_rely W this_node s1 s2 -> exists S : a_safe a s2,
         P s2 (Act a) /\
         forall s3 v s4, a_step S s3 v -> 
-                        network_rely W this s3 s4 -> P s4 (Ret v)) ->
+                        network_rely W this_node s3 s4 -> P s4 (Ret v)) ->
         always s1 (Act a) P. 
 Proof.
 move=>C H [|sc scs]; split=>// s2; case/H=>// H1[H2]H3//. 
@@ -273,7 +279,7 @@ have Ls': always s2 p1 (fun s2 p2 =>
 - by apply: alw_imp Ls=>s p _ I sc' q v E; move/(I _ _ E)/alw_safe. 
 case: sc=>//=; first by case: p1 {Ls} Ls'.
 move=>sc; case: (Ls [:: sc])=>C.
-by move/(_ _ (rely_refl this C)); case.
+by move/(_ _ (rely_refl this_node C)); case.
 Qed.
 
 Lemma alwsafe_bnd A B (p1 : proc A) (p12 : proc B) s1 pp2 :
@@ -289,7 +295,7 @@ apply: alw_bnd T _; apply: alw_imp Ls=>s p _ I q v H.
 by move/(I _ _ H); apply: alw_imp.
 Qed.
 
-(* this suggest capturing the pattern by means of a new definition *)
+(* this_node suggest capturing the pattern by means of a new definition *)
 
 Definition after A s (p : proc A) (P : A -> state -> Prop) := 
   always s p (fun s2 p2 => forall v, p2 = Ret v -> P v s2).
@@ -344,12 +350,12 @@ Implicit Arguments aftI [A s p P Q].
 End Always.
 
 Section AlwaysInject.
-Variables (V W : world) (K : hooks) (A : Type) (w : injects V W K) (this: nid).
+Variables (V W : world) (K : hooks) (A : Type) (w : injects V W K) (this_node: nid).
 Notation W2 := (inj_ext w).
 
 Lemma rely_ext i j s : 
         i \In Coh V -> 
-        network_rely W this (i \+ j) s ->  
+        network_rely W this_node (i \+ j) s ->  
         exists i' j', s = i' \+ j' /\ i' \In Coh V.
 Proof.
 move=>C M; case: (rely_coh M)=>_; rewrite (cohE w).
@@ -372,8 +378,8 @@ Qed.
 
 Lemma rely_split s1 s1' s2 s2' : 
   s1 \In Coh V -> s2 \In Coh V ->
-  network_rely W this (s1 \+ s1') (s2 \+ s2') ->
-  network_rely V this s1 s2 /\ network_rely (inj_ext w) this s1' s2'.
+  network_rely W this_node (s1 \+ s1') (s2 \+ s2') ->
+  network_rely V this_node s1 s2 /\ network_rely (inj_ext w) this_node s1' s2'.
 Proof.
 move=>C1 C2 [n E].
 elim: n s1 s1' E C1 C2=>[|n IH] /= s1 s1'; last first.
@@ -395,13 +401,13 @@ Qed.
 
 
 
-Lemma alw_inject (p : proc this V A)
-      (P : state -> proc this V A -> Prop) i j :
+Lemma alw_inject (p : proc this_node V A)
+      (P : state -> proc this_node V A -> Prop) i j :
         i \+ j \In Coh W ->
         always i p P ->
         always (i \+ j) (Inject w p)
           (fun m q => exists i' j', 
-             [/\ m = i' \+ j', i' \In Coh V, network_rely W2 this j j' &
+             [/\ m = i' \+ j', i' \In Coh V, network_rely W2 this_node j j' &
                  (exists q', q = Inject w q' /\ P i' q') \/
                  (exists v', q = Ret v' /\ P i' (Ret v'))]).
 Proof.
@@ -440,13 +446,13 @@ move=>s p _ [i2][j2][->{s}] Ci2 S2 H; exists i2, j2; split=>//.
 by apply: rely_trans S1 S2.  
 Qed.
 
-Lemma aft_inject (p : proc this V A) (P : A -> state -> Prop) i j :
+Lemma aft_inject (p : proc this_node V A) (P : A -> state -> Prop) i j :
         i \+ j \In Coh W ->
         after i p P ->
         after (i \+ j) (Inject w p)
           (fun v m => exists i' j', 
              [/\ m = i' \+ j', i' \In Coh V, 
-                 network_rely W2 this j j' & P v i']).
+                 network_rely W2 this_node j j' & P v i']).
 Proof.
 move=>C /(alw_inject C); apply: alw_imp=>{p i C} s q _.
 case=>i1 [j1][->{s} Ci1 S1] H v E.
@@ -473,12 +479,12 @@ Variable ii : InductiveInv pr I.
 
 (* Tailored modal always-lemma *)
 
-Variables (A : Type) (this: nid).
+Variables (A : Type) (this_node: nid).
 Notation V := (mkWorld pr).
 Notation W := (mkWorld (ProtocolWithIndInv ii)).
 
-Lemma alw_ind_inv (p : proc this V A)
-      (P : state -> proc this V A -> Prop) i :
+Lemma alw_ind_inv (p : proc this_node V A)
+      (P : state -> proc this_node V A -> Prop) i :
         i \In Coh W ->
         always i p P ->
         always i (WithInv pr I ii (erefl _) p)
@@ -509,7 +515,7 @@ move/(alw_step Ls'): T=>{Ls'} Ls'.
 by apply: IH.
 Qed.
 
-Lemma aft_ind_inv (p : proc this V A) (P : A -> state -> Prop) i :
+Lemma aft_ind_inv (p : proc this_node V A) (P : A -> state -> Prop) i :
         i \In Coh W ->
         after i p P ->
         after i (WithInv pr I ii (erefl _) p)
