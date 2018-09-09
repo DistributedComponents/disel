@@ -1,4 +1,5 @@
 opam-version: "1.2"
+name: "disel"
 version: "dev"
 maintainer: "palmskog@gmail.com"
 
