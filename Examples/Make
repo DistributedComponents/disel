@@ -1,23 +1,26 @@
 -Q . DiSeL
 -arg "-w -notation-overridden,-local-declaration,-redundant-canonical-projection,-projection-no-head-constant"
 
-SeqLib.v
-Greeter/Greeter.v
-Querying/QueryProtocol.v
-Querying/QueryHooked.v
-Calculator/CalculatorProtocol.v
+Calculator/CalculatorExtraction.v
 Calculator/CalculatorInvariant.v
-Calculator/CalculatorClientLib.v
-Calculator/CalculatorServerLib.v
-Calculator/SimpleCalculatorServers.v
 Calculator/DelegatingCalculatorServer.v
+Calculator/SimpleCalculatorServers.v
+Calculator/CalculatorClientLib.v
+Calculator/CalculatorProtocol.v
 Calculator/SimpleCalculatorApp.v
-TwoPhaseCommit/TwoPhaseProtocol.v
-TwoPhaseCommit/TwoPhaseCoordinator.v
-TwoPhaseCommit/TwoPhaseParticipant.v
+Calculator/CalculatorServerLib.v
+SeqLib.v
+LockResource/ResourceProtocol.v
+LockResource/LockProtocol.v
 TwoPhaseCommit/SimpleTPCApp.v
 TwoPhaseCommit/TwoPhaseInductiveInv.v
-TwoPhaseCommit/TwoPhaseInductiveProof.v 
+TwoPhaseCommit/TwoPhaseClient.v
+TwoPhaseCommit/TwoPhaseInductiveProof.v
+TwoPhaseCommit/TwoPhaseParticipant.v
+TwoPhaseCommit/TwoPhaseExtraction.v
+TwoPhaseCommit/TwoPhaseProtocol.v
+TwoPhaseCommit/TwoPhaseCoordinator.v
+Greeter/Greeter.v
 Querying/QueryPlusTPC.v
-LockResource/LockProtocol.v
-LockResource/ResourceProtocol.v
+Querying/QueryProtocol.v
+Querying/QueryHooked.v

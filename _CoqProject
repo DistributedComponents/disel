@@ -40,7 +40,8 @@ Examples/TwoPhaseCommit/TwoPhaseParticipant.v
 Examples/TwoPhaseCommit/SimpleTPCApp.v
 Examples/TwoPhaseCommit/TwoPhaseExtraction.v
 Examples/TwoPhaseCommit/TwoPhaseInductiveInv.v
-Examples/TwoPhaseCommit/TwoPhaseInductiveProof.v 
+Examples/TwoPhaseCommit/TwoPhaseInductiveProof.v
+Examples/TwoPhaseCommit/TwoPhaseClient.v
 Examples/Querying/QueryPlusTPC.v
 Examples/LockResource/LockProtocol.v
 Examples/LockResource/ResourceProtocol.v
