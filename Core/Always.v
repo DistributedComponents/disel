@@ -4,14 +4,12 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
-Require Import Actions Injection Process.
-From DiSeL.Core
-Require InductiveInv.
+From DiSeL
+Require Import Actions Injection Process InductiveInv.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -27,7 +25,7 @@ Variable W : world.
 
 Notation coherent := (Coh W).
 
-Implicit Arguments proc [W this]. 
+Arguments proc [this W].
 
 Fixpoint always_sc A (s1 : state) p scs (P : state -> proc A -> Prop) : Prop :=
   s1 \In coherent /\ 
@@ -152,7 +150,7 @@ Proof.
 move=>C H [|sc scs]; split=>// s2; case/H=>// H1[H2]H3//. 
 split=>//; first by case: sc.
 move=>s3 q /stepAct [v][pf][_ -> St].
-rewrite (proof_irrelevance H1 pf) in H3.
+rewrite (pf_irr H1 pf) in H3.
 apply: alw_ret'; last by move=>s4; apply: H3 St.
 by case: (step_coh (a_step_sem St)).
 Qed.
@@ -207,7 +205,7 @@ move=>Ls; split.
 by move=>H ps; apply/(alwA' _ (Ls ps))=>x; apply: H.
 Qed.
 
-Implicit Arguments alwA [A B s p P].
+Arguments alwA [A B s p P].
 
 (* always commutes with implication, so we can weaken the postconditions *)
 
@@ -240,7 +238,7 @@ move=>Ls; split; first by move=>H Hp scs; apply/alwI': Hp.
 by move=>H scs; apply/alwI'=>//; move/H; move/(_ scs).
 Qed.
 
-Implicit Arguments alwI [A s p P Q].
+Arguments alwI [A s p P Q].
 
 
 Lemma alw_bnd A B (p1 : proc A) (p12 : proc B) pp2 s1 
@@ -336,8 +334,8 @@ split; apply: alw_imp=>t q _ I.
 by move=>v; move/I.
 Qed.
 
-Implicit Arguments aftA [A B s p P].
-Implicit Arguments aftI [A s p P Q].
+Arguments aftA [A B s p P].
+Arguments aftI [A s p P Q].
 
 End Always.
 
@@ -364,8 +362,8 @@ case: (sem_split w C1 C2 N); case=>R E; [subst s2'|subst s2];
 split=>//; apply: Idle; split=>//.
 case: (step_coh N)=>C _.
 case/(cohE w): (C)=>s3[s4][E]C' C''.
-move: (coh_prec (cohS C) E C1 C')=>Z; subst s3.
-by rewrite (joinfK (cohS C) E).
+move: (coh_prec (cohS C) C1 C' E)=>Z; subst s3.
+by rewrite (joinxK (cohS C) E).
 Qed.
 
 Lemma rely_split s1 s1' s2 s2' : 
@@ -382,12 +380,12 @@ elim: n s1 s1' E C1 C2=>[|n IH] /= s1 s1'; last first.
   + by case: G1=>m R; exists m.+1, z, s4. 
   by case: G2=>m R; exists m.+1, z, s5. 
 move=> [E1 E2] C1 C2.
-move: (coh_prec (cohS E2) E1 C1 C2)=>Z; subst s2.
-rewrite (joinfK (cohS E2) E1); split; exists 0=>//. 
-split=>//; rewrite -(joinfK (cohS E2) E1)=>{E1 s2' C2}.
+move: (coh_prec (cohS E2) C1 C2 E1)=>Z; subst s2.
+rewrite (joinxK (cohS E2) E1); split; exists 0=>//. 
+split=>//; rewrite -(joinxK (cohS E2) E1)=>{E1 s2' C2}.
 move/(cohE w): (E2)=>[t1][t2][E]C' C''.
-move: ((coh_prec (cohS E2)) E C1 C')=>Z; subst t1.
-by rewrite (joinfK (cohS E2) E).
+move: ((coh_prec (cohS E2)) C1 C' E)=>Z; subst t1.
+by rewrite (joinxK (cohS E2) E).
 Qed.
 
 
@@ -423,13 +421,13 @@ case=>sc' [q'][x1][i2][y1][_ -> E -> {sc q s}] _ T Ls.
 
 have [E1 E2] : x1 = i1 /\ y1 = j1.
 - case: T=>Cx1 _.
-  move: (coh_prec (cohS C) E Ci1 Cx1) (E)=><-{E Cx1 x1}.
-  by move/(joinfK (cohS C)).
+  move: (coh_prec (cohS C) Ci1 Cx1 E) (E)=><-{E Cx1 x1}.
+  by move/(joinxK (cohS C)).
 rewrite {E x1}E1 {y1}E2 in T *.
 have C' : i2 \+ j1 \In Coh W.
 - move: (C)=>C'; rewrite (cohE w) in C *=>[[s1]][s2][E]D1 D2.
-  move: (coh_prec (cohS C') E Ci1 D1)=>Z; subst i1.
-  move: (joinfK (cohS C') E)=>Z; subst s2; clear E.
+  move: (coh_prec (cohS C') Ci1 D1 E)=>Z; subst i1.
+  move: (joinxK (cohS C') E)=>Z; subst s2; clear E.
   apply/(cohE w); exists i2, j1; split=>//.
   by case/step_coh: (pstep_network_sem T). 
 move/(alw_step Ls): T=>{Ls} Ls.

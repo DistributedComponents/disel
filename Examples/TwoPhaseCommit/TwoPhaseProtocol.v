@@ -4,11 +4,11 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 
 Set Implicit Arguments.
@@ -176,7 +176,7 @@ Proof.
 move=>[H1 H2][y]Cm; split=>[|i ms/=]; first by rewrite valid_fresh.
 rewrite findUnL; last by rewrite valid_fresh.
 case: ifP=>E; first by move/H2.
-by move/um_findPt_inv=>[Z G]; subst i m; exists y.
+by move/findPt_inv=>[Z G]; subst i m; exists y.
 Qed.
 
 Lemma trans_updDom this d s :
@@ -228,28 +228,29 @@ Qed.
 
 Lemma cohStC d (C : TPCCoh d) s:
   find st (getLocal cn d) = Some s ->
-  idyn_tp s = CStateT. 
+  dyn_tp s = CStateT. 
 Proof.
 have pf: cn \in nodes by rewrite inE eqxx.
-move: (locCn C pf); rewrite eqxx; move =>[V][s'][l']Z; rewrite Z in V *;
-by rewrite (@hfindPtUn _ st s' _ V); case=><-/=.
+move: (locCn C pf); rewrite eqxx; move =>[V][s'][l']Z; rewrite Z in V *.
+rewrite findPtUn //.
+by case=><-/=.
 Qed.
 
 Lemma cohStP n d (C : TPCCoh d) (H : n \in pts) s:
   find st (getLocal n d) = Some s ->
-  idyn_tp s = PStateT. 
+  dyn_tp s = PStateT. 
 Proof.
 have pf: n \in nodes by rewrite inE/=orbC mem_cat H.
 move: (locCn C pf); rewrite H=>[[V]].
 case E: (n == cn); last first.
 - move=>[s'][l']Z; rewrite Z in V *.
-  by rewrite findUnL//; rewrite hdomPt inE/= hfindPt/=; case=><-.
+  by rewrite findUnL//; rewrite domPt inE/= findPt/=; case=><-.
 by move/eqP: E=>E; subst n; move: Hnin; rewrite H. 
 Qed.
 
 Definition getStC d (C : TPCCoh d) : CStateT :=
   match find st (getLocal cn d) as f return _ = f -> _ with
-    Some v => fun epf => icoerce id (idyn_val v) (cohStC C epf)
+    Some v => fun epf => icast (sym_eq (cohStC C epf)) (dyn_val v)
   | _ => fun epf => (0, CInit)
   end (erefl _).
 
@@ -260,14 +261,14 @@ move=>E; rewrite /getStC/=.
 have pf : cn \in nodes by rewrite inE eqxx.
 have V: valid (getLocal cn d) by case: (locCn C pf).
 move: (cohStC C); rewrite !E=>/= H.
-by apply: ieqc.
+by apply: eqc.
 Qed.
 
 Program Definition getStP n d (C : TPCCoh d) (pf : n \in nodes) : PStateT.
 Proof.
 case X: (n \in pts); last by exact: (0, PInit).
 exact: (match find st (getLocal n d) as f return _ = f -> _ with
-          Some v => fun epf => icoerce id (idyn_val v) (cohStP C X epf)
+          Some v => fun epf => icast (sym_eq (cohStP C X epf)) (dyn_val v)
         | _ => fun epf => (0, PInit)
         end (erefl _)).
 Defined.
@@ -280,28 +281,28 @@ have V: valid (getLocal n d) by case: (locCn C pf).
 rewrite E in V. 
 move: (cohStP C); case B: (n \in pts)=>//=; last by rewrite X in B.
 move=>H; move: (H (erefl true))=>{H}; rewrite E=>/=H.
-by apply: ieqc.
+by apply: eqc.
 Qed.
 
 (* Log getter *)
 
 Lemma cohStL d (C : TPCCoh d) n (H : n \in nodes) l:
-  find log (getLocal n d) = Some l -> idyn_tp l = Log.
+  find log (getLocal n d) = Some l -> dyn_tp l = Log.
 Proof.
 move: (locCn C H)=>[V].
 case B: (n == cn)=>/=.
 - move=>[s'][l']Z; rewrite Z in V *;
-  by rewrite joinC in V *; rewrite (@hfindPtUn _ log l' _ V); case=><-/=.
+  by rewrite joinC in V *; rewrite findPtUn //; case=><-/=.
 rewrite inE in H; case/orP: H; first by rewrite B.
 rewrite/= mem_cat; case X: (n \in pts)=>/=_.
 - move=>[s'][l']Z; rewrite Z in V *;
-  by rewrite joinC in V *; rewrite (@hfindPtUn _ log l' _ V); case=><-/=.
+  by rewrite joinC in V *; rewrite findPtUn //; case=><-/=.
 by move=>H; move/find_some=>Y; rewrite Y in H.
 Qed.
 
 Definition getStL n d (C : TPCCoh d) (pf : n \in nodes) : Log :=
   match find log (getLocal n d) as f return _ = f -> _ with
-    Some v => fun epf => icoerce id (idyn_val v) (cohStL C pf epf)
+    Some v => fun epf => icast (sym_eq (cohStL C pf epf)) (dyn_val v) 
   | _ => fun epf => [::]
   end (erefl _).
 
@@ -311,7 +312,7 @@ Lemma getStL_Kc n d (C : TPCCoh d) (pf : n \in nodes) (m : CStateT) (l : Log):
 Proof.
 move=>E; rewrite /getStL/=.
 have V: valid (getLocal n d) by case: (locCn C pf).
-by rewrite E in V; move: (cohStL C pf); rewrite !E/==>H; apply: ieqc.
+by rewrite E in V; move: (cohStL C pf); rewrite !E/==>H; apply: eqc.
 Qed.
 
 Lemma getStL_Kp n d (C : TPCCoh d) (pf : n \in nodes) (m : PStateT) (l : Log):
@@ -319,7 +320,7 @@ Lemma getStL_Kp n d (C : TPCCoh d) (pf : n \in nodes) (m : PStateT) (l : Log):
 Proof.
 move=>E; rewrite /getStL/=.
 have V: valid (getLocal n d) by case: (locCn C pf).
-by rewrite E in V; move: (cohStL C pf); rewrite !E/==>H; apply: ieqc.
+by rewrite E in V; move: (cohStL C pf); rewrite !E/==>H; apply: eqc.
 Qed.
 
 Lemma cn_in : cn \in nodes.
@@ -532,13 +533,13 @@ split=>/=.
 - apply: send_soupCoh; first by case:(cn_safe_coh pf).
   exists (getStC (cn_safe_coh pf)).1.
   case: (pf)=>H[C']P/=; move: (conj H _)=>pf'.
-  by move: (cn_prec_safe H P); rewrite -(proof_irrelevance C' (cn_safe_coh pf')).
+  by move: (cn_prec_safe H P); rewrite -(pf_irr C' (cn_safe_coh pf')).
 - by apply: trans_updDom=>//; case: (cn_safe_in pf).
 - by rewrite validU; apply: cohVl C.    
 move=>n Ni. rewrite /localCoh/=.
 rewrite /getLocal/=findU; case: ifP=>B; last by case: C=>_ _ _/(_ n Ni). 
 move/eqP: B=>Z; subst n this; rewrite eqxx (cohVl C)/=.
-by split; rewrite ?hvalidPtUn//; last by eexists _, _.
+by split; rewrite ?validPtUn//; last by eexists _, _.
 Qed.
 
 Lemma cn_safe_def this to d msg :
@@ -750,8 +751,8 @@ split=>/=.
 - apply: send_soupCoh; first by case:(pn_safe_coh pf).
   exists (getStP C (pn_this_in (proj1 pf))).1.
   case: (pf)=>H[H'][C']P/=; move: (conj H _)=>pf'.
-  move: (pn_prec_safe H P); rewrite (proof_irrelevance C' C)/=.
-  by rewrite (proof_irrelevance (pn_this_in H') _)//; apply: pn_this_in. 
+  move: (pn_prec_safe H P); rewrite (pf_irr C' C)/=.
+  by rewrite (pf_irr (pn_this_in H') _)//; apply: pn_this_in. 
 - by apply: trans_updDom=>//; case: (pn_safe_in pf).
 - by rewrite validU; apply: cohVl C.    
 move=>n Ni. rewrite /localCoh/=.
@@ -760,7 +761,7 @@ move/eqP: B=>Z; subst n=>/=.
 have X : this == cn = false by apply/negP=>/eqP Z; subst this; move: E (Hnin)=>->.
 rewrite X (cohVl C)/=; split=>//.
 move: (pstep_send _ _ _)=>ps; rewrite E.
-rewrite ?hvalidPtUn//; last by eexists _, _.
+rewrite ?validPtUn//; last by eexists _, _.
 Qed.
 
 Lemma pn_safe_def this to d msg :
@@ -968,5 +969,3 @@ End TPCProtocol.
 
 Export TPCProtocol.States.
 Export TPCProtocol.Exports.
-
-

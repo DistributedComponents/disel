@@ -4,14 +4,13 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-From DiSeL.Core
+From fcsl
+Require Import pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness EqTypeX.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-
 
 (* An implementation of a dependent map structure *)
 
@@ -25,7 +24,7 @@ Variable V : Type.
 Variable labF: V -> Label.
 
 Definition dmDom (u : union_map Label V) : bool :=
-    all (fun l => if find l u is Some p then (labF p) == l else false) (keys_of u).
+    all (fun l => if find l u is Some p then (labF p) == l else false) (dom u).
 
 Record depmap := DepMap {
    dmap : union_map Label V;
@@ -37,9 +36,7 @@ Section PCMOps.
 Variable dm : depmap.
 
 Lemma dmDom_unit : dmDom Unit.
-Proof.
-by apply/allP=>l; rewrite keys_dom dom0 inE.
-Qed.
+Proof. by apply/allP=>l; rewrite dom0. Qed.
 
 Definition unit := DepMap dmDom_unit.
 
@@ -53,12 +50,12 @@ Lemma dmDom_join um1 um2:
   dmDom um1 -> dmDom um2 -> dmDom (um1 \+ um2).
 Proof.
 case; case W: (valid (um1 \+ um2)); last first.
-- by move=> _ _; apply/allP=>l; rewrite keys_dom=>/dom_valid; rewrite W.
-move/allP=>D1/allP D2; apply/allP=>l; rewrite keys_dom.
+- by move=> _ _; apply/allP=>l; move/dom_valid; rewrite W.
+move/allP=>D1/allP D2; apply/allP=>l.
 rewrite domUn inE=>/andP[_]/orP; rewrite findUnL//; case=>E; rewrite ?E.
-- by apply: D1; rewrite keys_dom.
+- by apply: D1.
 rewrite joinC in W; case: validUn W=>// _ _ /(_ l E)/negbTE->_.
-by apply: D2; rewrite keys_dom.
+by apply: D2.
 Qed.
 
 Definition join : depmap := DepMap (dmDom_join (@pf dm1) (@pf dm2)).
@@ -84,21 +81,21 @@ Lemma joinC f1 f2 : f1 \+ f2 = f2 \+ f1.
 Proof.
 case: f1 f2=>d1 pf1[d2 pf2]; rewrite /join/=.
 move: (dmDom_join pf1 pf2) (dmDom_join pf2 pf1); rewrite joinC=>G1 G2.
-by move: (proof_irrelevance G1 G2)=>->.
+by move: (bool_irrelevance G1 G2)=>->.
 Qed.
 
 Lemma joinCA f1 f2 f3 : f1 \+ (f2 \+ f3) = f2 \+ (f1 \+ f3).
 Proof.
 case: f1 f2 f3=>d1 pf1[d2 pf2][d3 pf3]; rewrite /join/=.
 move: (dmDom_join pf1 (dmDom_join pf2 pf3)) (dmDom_join pf2 (dmDom_join pf1 pf3)).
-by rewrite joinCA=>G1 G2; move: (proof_irrelevance G1 G2)=>->.
+by rewrite joinCA=>G1 G2; move: (bool_irrelevance G1 G2)=>->.
 Qed.
 
 Lemma joinA f1 f2 f3 : f1 \+ (f2 \+ f3) = (f1 \+ f2) \+ f3.
 Proof.
 case: f1 f2 f3=>d1 pf1[d2 pf2][d3 pf3]; rewrite /join/=.
 move: (dmDom_join pf1 (dmDom_join pf2 pf3)) (dmDom_join (dmDom_join pf1 pf2) pf3).
-by rewrite joinA=>G1 G2; move: (proof_irrelevance G1 G2)=>->.
+by rewrite joinA=>G1 G2; move: (bool_irrelevance G1 G2)=>->.
 Qed.
 
 Lemma validL f1 f2 : valid (f1 \+ f2) -> valid f1.
@@ -108,7 +105,7 @@ Lemma unitL f : unit \+ f = f.
 Proof.
 rewrite /join/unit/=; case: f=>//=u pf.
 move: pf (dmDom_join (dmDom_unit labF) pf); rewrite unitL=>g1 g2.
-by move: (proof_irrelevance g1 g2)=>->.
+by move: (bool_irrelevance g1 g2)=>->.
 Qed.
 
 Lemma validU : valid unit.
@@ -127,7 +124,7 @@ Definition DepMap := DepMap.
 Lemma dep_unit (d : depmap labF) : dmap d = Unit -> d = unit labF.
 Proof.
 case: d=>u pf/=; rewrite /unit. move: (dmDom_unit labF)=>pf' Z; subst u.
-by rewrite (proof_irrelevance pf).
+by rewrite (bool_irrelevance pf).
 Qed.
 
 Coercion dmap := dmap.

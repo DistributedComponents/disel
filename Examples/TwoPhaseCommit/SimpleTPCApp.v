@@ -4,15 +4,15 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude ordtype finmap pcm unionmap heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import State Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import HoareTriples InferenceRules While.
-From DiSeL.Examples
+From DiSeL
 Require Import TwoPhaseProtocol TwoPhaseCoordinator TwoPhaseParticipant.
-From DiSeL.Examples
+From DiSeL
 Require TwoPhaseInductiveProof.
 
 Section SimpleTpcApp.
@@ -69,11 +69,11 @@ Definition init_dstate :=
 Lemma valid_init_dstate : valid init_dstate.
 Proof.
 case: validUn=>//=;
-do?[case: validUn=>//; do?[rewrite ?gen_validPt/=//]|by rewrite gen_validPt/=].
-- by move=>k; rewrite !gen_domPt !inE/==>/eqP<-/eqP.
-- by move=>k; rewrite domUn!inE/==>/andP[_]/orP[]; rewrite !gen_domPt!inE/==>/eqP=><-.
-move=>k; rewrite domUn!inE/==>/andP[_]/orP[]; last by rewrite !gen_domPt!inE/==>/eqP=><-.
-by rewrite domUn!inE/==>/andP[_]/orP[]; rewrite !gen_domPt!inE/==>/eqP=><-.  
+do?[case: validUn=>//; do?[rewrite ?validPt/=//]|by rewrite validPt/=].
+- by move=>k; rewrite !domPt !inE/==>/eqP<-/eqP.
+- by move=>k; rewrite domUn!inE/==>/andP[_]/orP[]; rewrite !domPt!inE/==>/eqP=><-.
+move=>k; rewrite domUn!inE/==>/andP[_]/orP[]; last by rewrite !domPt!inE/==>/eqP=><-.
+by rewrite domUn!inE/==>/andP[_]/orP[]; rewrite !domPt!inE/==>/eqP=><-.
 Qed.
 
 Notation init_dstatelet := (DStatelet init_dstate Unit).
@@ -83,7 +83,7 @@ Definition init_state : state := l \\-> init_dstatelet.
 
 Lemma getCnLoc : getLocal cn init_dstatelet = init_heap_c.
 Proof.
-rewrite /getLocal/init_dstate -!joinA um_findPtUn//.
+rewrite /getLocal/init_dstate -!joinA findPtUn//.
 by rewrite !joinA valid_init_dstate.
 Qed.
 
@@ -91,9 +91,9 @@ Lemma getPLoc p : p \in pts -> getLocal p init_dstatelet = init_heap_p.
 Proof.
 rewrite /pts !inE=>/orP[];[|move=>/orP[]]=>/eqP->{p};
   move: valid_init_dstate; rewrite /getLocal/init_dstate.
-- by rewrite -!joinA joinCA=>V; rewrite um_findPtUn//.
-- by rewrite -joinA joinCA=>V; rewrite um_findPtUn//.
-by rewrite joinC=>V; rewrite um_findPtUn//.
+- by rewrite -!joinA joinCA=>V; rewrite findPtUn//.
+- by rewrite -joinA joinCA=>V; rewrite findPtUn//.
+by rewrite joinC=>V; rewrite findPtUn//.
 Qed.
 
 
@@ -101,32 +101,33 @@ Qed.
 Notation W := (mkWorld (TwoPhaseCoordinator.tpc l cn pts others Hnin)).
 
 Lemma hook_complete_unit (c : context) : hook_complete (c, Unit).
-Proof. by move=>????; rewrite dom0 inE. Qed.
+Proof. by move=>????; rewrite dom0. Qed.
 
 Lemma hooks_consistent_unit (c : context) : hooks_consistent c Unit.
-Proof. by move=>????; rewrite dom0 inE. Qed.
+Proof. by move=>????; rewrite dom0. Qed.
 
 Lemma init_coh : init_state \In Coh W.
 Proof.
 split.
 - apply/andP; split; last by rewrite valid_unit.
-  by rewrite gen_validPt.
-- by rewrite/init_state gen_validPt.
+  by rewrite validPt.
+- by rewrite/init_state validPt.
 - by apply: hook_complete_unit.  
-- by move=>z; rewrite /init_state !um_domPt inE/=.
+- by move=>z; rewrite /init_state !domPt inE/=.
 move=>k; case B: (l==k); last first.
 - have X: (k \notin dom init_state) /\ (k \notin dom W.1).
-    by rewrite /init_state/W/=!gen_domPt !inE/=; move/negbT: B. 
+    by rewrite /init_state/W/=!domPt !inE/=; move/negbT: B. 
   rewrite /getProtocol /getStatelet/=.
   case: dom_find X=>//; last by move=>? _ _[].
   by move=>->[_]; case: dom_find=>//->.
-move/eqP:B=>B; subst k; rewrite prEq/getStatelet/init_state gen_findPt/=.
+move/eqP:B=>B; subst k; rewrite prEq/getStatelet/init_state findPt/=.
 split=>//=; do?[by apply: valid_init_dstate]; first by split=>//m ms; rewrite find0E.
 - move=>z; rewrite /init_dstate/TPCProtocol.nodes/=/others.
   rewrite !domUn !inE valid_init_dstate/=.
   rewrite !domUn !inE (validL valid_init_dstate)/=.
   rewrite !domUn !inE (validL (validL valid_init_dstate))/=.
-  rewrite !gen_domPt!inE/= !(eq_sym z). 
+  rewrite !domPt!inE/= !(eq_sym z).
+  rewrite 3!inE.
   by case:(cn==z)(p1==z)(p2==z)(p3==z);case;case;case.
 move=>z/=; rewrite !inE=>/orP [].
 - move/eqP=>Z; subst z; rewrite getCnLoc; split=>//=.
@@ -154,7 +155,7 @@ Next Obligation.
 move=>i/=R.
 apply: with_inv_rule'.
 apply:call_rule=>//.
-- by rewrite (rely_loc' _ R) /getStatelet gen_findPt/=getCnLoc.  
+- by rewrite (rely_loc' _ R) /getStatelet findPt/=getCnLoc.
 move=>_ m [chs] CS C I _.
 exists chs.
 split=>//.
@@ -178,7 +179,7 @@ Next Obligation.
 move=>i/=R.
 apply: with_inv_rule'.
 apply:call_rule=>//.
-- by rewrite (rely_loc' _ R)/getStatelet gen_findPt/= (getPLoc _ pf).
+- by rewrite (rely_loc' _ R)/getStatelet findPt/= (getPLoc _ pf).
 move=>_ m [bs][ds] PS C I _.
 exists (seq.zip bs ds), (size choices).
 move /(coh_coh l) in C.

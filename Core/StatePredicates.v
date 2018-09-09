@@ -4,9 +4,9 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-From DiSeL.Core
+From fcsl
+Require Import pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX DepMaps.
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -53,8 +53,8 @@ Proof.
 move=>V H/negbTE N i to' tms' b/=.
 rewrite findUnR ?valid_fresh?V//.
 case: ifP; last by move=>_/H.
-rewrite gen_domPt inE/==>/eqP Z; subst i.
-rewrite gen_findPt/=; case=>Z1 Z2 Z3; subst to' tms' from'.
+rewrite domPt inE/==>/eqP Z; subst i.
+rewrite findPt/=; case=>Z1 Z2 Z3; subst to' tms' from'.
 by rewrite eqxx in N.
 Qed.
 
@@ -176,8 +176,8 @@ Lemma no_msg_from_toE from to s tms to':
 Proof.
 move=>V H X/= i m b; rewrite findUnR ?valid_fresh?V//.
 case: ifP; last by move=>_/H.
-rewrite gen_domPt inE/==>/eqP Z; subst i.
-by rewrite gen_findPt/=; case=>_ Z; subst to'; rewrite eqxx in X.
+rewrite domPt inE/==>/eqP Z; subst i.
+by rewrite findPt/=; case=>_ Z; subst to'; rewrite eqxx in X.
 Qed.
 
 Lemma no_msg_from_toE' from to s tms from' to':
@@ -187,8 +187,8 @@ Lemma no_msg_from_toE' from to s tms from' to':
 Proof.
 move=>V H X/= i m b; rewrite findUnR ?valid_fresh?V//.
 case: ifP; last by move=>_/H.
-rewrite gen_domPt inE/==>/eqP Z; subst i.
-by rewrite gen_findPt/=; case=>Z' Z; subst from'; rewrite eqxx in X.
+rewrite domPt inE/==>/eqP Z; subst i.
+by rewrite findPt/=; case=>Z' Z; subst from'; rewrite eqxx in X.
 Qed.
 
 Lemma msg_specE s from to tg cnt :
@@ -199,12 +199,12 @@ Proof.
 move=>V H; split=>/=; last first.
 - move=>i t c; rewrite findUnR ?valid_fresh?V//.
   case: ifP; last by move=>_/H.
-  rewrite gen_domPt inE/==>/eqP Z; subst i.
-  by rewrite gen_findPt/=; case=>E Z; subst c t; rewrite !eqxx.
+  rewrite domPt inE/==>/eqP Z; subst i.
+  by rewrite findPt/=; case=>E Z; subst c t; rewrite !eqxx.
 exists (fresh s); split=>[|z[t][c]].
 - exists tg, cnt; rewrite findUnR ?valid_fresh?V//.
-  by rewrite gen_domPt inE eqxx/=gen_findPt/=.
-rewrite findUnR ?valid_fresh?V// gen_domPt !inE/=.
+  by rewrite domPt inE eqxx/=findPt/=.
+rewrite findUnR ?valid_fresh?V// domPt !inE/=.
 by case: ifP=>[|_/H]//; move/eqP=>->.  
 Qed.
 
@@ -215,20 +215,20 @@ Lemma msg_specE' s from to to' tg cnt tms :
 Proof.
 move=>V N H; split=>//=; last first.
 - move=>i t c; rewrite findUnR ?valid_fresh?V//.
-  rewrite gen_domPt inE/=; case:ifP; last by move=>_; move/(proj2 H).
-  move/eqP=>Z; subst i; rewrite gen_findPt/=; case=>_ Z.
+  rewrite domPt inE/=; case:ifP; last by move=>_; move/(proj2 H).
+  move/eqP=>Z; subst i; rewrite findPt/=; case=>_ Z.
   by subst to'; rewrite eqxx in N.   
 case: (H)=>H' _; case: H'=>i; case=>[[t]][c] U1 U2.
 exists i; split=>//.
 - exists t, c; rewrite findUnR ?valid_fresh?V//.
-  rewrite gen_domPt inE/=; case:ifP=>//.
+  rewrite domPt inE/=; case:ifP=>//.
   move/eqP=>Z; subst i.
   by move/find_some: U1=>E; move:(dom_fresh s); rewrite E.
 move=>z[t'][c']; rewrite findUnR ?valid_fresh?V//.
-rewrite gen_domPt inE/=; case:ifP=>//; last first.
+rewrite domPt inE/=; case:ifP=>//; last first.
 - by move=>_ G; apply: (U2 z); exists t', c'. 
 move/eqP=>Z; subst z.
-rewrite gen_findPt/=; case=>Z1 Z2. 
+rewrite findPt/=; case=>Z1 Z2. 
 by subst to'; rewrite eqxx in N.
 Qed.
 
@@ -239,20 +239,20 @@ Lemma msg_specE'' s from from' to to' tg cnt tms :
 Proof.
 move=>V N H; split=>//=; last first.
 - move=>i t c; rewrite findUnR ?valid_fresh?V//.
-  rewrite gen_domPt inE/=; case:ifP; last by move=>_; move/(proj2 H).
-  move/eqP=>Z; subst i; rewrite gen_findPt/=; case=>_ Z.
+  rewrite domPt inE/=; case:ifP; last by move=>_; move/(proj2 H).
+  move/eqP=>Z; subst i; rewrite findPt/=; case=>_ Z.
   by subst from'; rewrite eqxx in N.   
 case: (H)=>H' _; case: H'=>i; case=>[[t]][c] U1 U2.
 exists i; split=>//.
 - exists t, c; rewrite findUnR ?valid_fresh?V//.
-  rewrite gen_domPt inE/=; case:ifP=>//.
+  rewrite domPt inE/=; case:ifP=>//.
   move/eqP=>Z; subst i.
   by move/find_some: U1=>E; move:(dom_fresh s); rewrite E.
 move=>z[t'][c']; rewrite findUnR ?valid_fresh?V//.
-rewrite gen_domPt inE/=; case:ifP=>//; last first.
+rewrite domPt inE/=; case:ifP=>//; last first.
 - by move=>_ G; apply: (U2 z); exists t', c'. 
 move/eqP=>Z; subst z.
-rewrite gen_findPt/=; case=>Z1 Z2. 
+rewrite findPt/=; case=>Z1 Z2. 
 by subst from'; rewrite eqxx in N.
 Qed.
 

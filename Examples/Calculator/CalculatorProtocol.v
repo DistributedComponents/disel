@@ -4,15 +4,14 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
-From DiSeL.Examples
+From DiSeL
 Require Import SeqLib.
-
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
@@ -147,17 +146,17 @@ Proof. by rewrite mem_cat=>->. Qed.
 
 Lemma cohSt n d (C : CalCoh d) s:
   find st (getLocal n d) = Some s ->
-  idyn_tp s = cstate.
+  dyn_tp s = cstate.
 Proof.
 case: (C)=>_ _ _ G; case H: (n \in nodes).
-- by move:(G _ H); case=>s'[]->_; rewrite hfindPt//=; case=><-.
+- by move:(G _ H); case=>s'[]->_; rewrite findPt//=; case=><-.
 rewrite /getLocal; rewrite -(cohDom C) in H.
 by case: dom_find H=>//->; rewrite find0E.
 Qed.
 
 Definition getSt n d (C : CalCoh d) : cstate :=
   match find st (getLocal n d) as f return _ = f -> _ with
-    Some v => fun epf => icoerce id (idyn_val v) (cohSt C epf)
+    Some v => fun epf => icast (sym_eq (cohSt C epf)) (dyn_val v) 
   | _ => fun epf => [::]
   end (erefl _).
 
@@ -166,7 +165,7 @@ Lemma getStK n d (C : CalCoh d)  s :
 Proof.
 move=>E; rewrite /getSt/=.
 move: (cohSt C); rewrite !E/==>H. 
-by apply: ieqc.
+by apply: eqc.
 Qed.
 
 Lemma getStE n i j C C' (pf : n \in nodes) :
@@ -278,7 +277,7 @@ split=>/=.
 - split=>[|i ms/=]; first by rewrite valid_fresh (cohVs C).
   rewrite findUnL; last by rewrite valid_fresh (cohVs C). 
   case: ifP=>E; first by case: C=>[[Vs]]H _ _ _; move/H.
-  move/um_findPt_inv=>[Z G]; subst i ms.
+  move/findPt_inv=>[Z G]; subst i ms.
   split; rewrite ?(proj2 (ss_safe_in pf))?(ss_safe_this pf)//.
   case: pf=>?[C'][tf]/hasP[]=>[[[n]]]h args
              _/andP[/eqP]Z1/andP[/eqP Z2]/eqP Z3//=.
@@ -348,7 +347,7 @@ split=>/=.
 - split=>[|i ms/=]; first by rewrite valid_fresh (cohVs C).
   rewrite findUnL; last by rewrite valid_fresh (cohVs C). 
   case: ifP=>E; first by case: C=>[[Vs]]H _ _ _; move/H.
-  move/um_findPt_inv=>[Z G]; subst i ms.
+  move/findPt_inv=>[Z G]; subst i ms.
   split=>//; rewrite ?(proj2 (cs_safe_in pf));
   rewrite ?(proj2 (cs_safe_in pf))?(cs_safe_this pf)//=;
   by case: pf=>// _ _ _; exists msg.

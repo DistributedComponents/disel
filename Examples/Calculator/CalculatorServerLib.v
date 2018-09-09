@@ -4,21 +4,19 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap.
-From DiSeL.Heaps
-Require Import heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
-From DiSeL.Core
+From DiSeL
 Require Import InductiveInv.
-From DiSeL.Examples
+From DiSeL
 Require Import CalculatorProtocol CalculatorInvariant.
-From DiSeL.Examples
+From DiSeL
 Require Import CalculatorClientLib.
-From DiSeL.Examples
+From DiSeL
 Require Import SeqLib.
 
 Section CalculatorServerLib.
@@ -48,7 +46,7 @@ Export CalculatorProtocol.
 
 Program Definition tryrecv_req_act := act (@tryrecv_action_wrapper W sv
       (fun k _ t b => (k == l) && (t == req)) _).
-Next Obligation. by case/andP:H=>/eqP->; rewrite gen_domPt inE/=. Qed.
+Next Obligation. by case/andP:H=>/eqP->; rewrite domPt inE/=. Qed.
 
 (* Receive-transition for the calculator *)
 Program Definition tryrecv_req :
@@ -76,14 +74,14 @@ move=>Z _; subst rt; move: H3; rewrite /msg_wf/=/sr_wf=>->; split=>//.
 set d := (getStatelet i2 l).
 have P1: valid (dstate d) by apply: (cohVl cohs).
 have P2: valid i2 by apply: (cohS (proj2 (rely_coh R1))).
-have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1)))gen_domPt inE/=. 
+have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1)))domPt inE/=.
 rewrite -(rely_loc' _ R1) in E1.
 - by rewrite (rely_loc' _ R3)/= locE//=/sr_step Hs/= (getStK cohs E1).
 case: (cohs)=>Cs _ _ _. move/esym: F=> F.
-by case: Cs=>_/(_ _ _ F); rewrite /cohMsg/= H2/=; case.  
+by case: Cs=>_/(_ _ _ F); rewrite /cohMsg/= H2/=; case.
 Qed.
 
-Definition receive_req_loop_cond (res : option (nid * input)) := res == None .
+Definition receive_req_loop_cond (res : option (nid * input)) := res == None.
 
 Definition receive_req_loop_inv (ps : reqs) :=
   fun (r : option (nid * input)) i =>
@@ -94,7 +92,7 @@ Definition receive_req_loop_inv (ps : reqs) :=
      | None => loc i = st :-> ps
     end.
 
-From DiSeL.Core
+From DiSeL
 Require Import While.
 
 Program Definition receive_req_loop :
@@ -182,9 +180,13 @@ set d := (getStatelet i2 l).
 split=>//[|r i3 i4[Sf]St R3].
 - split=>//; first 1 last.
   + by rewrite/Actions.can_send mem_cat Hs/=
-       -(cohD C2)/= gen_domPt/= inE eqxx.
-  + rewrite/Actions.filter_hooks um_filt0=>???/sym/find_some.
-    by rewrite dom0 inE.
+       -(cohD C2)/= domPt/= inE eqxx.
+  + rewrite/Actions.filter_hooks umfilt0=>???.
+    move => F.
+    apply sym_eq in F.
+    move: F.
+    move/find_some.
+    by rewrite dom0.
   split=>//; split=>//.
   exists C; rewrite -(rely_loc' _ R1) in L1; rewrite (getStK C L1).
   by apply/hasP; exists (to, sv, args)=>//=; rewrite H3 !eqxx.
@@ -192,9 +194,9 @@ rewrite (rely_loc' _ R3)=>{R3}.
 case: St=>->[b]/=[][]->->/=; split=>//.
 have P1: valid (dstate (getStatelet i2 l)). by apply: (cohVl C).
 have P2: valid i2 by apply: (cohS (proj2 (rely_coh R1))).
-have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1))) gen_domPt inE/=. 
+have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1))) domPt inE/=. 
 rewrite -(rely_loc' _ R1) in L1.
-by rewrite (proof_irrelevance (ss_safe_coh _ ) C) locE// (getStK C L1).
+by rewrite (pf_irr (ss_safe_coh _ ) C) locE// (getStK C L1).
 Qed.
 
 (**************************************************)

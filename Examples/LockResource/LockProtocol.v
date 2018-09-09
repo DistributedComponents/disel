@@ -4,11 +4,11 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 
 Set Implicit Arguments.
@@ -97,7 +97,7 @@ Proof.
 move=>[H1 H2][y]Cm; split=>[|i ms/=]; first by rewrite valid_fresh.
 rewrite findUnL; last by rewrite valid_fresh.
 case: ifP=>E; first by move/H2.
-by move/um_findPt_inv=>[Z G]; subst i m; exists y.
+by move/findPt_inv=>[Z G]; subst i m; exists y.
 Qed.
 
 Definition state_coh d :=
@@ -184,28 +184,29 @@ Qed.
 
 Lemma getLocal_server_st_tp d (C : LockCoh d) s:
   find st (getLocal server d) = Some s ->
-  idyn_tp s = server_state.
+  dyn_tp s = server_state.
 Proof.
 have pf: server \in nodes by rewrite inE eqxx.
 move: (getLocal_coh C pf); rewrite eqxx; move =>[V][s']Z; rewrite Z in V *.
-by rewrite hfindPt -(hvalidPt _ s') V; case=><-.
+rewrite findPt /=.
+by case =><-.
 Qed.
 
 Lemma getLocal_client_st_tp n d (C : LockCoh d) (H : n \in clients) s:
   find st (getLocal n d) = Some s ->
-  idyn_tp s = client_state.
+  dyn_tp s = client_state.
 Proof.
 have pf: n \in nodes by rewrite inE/= orbC H.
 move: (getLocal_coh C pf); rewrite H=>[[V]].
 rewrite client_not_server//.
 move=>[_][cs] L. rewrite L in V *.
-rewrite hfindPt -(hvalidPt _ cs) V.
+rewrite findPt /=.
 by case=> <-.
 Qed.
 
 Definition getSt_server d (C : LockCoh d) : server_state :=
   match find st (getLocal server d) as f return _ = f -> _ with
-    Some v => fun epf => icoerce id (idyn_val v) (getLocal_server_st_tp C epf)
+    Some v => fun epf => icast (sym_eq (getLocal_server_st_tp C epf)) (dyn_val v)
   | _ => fun epf => ServerState [::] 0 None
   end (erefl _).
 
@@ -216,13 +217,13 @@ move=>E; rewrite /getSt_server/=.
 have pf: server \in nodes by rewrite inE eqxx.
 have V: valid (getLocal server d) by case: (getLocal_coh C pf).
 move: (getLocal_server_st_tp C); rewrite !E=>/= H.
-by apply: ieqc.
+by apply: eqc.
 Qed.
 
 Program Definition getSt_client c d (C : LockCoh d) (pf : c \in nodes) : client_state.
 case X: (c \in clients); last by exact: NotHeld.
 exact: (match find st (getLocal c d) as f return _ = f -> _ with
-    Some v => fun epf => icoerce id (idyn_val v) (getLocal_client_st_tp C X epf)
+    Some v => fun epf => icast (sym_eq (getLocal_client_st_tp C X epf)) (dyn_val v)
   | _ => fun epf => NotHeld
   end (erefl _)).
 Defined.
@@ -233,7 +234,7 @@ Proof.
 move=>X E; rewrite /getSt_client/=.
 have V: valid (getLocal c d) by case: (getLocal_coh C pf).
 move: (getLocal_client_st_tp C); rewrite X !E=>/= H.
-by apply: ieqc.
+by apply: eqc.
 Qed.
 
 End GetterLemmas.
@@ -298,7 +299,7 @@ move=>n Ni. rewrite /local_coh/=.
 rewrite /getLocal/=findU; case: ifP=>B; last by case: C=>_ _ _/(_ n Ni).
 move/eqP: B=>Z; subst n this; rewrite eqxx (cohVl C)/=.
 split.
-by rewrite hvalidPt.
+by rewrite validPt.
 by eexists.
 Qed.
 
@@ -362,7 +363,7 @@ split=>/=; first by apply: consume_coh.
 move=>n Ni/=; rewrite /local_coh/=.
 rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni).
 move/eqP: B X=>Z/eqP X; subst n this; rewrite eqxx (cohVl C)/=.
-split; first by rewrite hvalidPt.
+split; first by rewrite validPt.
 by eexists.
 Qed.
 
@@ -451,7 +452,7 @@ rewrite /getLocal/=findU; case: ifP=>B; last by case: C=>_ _ _/(_ n Ni).
 move/eqP: B=>Z; subst n.
 rewrite client_not_server// (cohVl C)/=.
 split.
-- by rewrite hvalidPt.
+- by rewrite validPt.
 split=>//.
 by eexists.
 Qed.

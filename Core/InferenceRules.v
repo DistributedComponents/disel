@@ -4,17 +4,12 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap.
-From DiSeL.Heaps
-Require Import heap coding domain.
-From DiSeL.Core
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
-Require Import Actions Injection Process Always HoareTriples.
-From DiSeL.Core
-Require Import InductiveInv.
-
+From fcsl
+Require Import pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
+Require Import Domain Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
+From DiSeL
+Require Import Actions Injection Process Always HoareTriples InductiveInv.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
@@ -91,7 +86,7 @@ move=>H1 H2 Ci t [->|[t'][H3 H4]].
 by apply: aft_bnd H3 _; move/(H1 Ci): H4; apply: aft_imp=>y j Cj H; apply: H2.
 Qed.
 
-Implicit Arguments bind_rule [W A B e1 e2 i r].
+Arguments bind_rule [W A B e1 e2 i].
 
 Lemma step W A B (e1 : DT this W A) (e2 : A -> DT this W B) i (r : cont B) : 
         verify i e1 (fun y m => verify m (e2 y) r) ->
@@ -181,7 +176,7 @@ Proof. by []. Qed.
 
 End GhostRules.
 
-Implicit Arguments gh_ex [W A C s f i k].
+Arguments gh_ex [W A C s f].
 
 Lemma act_rule W A (a: action W A this) i (r : cont A) :
   (forall j, network_rely W this i j -> a_safe a j /\

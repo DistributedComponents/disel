@@ -1,4 +1,4 @@
-From DiSeL.Core
+From DiSeL
 Require Import While.
 
 Require Import ExtrOcamlBasic.

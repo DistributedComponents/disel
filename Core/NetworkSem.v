@@ -4,9 +4,9 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds.
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -121,7 +121,7 @@ case=>[[H1 <-] | l st _ to a loc' pf D C S Ph Spf ->/= |
   have X: exists b pf, sstep this to (gets s1 l) a pf = Some b by exists loc', S.
   move/Y: X=>X; move: (G1 _ _ _ _ X) (G2 _ _ _ _ X)=>{G1 G2}G1 G2; apply: G3. 
   rewrite /gets in Spf; rewrite Spf; move: (coh_s l C)=>G1'.
-  by rewrite -(proof_irrelevance S X). 
+  by rewrite -(pf_irr X S).
 case: (C)=>W V K E H; split=>//; first by rewrite validU/= V.
 - move=>z; rewrite domU/= !inE V.
   by case b:  (z == l)=>//; move/eqP: b=>?; subst; rewrite E D.
@@ -131,9 +131,9 @@ rewrite V; move/eqP: b=>Z; subst k=>/=.
 have pf' : this \in dom (dstate (gets s1 l))
   by move: (pf); rewrite -(Coh_dom D C).
 case: rt H1 H3 msg H4=>/= r_rcvwf mwf rstep G msg T F M.
-rewrite -(proof_irrelevance (H l) (coh_s l C)) in M.
+rewrite -(pf_irr (H l) (coh_s l C)) in M.
 move: (G (gets s1 l) from this i (H l) pf msg pf' T M F); rewrite /gets.
-by move: (H l)=>G1'; rewrite -(proof_irrelevance G1 G1'). 
+by move: (H l)=>G1'; rewrite -(pf_irr G1 G1'). 
 Qed.
 
 (* Stepping preserves the protocol structure *)

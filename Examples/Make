@@ -1,7 +1,7 @@
 -Q . DiSeL.Examples
 -arg "-w -notation-overridden,-local-declaration,-redundant-canonical-projection,-projection-no-head-constant"
 
-./SeqLib.v
+SeqLib.v
 Greeter/Greeter.v
 Querying/QueryProtocol.v
 Querying/QueryHooked.v

@@ -4,9 +4,9 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-From DiSeL.Core
+From fcsl
+Require Import pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness DepMaps EqTypeX.
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -111,7 +111,7 @@ Section Shared.
     exists msg', find m s' = Some msg' /\ msg = mark_msg msg'.
   Proof.
   move=>V'; rewrite /consume_msg; case D: (m \in dom s').
-  - move/gen_eta: D=>[msg'][->]_; rewrite findU eqxx/= V'.
+  - move/um_eta: D=>[msg'][->]_; rewrite findU eqxx/= V'.
     by case=><-; eexists _.
   by case: dom_find (D)=>//->_; move/find_some=>Z; rewrite Z in D.
   Qed.   
@@ -137,9 +137,9 @@ Section Shared.
     else (consume_msg s' j) \+ (i \\-> mm).
   Proof.
   rewrite ![_ \+ i \\-> _]joinC; rewrite eq_sym.
-  move=>V'; case B: (j==i); rewrite /consume_msg um_findPtUn2// B.
-  - by move/eqP: B=>?; subst j; rewrite um_updPtUn.
-  by case X: (find j s')=>//; rewrite updUnL um_domPt inE eq_sym B.   
+  move=>V'; case B: (j==i); rewrite /consume_msg findPtUn2// B.
+  - by move/eqP: B=>?; subst j; rewrite updPtUn.
+  by case X: (find j s')=>//; rewrite updUnL domPt inE eq_sym B.   
   Qed.
 
   Notation "'{{' m 'in' s 'at' id '}}'" := (find id s = Some m).
@@ -164,18 +164,15 @@ Section Local.
 
 End Local.
 
+(*
 Definition um_all {A:ordType} {B} (p : A -> B -> bool) (u : union_map A B) : bool :=
-  gen_rect false true (fun k v f rec Hval Hpath => p k v && rec) u.
+  um_recf false true (fun k v f rec Hval Hpath => p k v && rec) u.
 
 Definition um_some {A:ordType} {B} (p : A -> B -> bool) (u : union_map A B) : bool :=
-  gen_rect false false (fun k v f rec Hval Hpath => p k v || rec) u.
-
+  um_recf false false (fun k v f rec Hval Hpath => p k v || rec) u.
+*)
 
 Section Statelets.
-
-  Definition big_valid {U : encoded_pcm} (lst : lstate_type U) : bool :=
-    valid lst &&
-    valid (gen_rect (P := fun _ => U) Unit Unit (fun k v f rec Hval Hpath => v \+ rec) lst).
 
   (* A particular statelet instance.
      The Label and the PCM are the parameters and are defined by the protocol.

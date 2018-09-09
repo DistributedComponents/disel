@@ -4,15 +4,12 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-From DiSeL.Core
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
+Require Import Domain Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
+From DiSeL
 Require Import Actions Injection Process Always.
-From DiSeL.Heaps
-Require Import domain.
-
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -33,8 +30,8 @@ Variable A : Type.
 
 Notation coherent := (Coh W).
 
-Implicit Arguments Prog [W A].
-Implicit Arguments Prog [W A this].
+Arguments Prog [W A].
+Arguments Prog [W A this].
 
 
 Coercion set_of : prog >-> Funclass. 
@@ -44,7 +41,7 @@ Lemma progE (T1 T2 : prog W A this) :
         T1 = T2 <-> set_of T1 = set_of T2.
 Proof.
 split=>[->//|]; case: T1 T2=>m1 H1 [m2 H2] /= E.
-by move: H2; rewrite -E => H2; rewrite (proof_irrelevance H1 H2).
+by move: H2; rewrite -E => H2; rewrite (pf_irr H1 H2).
 Qed.
 
 (* Pre/poscondition and  *)
@@ -88,7 +85,7 @@ Lemma stsepE (W : world) A (s : spec A) (e1 e2 : DTbin this W s) :
         e1 = e2 <-> e1 = e2 :> prog W A this.
 Proof.
 split=>[->//|]; case: e1 e2=>T1 H1 [T2 H2] /= E.
-by rewrite -{T2}E in H2 *; rewrite (proof_irrelevance H1 H2).
+by rewrite -{T2}E in H2 *; rewrite (pf_irr H1 H2).
 Qed.
 
 (* Unfinished satisfies any specification *)
@@ -108,9 +105,9 @@ Definition post_of W A := fun e : DT W A => (spec_of e).2.
 Definition code_of (W : world) A (e : DT W A) := 
   let: with_spec _ c := e return DTbin this W (spec_of e) in c.
 
-Implicit Arguments pre_of [W A].
-Implicit Arguments post_of [W A].
-Implicit Arguments with_spec [W A].
+Arguments pre_of [W A].
+Arguments post_of [W A].
+Arguments with_spec [W A].
 Prenex Implicits pre_of post_of.
 
 Coercion with_spec : DTbin >-> DT.
@@ -383,19 +380,19 @@ have : after i1 t' (s.2 i1) by case: (code_of e) H2=>p /= /(_ _ _ H1); apply.
 move/(aft_inject w C); apply: aft_imp=>{H1 t' H2} v m _.
 case=>i2 [j2][->{m} Ci2 S2 H2] i3 j3 E Ci3.
 suff [E1 E2]: i3 = i1 /\ j3 = j1.
-- by rewrite {i3 E Ci3}E1 {j3}E2; exists i2, j2. 
-move: (coh_prec (cohS C) E Ci1 Ci3) (E)=>{Ci3 E} <-.
-by move/(joinfK (cohS C)).
+- by rewrite {i3 E Ci3}E1 {j3}E2; exists i2, j2.
+move: (coh_prec (cohS C) Ci1 Ci3 E) (E)=>{Ci3 E} <-.
+by move/(joinxK (cohS C)).
 Qed.
 
 Definition inject := with_spec (DTbin_make inject_has_spec).
 
 End Inject.
 
+From DiSeL
+Require Import InductiveInv.
 
 Section InductiveInv.
-From DiSeL.Core
-Require Import InductiveInv.
 Variable pr : protocol.
 
 (* Decompose the initial protocol *)

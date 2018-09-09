@@ -4,11 +4,11 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 
 Set Implicit Arguments.
@@ -96,12 +96,12 @@ Proof. by move=> H; case: C => _ _ _/(_ n H). Qed.
 Lemma cohN n v :
   n \in fixed_nodes ->
   find counter (getLocal n d) = Some v ->
-  idyn_tp v = nat. 
-Proof. by move=>H; case: (lcoh H)=>m->; rewrite hfindPt /=; case=><-. Qed.
+  dyn_tp v = nat.
+Proof. by move=>H; case: (lcoh H)=>m->; rewrite findPt /=; case=><-. Qed.
 
 Definition getN n (pf : n \in fixed_nodes) : nat := 
   match find counter (getLocal n d) as f return _ = f -> _ with
-    Some v => fun epf => icoerce id (idyn_val v) (cohN pf epf)
+    Some v => fun epf => icast (sym_eq (cohN pf epf)) (dyn_val v)
   | None => fun epf => 0
   end (erefl _).
 
@@ -109,7 +109,7 @@ Lemma getNK n (Hn : n \in fixed_nodes) m:
   getLocal n d = counter :-> m -> getN Hn = m.
 Proof.
 move=>E; rewrite /getN; move: (cohN)=>H.
-by move: (H n)=>{H}; rewrite E=>H/=; apply: ieqc.
+by move: (H n)=>{H}; rewrite E=>H/=; apply: eqc.
 Qed.
 
 End GreetAux.
@@ -129,7 +129,6 @@ Definition greet_step (this to : nid) (d : dstatelet)
   then Some (counter :-> (getN (greet_safe_coh pf) (this_in_pf pf)).+1)
   else None.
  
-
 Lemma greet_safe_in this to d m : greet_safe this to d m ->
                                   this \in nodes d /\ to \in nodes d.
 Proof. by case. Qed.
@@ -162,10 +161,10 @@ rewrite/greet_step; case:ifP=>///andP[/eqP Z1 H][]Z'; subst b=>/=.
 case:pf=>[F1]F2 F3 [Cs D]Cl Cn.
 split=>//=; do?[by rewrite validU/=].
 - split; first by rewrite valid_fresh; case: Cs.
-  move=>m msg'; rewrite findUnR ?um_domPt ?inE ?valid_fresh; last by case: Cs.
+  move=>m msg'; rewrite findUnR ?domPt ?inE ?valid_fresh; last by case: Cs.
   case: ifP=>[/eqP Z|_]; last by case: Cs=>_ Cs; move/Cs.
   case:F3=>[m']/eqP E; subst msg.
-  by subst m; rewrite gen_findPt/=; case=><-.
+  by subst m; rewrite findPt/=; case=><-.
 - move=>n; rewrite domU inE/=; case: ifP=>[/eqP Z| _]//; subst n.
   by rewrite Cl F1.
 move: (And4 F1 F2 F3 (And4 Cs D Cl Cn)) => S.
@@ -226,7 +225,7 @@ Definition W : world := (l \\-> gp, Unit).
 Variable this : nid.
 
 Lemma grEq : (getProtocol W l) = gp.
-Proof. by rewrite /getProtocol um_findPt. Qed.
+Proof. by rewrite /getProtocol findPt. Qed.
 
 (* Defining an action for greeting on top of the corresponding transition *)
 (* Sends and argument number and a suffix *)
@@ -273,8 +272,12 @@ split=>[|r s5 s6 [Sf2] St R4].
 - split; case/rely_coh: R3=>C3 C4=>//.
   + split=>//; first by eauto.
     by case: C4=>_ _ _ _/(_ l); rewrite grEq.
-  + by apply/andP; split=>//; move: (cohD C4)=><-; rewrite um_domPt inE.
-  by move=>???/=/sym/find_some/=; rewrite /Actions.filter_hooks um_filt0 dom0 inE.
+  + by apply/andP; split=>//; move: (cohD C4)=><-; rewrite domPt inE; apply/eqP.
+  move=>???/=.
+  move => F.
+  apply sym_eq in F.
+  move: F.
+  by move/find_some; rewrite /Actions.filter_hooks umfilt0 dom0.
 (*Bookkeeping for the postconidtion *)
 case: St=>Z1[h]/=[St]Z2; subst.
 
@@ -289,7 +292,7 @@ case/rely_coh: (R3)=>C3 C4.
 erewrite getNK; last by rewrite (rely_loc' l R1); exact: Hloc.
 rewrite (rely_loc' l R4); split=>//.
 - rewrite /getLocal/getStatelet findU eqxx/= (cohS C4)/= findU eqxx/=.
-  rewrite getsE /=; last by rewrite -(cohD C4) um_domPt inE.
+  rewrite getsE /=; last by rewrite -(cohD C4) domPt inE; apply/eqP.
   by rewrite (cohVl (coh_coh l C4)).
 
 (* Reasoning about message soup *)
@@ -298,8 +301,8 @@ case: (rely_send_other' R4 (m := fresh (msgs s4)) (l := l)
                         (tm := {| tag := GreeterProtocol.greet_tag; tms_cont := n :: hello |})
                         (to := to) (b := true)); last by move=>b[->]/= _; exists b.
 rewrite /getStatelet findU eqxx/= (cohS C4)/=.
-rewrite getsE /=; last by rewrite -(cohD C4) um_domPt inE.
-rewrite joinC um_findPtUn // joinC valid_fresh.
+rewrite getsE /=; last by rewrite -(cohD C4) domPt inE; apply/eqP.
+rewrite joinC findPtUn // joinC valid_fresh.
 by apply: (cohVs (coh_coh l C4)).
 Qed.
 
@@ -341,7 +344,7 @@ Definition V := (W l1 nodes) \+ (W l2 nodes).
 Lemma validV : valid V.
 Proof.
 rewrite /V; apply/andP=>/=.
-split; first by rewrite gen_validPtUn/= gen_validPt/= gen_domPt inE/=.
+split; first by rewrite validPtUn/= validPt/= domPt inE/=.
 by rewrite unitR valid_unit.
 Qed.
 
@@ -366,10 +369,10 @@ Definition greeter_spec3 n1 n2 to :=
       r = n1 + n2 + 2]).
 
 Lemma hook_complete_unit (c : context) : hook_complete (c, Unit).
-Proof. by move=>????; rewrite dom0 inE. Qed.
+Proof. by move=>????; rewrite dom0. Qed.
 
 Lemma hooks_consistent_unit (c : context) : hooks_consistent c Unit.
-Proof. by move=>????; rewrite dom0 inE. Qed.
+Proof. by move=>????; rewrite dom0. Qed.
 
 Program Definition greet3 n1 n2 to : greeter_spec3 n1 n2 to :=
   Do (r1 <-- iinject (greet_prog1 n1 to);
@@ -381,18 +384,18 @@ Next Obligation.
 rewrite -(unitR V)/V.
 have V: valid (W l1 nodes \+ W l2 nodes \+ Unit) by rewrite unitR validV.
 apply: (injectL V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
-by move=>??????; rewrite dom0 inE.
+by move=>??????; rewrite dom0.
 Qed.
 Next Obligation. exact Unit. Defined.
 Next Obligation.
 rewrite -(unitR V)/V.
 have V: valid (W l1 nodes \+ W l2 nodes \+ Unit) by rewrite unitR validV.
 apply: (injectR V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
-by move=>??????; rewrite dom0 inE.
+by move=>??????; rewrite dom0.
 Defined.
 
 Lemma hcomp l : hook_complete (W l nodes).
-Proof. by move=>????; rewrite dom0 inE. Qed.
+Proof. by move=>????; rewrite dom0. Qed.
 
 Next Obligation.
 move=>i/=[H1]H2 N.
@@ -401,10 +404,10 @@ apply: step.
 move: (coh_split C (@hcomp l1) (@hcomp l2))=>[i1[j1]][C1 C2 Z]; subst i.
 apply: inject_rule=>//.
 have E1 : loc (i1 \+ j1) l1 = loc i1 l1
-  by rewrite (locProjL C _ C1)// gen_domPt inE/=.
+  by rewrite (locProjL C _ C1)// domPt inE/=.
 rewrite E1 in H1; apply: call_rule=>// r1 m1 [Q1 Z1] C1' j' C' R1.
 have E2 : loc (i1 \+ j1) l2 = loc j1 l2.
-  by rewrite (locProjR C _ C2)// gen_domPt inE/=.
+  by rewrite (locProjR C _ C2)// domPt inE/=.
 rewrite E2 -(rely_loc' l2 R1) in H2.
 apply: step.
 rewrite joinC; apply: inject_rule.
@@ -417,17 +420,12 @@ apply: ret_rule=>m3 R3[G1]G2 G3; split; last first.
 - by rewrite Z1 Z2 -[_.+1]addn1 -[n2.+1]addn1
              addnAC !addnA !addn1 -addn2.
 - rewrite (rely_loc' l2 R3) joinC; rewrite joinC in C3'.
-  by rewrite (locProjR C3' _ C3)// gen_domPt inE/=.
+  by rewrite (locProjR C3' _ C3)// domPt inE/=.
 rewrite (rely_loc' l1 R3).
 move/rely_coh: (R2)=>[]; rewrite injExtR ?(cohW C)// =>_ C5.
 rewrite joinC in C3' *.
-rewrite (locProjL C3' _ C5)//?/ddom ?gen_domPt ?inE//=.
+rewrite (locProjL C3' _ C5)//?/ddom ?domPt ?inE//=.
 by rewrite (rely_loc' l1 R2). 
 Qed.
 
 End CombineGreeters.
-
-(* Local Variables: *)
-(* coq-prog-name: "coqtop" *)
-(* coq-load-path: nil *)
-(* End: *)

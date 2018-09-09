@@ -3,11 +3,11 @@ Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
 From mathcomp
 Require Import path.
 Require Import Eqdep.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely Actions.
-From DiSeL.Examples
+From DiSeL
 Require Import SeqLib.
 
 Set Implicit Arguments.
@@ -113,7 +113,7 @@ Lemma send_soupCoh d m :
 Proof.
 move=>[H1 H2]Cm; split=>[|i ms/=]; first by rewrite valid_fresh.
 rewrite findUnL; last by rewrite valid_fresh.
-case: ifP=>E; [by move/H2|by move/um_findPt_inv=>[Z G]; subst i m].
+case: ifP=>E; [by move/H2|by move/findPt_inv=>[Z G]; subst i m].
 Qed.
 
 Lemma consume_coh d m : QCoh d -> soupCoh (consume_msg (dsoup d) m).
@@ -141,23 +141,23 @@ Qed.
 (************** TODO: Refactor this!!! **************)
 Lemma cohSt n d (C : QCoh d) s:
   find st (getLocal n d) = Some s ->
-  idyn_tp s = qstate.
+  dyn_tp s = qstate.
 Proof.
 case: (C)=>_ _ D G; case H: (n \in nodes); rewrite -D in H.
-- by move:(G _ H); case=>s'[]->_; rewrite hfindPt//=; case=><-.
+- by move:(G _ H); case=>s'[]->_; rewrite findPt//=; case=><-.
 by rewrite /getLocal; case: dom_find H=>//->; rewrite find0E.
 Qed.
 
 Definition getSt n d (C : QCoh d) : qstate :=
   match find st (getLocal n d) as f return _ = f -> _ with
-    Some v => fun epf => icoerce id (idyn_val v) (cohSt C epf)
+    Some v => fun epf => icast (sym_eq (cohSt C epf)) (dyn_val v)
   | _ => fun epf => ([::], [::])
   end (erefl _).
 
 Lemma getStK n d (C : QCoh d)  s :
   getLocal n d = st :-> s -> getSt n C = s.
 Proof.
-by move=>E; rewrite /getSt/=; move: (cohSt C); rewrite !E/==>H; apply: ieqc.
+by move=>E; rewrite /getSt/=; move: (cohSt C); rewrite !E/==>H; apply: eqc.
 Qed.
 
 Lemma getStE n i j C C' (pf : n \in nodes) :

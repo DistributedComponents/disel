@@ -4,19 +4,17 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap.
-From DiSeL.Heaps
-Require Import heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
-From DiSeL.Core
+From DiSeL
 Require Import InductiveInv While.
-From DiSeL.Examples
+From DiSeL
 Require Import CalculatorProtocol CalculatorInvariant.
-From DiSeL.Examples
+From DiSeL
 Require Import CalculatorClientLib CalculatorServerLib.
 
 Export CalculatorProtocol.
@@ -47,7 +45,7 @@ Definition V := W1 \+ W2.
 Lemma validV : valid V.
 Proof.
 rewrite /V; apply/andP=>/=.
-split; first by rewrite gen_validPtUn/= gen_validPt/= gen_domPt inE/=.
+split; first by rewrite validPtUn/= validPt/= domPt inE/=.
 by rewrite unitR valid_unit.
 Qed.
 
@@ -96,47 +94,47 @@ Program Definition delegating_body :
     ret sv V tt).
 
 Lemma hook_complete_unit (c : context) : hook_complete (c, Unit).
-Proof. by move=>????; rewrite dom0 inE. Qed.
+Proof. by move=>????; rewrite dom0. Qed.
 
 Lemma hooks_consistent_unit (c : context) : hooks_consistent c Unit.
-Proof. by move=>????; rewrite dom0 inE. Qed.
+Proof. by move=>????; rewrite dom0. Qed.
 
 Next Obligation.
 rewrite -(unitR V)/V.
 have V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
 apply: (injectL V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
-by move=>??????; rewrite dom0 inE.
+by move=>??????; rewrite dom0.
 Defined.
 
 Next Obligation.
 rewrite -(unitR V)/V.
 have V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
 apply: (injectR V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
-by move=>??????; rewrite dom0 inE.
+by move=>??????; rewrite dom0.
 Qed.
 
 Next Obligation.
 rewrite -(unitR V)/V.
 have V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
 apply: (injectL V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
-by move=>??????; rewrite dom0 inE.
+by move=>??????; rewrite dom0.
 Defined.
 
 Lemma hcomp l : hook_complete (mkWorld l).
-Proof. by move=>????; rewrite dom0 inE. Qed.
+Proof. by move=>????; rewrite dom0. Qed.
 
 Next Obligation.
 move=>i/=[K1 L1]; apply: vrf_coh=>CD1; apply: step.
 move: (coh_split CD1 (hcomp cal1) (hcomp cal2))=>[i1[j1]][C1 D1 Z]; subst i.
 apply: inject_rule=>//.
 have E1 : loc (i1 \+ j1) l1 = loc i1 l1
-  by rewrite (locProjL CD1 _ C1)// gen_domPt inE/=.
+  by rewrite (locProjL CD1 _ C1)// domPt inE/=.
 rewrite E1 in K1.
 apply: with_inv_rule=>//.
 apply: (gh_ex (g:=[::])).
 apply: call_rule=>//[[from args]] i2/=[K2]H1 H2 _ j2 CD2 R1.
 have E2 : loc (i1 \+ j1) l2 = loc j1 l2.
-  by rewrite (locProjR CD1 _ D1)// gen_domPt inE/=.
+  by rewrite (locProjR CD1 _ D1)// domPt inE/=.
 (* Adapt the second protocol's view *)
 rewrite E2 -(rely_loc' l2 R1) in L1.
 apply: step; clear C1 D1.
@@ -154,9 +152,9 @@ rewrite -(rely_loc' _ R3) in L3; move: L3=>L4.
 apply: ret_rule=>m R _; rewrite (rely_loc' _ R).
 move/rely_coh: (R3)=>[]; rewrite injExtL ?(cohW CD2)//.
 move=>_ D4; clear R3; rewrite !(rely_loc' _ R); clear R.
-have X: l2 \in dom W2.1 by rewrite gen_domPt inE eqxx.
+have X: l2 \in dom W2.1 by rewrite domPt inE eqxx.
 rewrite (@locProjR _ _ _ _ _ CD4 X D4); split=>//.
-have X': l1 \in dom W1.1 by rewrite gen_domPt inE eqxx.
+have X': l1 \in dom W1.1 by rewrite domPt inE eqxx.
 rewrite /= eqxx in K4; rewrite (@locProjL _ _ _ _ _ CD4 X' _)//.
 by apply: (cohUnKL CD4 D4); apply: hook_complete_unit.
 Qed.

@@ -4,9 +4,9 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-From DiSeL.Core
+From fcsl
+Require Import pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX.
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -26,7 +26,7 @@ Lemma getLocalU n m d s :
   valid (dstate d) -> m \in dom (dstate d) ->
   getLocal n d = (getLocal n {| dstate := upd m (getLocal m d) (dstate d); dsoup := s |}).
 Proof.
-move=>V H2; move/gen_eta: (H2)=>[v2][F2 _].
+move=>V H2; move/um_eta: (H2)=>[v2][F2 _].
 rewrite /getLocal F2/=; case X: (n == m); last by rewrite findU X/=.
 by move/eqP: X=>X; subst m; rewrite findU eqxx/=V F2.
 Qed.
