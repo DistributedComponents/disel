@@ -1,4 +1,4 @@
--Q . DiSeL.Examples
+-Q . DiSeL
 -arg "-w -notation-overridden,-local-declaration,-redundant-canonical-projection,-projection-no-head-constant"
 
 SeqLib.v
