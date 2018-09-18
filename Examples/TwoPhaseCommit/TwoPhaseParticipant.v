@@ -85,7 +85,7 @@ Next Obligation. by rewrite !InE; do![right]. Qed.
 
 (************** Participant code **************)
 
-Implicit Arguments TPCProtocol.TPCCoh [cn pts others].
+Arguments TPCProtocol.TPCCoh [cn pts others].
 Notation coh := (@TPCProtocol.TPCCoh cn pts others).
 Notation getS s := (getStatelet s l).
 Notation loc i := (getLocal p (getStatelet i l)).

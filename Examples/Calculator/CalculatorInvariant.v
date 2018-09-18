@@ -59,8 +59,6 @@ Notation coh' := (coh cal).
 Notation Sinv := (@S_inv cal (fun d _ => CalcInv d)).
 Notation Rinv := (@R_inv cal (fun d _ => CalcInv d)).
 Notation PI := pf_irr.
-From DiSeL
-Require Import CalculatorProtocol.
 
 Program Definition s1: Sinv (server_send_trans f prec cs cls).
 Proof.

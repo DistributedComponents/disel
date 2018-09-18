@@ -1,18 +1,14 @@
 From mathcomp.ssreflect
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
-From mathcomp
-Require Import path.
+Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq path.
 Require Import Eqdep.
 From fcsl
 Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
 From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely Actions.
 From DiSeL
-Require Import SeqLib QueryProtocol.
+Require Import SeqLib QueryProtocol NewStatePredicates Actions.
 From DiSeL
-Require Import NewStatePredicates.
-From DiSeL
-Require Import Actions Injection Process Always HoareTriples InferenceRules.
+Require Import Injection Process Always HoareTriples InferenceRules While.
 
 Section QueryHooked.
 
@@ -1080,9 +1076,6 @@ Definition recv_resp_inv (rid : nat) to
           local_indicator data (getLc i) &
           msg_story i rid to data ((to, rid) :: reqs) resp].
 
-From DiSeL
-Require Import While.
-
 Program Definition receive_resp_loop (rid : nat) to :
   {(rrd : (seq (nid * nat) * seq (nid * nat) * Data))}, DHT [this, W]
   (fun i => let: (reqs, resp, data) := rrd in
@@ -1245,4 +1238,3 @@ by apply: (core_state_stable _ _ _ _ R _ T2 T4); case: T3.
 Qed.
 
 End QueryHooked.
-

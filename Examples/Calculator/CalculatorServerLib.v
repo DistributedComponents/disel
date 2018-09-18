@@ -11,7 +11,7 @@ Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
 From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 From DiSeL
-Require Import InductiveInv.
+Require Import InductiveInv While.
 From DiSeL
 Require Import CalculatorProtocol CalculatorInvariant.
 From DiSeL
@@ -91,9 +91,6 @@ Definition receive_req_loop_inv (ps : reqs) :=
         prec args & from \in cls]
      | None => loc i = st :-> ps
     end.
-
-From DiSeL
-Require Import While.
 
 Program Definition receive_req_loop :
   {ps : reqs}, DHT [sv, W]
