@@ -4,12 +4,10 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-From DiSeL.Core
-Require Import Freshness State EqTypeX Protocols Worlds NetworkSem.
-From DiSeL.Core
-Require Import Actions.
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
+Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Actions.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -96,18 +94,18 @@ Lemma projectS_cohL W1 W2 s :
   s \In Coh (W1 \+ W2) -> hook_complete W1 -> projectS W1 s \In Coh W1.
 Proof.
 case=>V1 V2 G1 D H G2; split=>//; first by move/validL: V1.
-- by rewrite valid_um_filter.
+- by rewrite valid_umfilt.
 - move=>z; case B: (z \in dom (getc W1)).
-  + by rewrite dom_um_filt !inE B/= -D/=domUn !inE B/=; case/andP:V1=>->.
-  by rewrite dom_um_filt !inE B.
+  + by rewrite dom_umfilt !inE B/= -D/=domUn !inE B/=; case/andP:V1=>->.
+  by rewrite dom_umfilt !inE B.
 move=>l; move: (H l)=>{H}H.
 case B: (l \in dom (getc W1)); last first.
 - rewrite /getProtocol /getStatelet; move: (B).
   case: dom_find=>//-> _.
   suff X: ~~(l \in dom (projectS W1 s)) by case: dom_find X=>//-> _. 
-  by rewrite /projectS dom_um_filt inE/= B.
+  by rewrite /projectS dom_umfilt inE/= B.
 have E1: find l s = find l (projectS W1 s).
-- by rewrite /projectS/= find_um_filt B.
+- by rewrite /projectS/= find_umfilt B.
 have E2: getProtocol (W1 \+ W2) l = getProtocol W1 l.
   - rewrite /getProtocol findUnL//?B//.
     by rewrite /valid/= in V1; case/andP: V1.
@@ -132,9 +130,9 @@ have X: {in dom s, dom_filt (getc W2) =1 predD (dom_filt (getc W2)) (dom_filt (g
   move: I; rewrite domUn inE/==>/negbT; rewrite negb_and negb_or/=.
   have X: valid (W1 \+ W2) by [].
   by case/andP: X=>->/=_/andP[]->.
-rewrite (eq_in_um_filt X) -um_filt_predU/=; clear X.
+rewrite (eq_in_umfilt X) -umfilt_predU/=; clear X.
 suff X: {in dom s, predU (dom_filt (getc W1)) (dom_filt (getc W2)) =1 predT}.
-- by rewrite (eq_in_um_filt X) um_filt_predT. 
+- by rewrite (eq_in_umfilt X) umfilt_predT. 
 by move=>z; rewrite/= -D domUn inE=>/andP[].
 Qed.
 
@@ -157,7 +155,7 @@ rewrite -joinA in E.
 case/andP: H=>H1 H2.
 rewrite /PCM.join/= in H1 H2 E *.
 case: W2 H1 H2 E=>/=c2 h2 H1 H2 [E1 E2].
-by rewrite (joinfK H1 E1) (joinfK H2 E2). 
+by rewrite (joinxK H1 E1) (joinxK H2 E2).
 Qed.
 
 Lemma injExtR' W1 W2 K (pf : injects W2 (W1 \+ W2) K) :
@@ -168,7 +166,7 @@ rewrite -(joinC W2) in E H.
 case/andP: H=>H1 H2; rewrite -joinA in E.
 rewrite /PCM.join/= in H1 H2 E *.
 case: W1 H1 H2 E=>/=c1 h1 H1 H2 [E1 E2].
-by rewrite (joinfK H1 E1) (joinfK H2 E2).
+by rewrite (joinxK H1 E1) (joinxK H2 E2).
 Qed.
 
 Lemma injExtL W1 W2 (pf : injects W1 (W1 \+ W2) Unit) :
@@ -197,11 +195,12 @@ suff X: s' = projectS W (s \+ s').
 - by rewrite X; apply: (projectS_cohR H).
 suff X: s = projectS U (s \+ s').
 - move: (cohS H)=>V; move/projectSE: (H)=>E.
-  rewrite E in V. rewrite {1}X in E; move/sym: E=>E.
-  by rewrite (joinfK V E).
+  rewrite E in V.
+  rewrite {1}X in E.
+  by rewrite (joinxK V (sym_eq E)).
 rewrite /projectS.
-suff X: {in dom (s \+ s'), dom U.1 =1 dom s}.
-- by rewrite (eq_in_um_filt X) um_filt_dom ?(cohS H)//.
+suff X: {in dom (s \+ s'), dom U.1 =i dom s}.
+- by rewrite (eq_in_umfilt X) umfilt_dom ?(cohS H)//.
 by move=>z _; move: (cohD C z); rewrite /in_mem.
 Qed.
 
@@ -252,7 +251,7 @@ Proof.
 case=>V Vs Hk D L.
 split=>//; first by move/validL: V.
 - by apply: hook_completeL V Hk.
-- move=>z; rewrite -D domUn !inE/= unitR dom0 inE orbC/=.
+- move=>z; rewrite -D domUn !inE/= unitR dom0 orbC/=.
   by move/validL:V=>/andP[]->_.
 by move=>l; move: (L l); rewrite (get_protocol_hooks K l (validL V)).
 Qed.
@@ -291,12 +290,12 @@ rewrite domUn inE=>/andP[Vs]/=/orP; case=>D C msg H2 [H3 H4]/=;
 [rewrite updUnL D|rewrite updUnR D]=>G;[left|right].
 - have X: s1' = s2'.
   + move: (C2'); rewrite (joinC U) G -[upd _ _ _ \+ s1'](joinC s1'). 
-    move/cohUnKR/(_ D1)/(_ Hu)=>C1''. 
-    move: (coh_prec (cohS C2') G C2 C1'')=>Z; rewrite -Z in G; clear Z.
-    by rewrite (joinfK (cohS C2') G).
+    move/cohUnKR/(_ D1)/(_ Hu)=>C1''.
+    move: (coh_prec (cohS C2') C2 C1'' G)=>Z; rewrite -Z in G; clear Z.
+    by rewrite (joinxK (cohS C2') G).
   split=>//; subst s2'; rewrite -![_ \+ s1'](joinC s1') in G C2'.
   rewrite -[upd _ _ _ \+ s1'](joinC s1') in G; rewrite (joinC U) in C2'.
-  move: (joinfK (cohS C2') G)=>{G}G. 
+  move: (joinxK (cohS C2') G)=>{G}G. 
   have E: getProtocol U l = getProtocol (U \+ W) l.
     by rewrite (getPUn V)// (cohD C1).
   have E': getStatelet s1 l = getStatelet (s1 \+ s1') l.
@@ -307,7 +306,7 @@ rewrite domUn inE=>/andP[Vs]/=/orP; case=>D C msg H2 [H3 H4]/=;
         (get_protocol_hooks K l V) E rt R H2=>_-><-rt R H2 coh_s H1 G H3 H4.
   apply: (ReceiveMsg R D H2 (i := i) (from := from) (s2 := s2) (C := C1)). 
   split=>//=; move: (NetworkSem.coh_s l C1)=>coh_s';
-  by rewrite -(proof_irrelevance coh_s coh_s').
+  by rewrite -(pf_irr coh_s coh_s').
 
 (* Second part or receive-step *)
 move: U W V {V1} Hw Hu s1 s2 s1' s2' C1 C2 C1' C2' D1 D2 rt H1 H2 Vs D C R H3 H4 G.
@@ -317,10 +316,10 @@ move=>rt H1 H2 Vs D C R H3 H4 G.
 have X: s1' = s2'.
 - move: (C2'); rewrite (joinC U) G. 
   move/cohUnKR/(_ D1)/(_ Hw)=>C1''; rewrite (joinC s1') in G.
-  move: (coh_prec (cohS C2') G C2 C1'')=>Z; rewrite -Z in G; clear Z.
-  by rewrite (joinfK (cohS C2') G).
+  move: (coh_prec (cohS C2') C2 C1'' G)=>Z; rewrite -Z in G; clear Z.
+  by rewrite (joinxK (cohS C2') G).
 split=>//; subst s2'; rewrite -!(joinC s1') in G C2'.
-rewrite (joinC U) in C2'; move: (joinfK (cohS C2') G)=>{G}G.
+rewrite (joinC U) in C2'; move: (joinxK (cohS C2') G)=>{G}G.
 rewrite joinC in V.
 have E: getProtocol U l = getProtocol (U \+ W) l.
   by rewrite (getPUn V)// (cohD C1).
@@ -332,12 +331,12 @@ move: (getProtocol (U \+ W \+ (Unit, K)) l)
       (get_protocol_hooks K l V) E rt R H2=>_-><-rt R H2 coh_s H1 G H3 H4.
 apply: (ReceiveMsg R D H2 (i := i) (from := from) (s2 := s2) (C := C1)). 
 split=>//=; move: (NetworkSem.coh_s l C1)=>coh_s';
-by rewrite -(proof_irrelevance coh_s coh_s').
+by rewrite -(pf_irr coh_s coh_s').
 
 (* Idle Step *)
-- case=>_ E; move: (coh_prec (cohS C1') E C1 C2)=>Z; subst s2.
+- case=>_ E; move: (coh_prec (cohS C1') C1 C2 E)=>Z; subst s2.
   rewrite (joinC U) (joinC s1) in C1'; rewrite !(joinC s1) in E.
-  move: (coh_prec (cohS C1') E D1 D2)=>Z; subst s2'.
+  move: (coh_prec (cohS C1') D1 D2 E)=>Z; subst s2'.
   by left; split=>//; apply: Idle.
 
 (* Send Step *)
@@ -351,10 +350,10 @@ by rewrite -(proof_irrelevance coh_s coh_s').
   + have X: s1' = s2'.
     - move: (C2'); rewrite (joinC U) G -[upd _ _ _ \+ s1'](joinC s1'). 
       move/cohUnKR/(_ D1)/(_ Hu)=>C1''.
-      move: (coh_prec (cohS C2') G C2 C1'')=>Z; rewrite -Z in G; clear Z.
-      by rewrite (joinfK (cohS C2') G).
+      move: (coh_prec (cohS C2') C2 C1'' G)=>Z; rewrite -Z in G; clear Z.
+      by rewrite (joinxK (cohS C2') G).
     split=>//; subst s2'; rewrite -!(joinC s1') in G C2'.
-    rewrite (joinC U) in C2'; move: (joinfK (cohS C2') G)=>{G}G.
+    rewrite (joinC U) in C2'; move: (joinxK (cohS C2') G)=>{G}G.
     rewrite (joinC s1') in G.
     have E: getProtocol U l = getProtocol (U \+ W) l.
       by rewrite (getPUn V)// (cohD C1).
@@ -367,7 +366,9 @@ by rewrite -(proof_irrelevance coh_s coh_s').
     apply: (SendMsg H1 H2 D C1 _ H3 G).
 
     (* Now proving the obligation about all_hooks_fire *)
-    move=>z lc hk/sym F A1 A2; move: (Hk z lc hk).
+    move=>z lc hk F A1 A2.
+    apply sym_eq in F.
+    move: (Hk z lc hk).
     rewrite -F -joinA !domUn !inE !Vs A1 A2 findUnL ?E' ?(find_some F)/=;
       last by case/andP:V1; rewrite-joinA =>_->.
     move/(_ erefl is_true_true is_true_true).
@@ -376,10 +377,10 @@ by rewrite -(proof_irrelevance coh_s coh_s').
   have X: s1' = s2'.
   - move: (C2'); rewrite (joinC U) G. 
     move/cohUnKR/(_ D1)/(_ Hu)=>C1''; rewrite (joinC s1') in G.
-    move: (coh_prec (cohS C2') G C2 C1'')=>Z; rewrite -Z in G; clear Z.
-    by rewrite (joinfK (cohS C2') G).
+    move: (coh_prec (cohS C2') C2 C1'' G)=>Z; rewrite -Z in G; clear Z.
+    by rewrite (joinxK (cohS C2') G).
   split=>//; subst s2'; rewrite -!(joinC s1') in G C2'.
-  rewrite (joinC U) in C2'; move: (joinfK (cohS C2') G)=>{G}G.
+  rewrite (joinC U) in C2'; move: (joinxK (cohS C2') G)=>{G}G.
   rewrite (joinC s1') in G.
   have E: getProtocol U l = getProtocol (U \+ W) l.
     by rewrite (getPUn V)// (cohD C1).
@@ -392,7 +393,9 @@ by rewrite -(proof_irrelevance coh_s coh_s').
     apply: (SendMsg H1 H2 D C1 _ H3 G).
 
     (* Now proving the obligation about all_hooks_fire *)
-    move=>z lc hk/sym F A1 A2; move: (Hk z lc hk).
+    move=>z lc hk F A1 A2.
+    apply sym_eq in F.
+    move: (Hk z lc hk).
     rewrite -F -joinA !domUn !inE A1 A2 findUnL ?E' ?(find_some F)/=;
       last by rewrite joinA (joinC U.2); case/andP:V1=>_->.
     rewrite !(joinC s1') !Vs/= -!(orbC true).
@@ -427,18 +430,20 @@ move=>G1 G2 G D' C1 C' N A z lc hk F D1 D2; move: F.
 case/andP: (cohW C')=>/=V1 V2.
 move: (cohUnKR (coh_hooks C') C1 G2) => C2.
 rewrite findUnL ?V2//=; case: ifP=>D3; last first.
-- by move/sym/find_some/N/negP; rewrite eqxx. 
+- move => F; apply sym_eq in F; move: F.
+  by move/find_some/N/negP; rewrite eqxx. 
 rewrite findUnR ?(validL V2)//; case: ifP=>[D|_].
 + case/G2/andP: D=>_ D; rewrite (cohD C2) in D.
   by case: validUn (cohS C')=>//_ _/(_ _ D'); rewrite D.
-move/sym=> F.
+move => F.
+apply sym_eq in F.
 have D'': lc \in dom s by case/andP:(G1 _ _ _ _ (find_some F)); rewrite (cohD C1).
 have E: getStatelet s l = getStatelet (s \+ s') l
   by rewrite (getSUn (cohS C'))// -?(cohD C1').
 have E': getStatelet s lc = getStatelet (s \+ s') lc.
   by rewrite (getSUn (cohS C'))// -?(cohD C1').
 move: (getStatelet (s \+ s') l) (getStatelet (s \+ s') lc) E E'.
-by move=>y1 y2 Z1 Z2; subst y1 y2; move/sym: F=>F; apply: (A z).
+by move=>y1 y2 Z1 Z2; subst y1 y2; apply sym_eq in F; apply: (A z).
 Qed.
 
 (********************************************************************)
@@ -491,9 +496,9 @@ move: (getProtocol U l) (getStatelet s1 l) E E' C H2
       (coh_s l C) rt G3 G G2 H1 G1=>z1 z2 Z1 Z2.
 subst z1 z2=>C pf C' G3 G G2 H1 H2 G1.
 apply: (ReceiveMsg H2 X G2 (i := msg) (from := from) (s2 := s2 \+ s)).
-split=>//=; first by rewrite (proof_irrelevance (coh_s l C1) C').
+split=>//=; first by rewrite (pf_irr (coh_s l C1) C').
 rewrite updUnL H3; congr (_ \+ _); move: (NetworkSem.coh_s l C1)=>pf'. 
-by rewrite (proof_irrelevance pf' C').
+by rewrite (pf_irr pf' C').
 Qed.
 
 

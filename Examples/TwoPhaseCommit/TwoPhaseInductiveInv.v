@@ -4,17 +4,15 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap.
-From DiSeL.Heaps
-Require Import heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
-From DiSeL.Core
+From DiSeL
 Require Import InductiveInv While StatePredicates.
-From DiSeL.Examples
+From DiSeL
 Require Import TwoPhaseProtocol.
 
 Require Import Omega.
@@ -206,7 +204,7 @@ Definition Inv (d : dstatelet) :=
 (***********************************************************)
 
 Notation coh d := (coh tpc d).
-Notation PI := proof_irrelevance.
+Notation PI := pf_irr.
 Export TPCProtocol.
 
 Lemma inv_init d e (C : coh d):

@@ -4,11 +4,12 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-Require Import State DepMaps Protocols Worlds NetworkSem Rely.
-Require Import HoareTriples InferenceRules.
-Require Import While.
-Require Import TwoPhaseProtocol TwoPhaseInductiveInv TwoPhaseCoordinator TwoPhaseParticipant.
+From fcsl
+Require Import pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
+Require Import State DepMaps Protocols Worlds NetworkSem Rely HoareTriples InferenceRules.
+From DiSeL
+Require Import While TwoPhaseProtocol TwoPhaseInductiveInv TwoPhaseCoordinator TwoPhaseParticipant.
 
 Section TwoPhaseClient.
 

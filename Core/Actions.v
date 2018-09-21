@@ -4,9 +4,9 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem.
 Require Classical_Prop.
 
@@ -285,19 +285,19 @@ set s2 := let: d :=  getS s l in
           upd l (DStatelet f' s') s.
 exists s2, msg; split=>//; exists b; split=>//.
 move: (safe_safe (And4 C S J K))=> S''.
-by rewrite -E (proof_irrelevance S'' S') .
+by rewrite -E (pf_irr S'' S') .
 Qed.
 
 Lemma send_act_step_sem s1 (S : send_act_safe s1) s2 r:
   send_act_step S s2 r -> network_step W this s1 s2.
 Proof.
 case=>_[b][E Z]; case: (S)=>C S' /andP[D1] D2 K; subst s2=>/=.
-rewrite (proof_irrelevance (safe_safe S) S') in E; clear S.
+rewrite (pf_irr (safe_safe S) S') in E; clear S.
 rewrite /all_hooks_fire/filter_hooks in K.
 move: st S' E K pf'; clear pf' st; subst p=>st S' E K' pf'.
 apply: (@SendMsg W this s1 _ l st pf' to msg)=>////.
 move=>z lc hk E'; apply: (K' z); rewrite E'.
-by rewrite find_um_filt/= eqxx.
+by rewrite find_umfilt/= eqxx.
 Qed.
 
 Definition send_action_wrapper :=

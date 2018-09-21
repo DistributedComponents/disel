@@ -3,21 +3,21 @@ Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
 From mathcomp
 Require Import path.
 Require Import Eqdep.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import NewStatePredicates.
-From DiSeL.Examples
+From DiSeL
 Require Import SeqLib.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
-From DiSeL.Examples
+From DiSeL
 Require Import TwoPhaseProtocol TwoPhaseCoordinator TwoPhaseParticipant.
-From DiSeL.Examples
+From DiSeL
 Require TwoPhaseInductiveProof.
-From DiSeL.Examples
+From DiSeL
 Require Import QueryProtocol QueryHooked.
 
 Section QueryPlusTPC.
@@ -63,12 +63,12 @@ Proof.
 rewrite/core_state_to_data.
 case:ifP=>_ E; rewrite E ![_ \+ log :-> _]joinC=>{E}E.
 - have V: valid (log :-> d.2 \+ st :-> (d.1, CInit)).
-  - by case: validUn=>//k; rewrite !hdomPt !inE/==>/eqP<-. 
+  - by case: validUn=>//k; rewrite !domPt !inE/==>/eqP<-. 
   case: (hcancelV V E)=>E2=>{V E}V E. 
   case: (hcancelPtV V E)=>E1.
   by rewrite [d]surjective_pairing [d']surjective_pairing E1 E2.
 have V: valid (log :-> d.2 \+ st :-> (d.1, PInit)).
-- by case: validUn=>//k; rewrite !hdomPt !inE/==>/eqP<-. 
+- by case: validUn=>//k; rewrite !domPt !inE/==>/eqP<-. 
 case: (hcancelV V E)=>E2=>{V E}V E. 
 case: (hcancelPtV V E)=>E1.
 by rewrite [d]surjective_pairing [d']surjective_pairing E1 E2.
@@ -183,46 +183,46 @@ move: (C0)=>CD0; rewrite /W eqW in CD0; move: (coh_hooks CD0)=>{CD0}CD0.
 case: (coh_split CD0); try apply: hook_complete0.
 move=>i1[j1][C1 D1 Z].
 subst i0; apply: inject_rule=>//.
-have E : loc_tpc (i1 \+ j1) = loc_tpc i1 by rewrite (locProjL CD0 _ C1)// gen_domPt inE andbC eqxx.
+have E : loc_tpc (i1 \+ j1) = loc_tpc i1 by rewrite (locProjL CD0 _ C1)// domPt inE andbC eqxx.
 rewrite E{E} in P1.
 apply: with_inv_rule'. 
 apply: call_rule=>//_ i2 [chs]L2 C2 Inv j2 CD2/= R.
 (* Massaging the complementary state *)
-have E : loc_qry (i1 \+ j1) = loc_qry j1 by rewrite (locProjR CD0 _ D1)// gen_domPt inE andbC eqxx.
+have E : loc_qry (i1 \+ j1) = loc_qry j1 by rewrite (locProjR CD0 _ D1)// domPt inE andbC eqxx.
 rewrite E {E} -(rely_loc' _ R) in P3.
 case: (rely_coh R)=>_ D2.
 rewrite /W eqW in CD2; move: (coh_hooks CD2)=>{CD2}CD2.
 rewrite /mkWorld/= in C2.
 have C2': i2 \In Coh (plab pc \\-> pc, Unit).
 - split=>//=.
-  + by rewrite /valid/= valid_unit um_validPt.
+  + by rewrite /valid/= valid_unit validPt.
   + by apply: (cohS C2).
   + by apply: hook_complete0.  
-  + by move=>z; rewrite -(cohD C2) !um_domPt.
+  + by move=>z; rewrite -(cohD C2) !domPt.
   move=>l; case B: (lc == l).
-  + move/eqP:B=>B; subst l; rewrite /getProtocol um_findPt; split=>//.
-    by move: (coh_coh lc C2); rewrite /getProtocol um_findPt.
-  have X: l \notin dom i2 by rewrite -(cohD C2) um_domPt inE; move/negbT: B.
+  + move/eqP:B=>B; subst l; rewrite /getProtocol findPt; split=>//.
+    by move: (coh_coh lc C2); rewrite /getProtocol findPt.
+  have X: l \notin dom i2 by rewrite -(cohD C2) domPt inE; move/negbT: B.
   rewrite /getProtocol/= (find_empty _ _ X).
-  have Y: l \notin dom (lc \\-> pc) by rewrite um_domPt inE; move/negbT: B.
+  have Y: l \notin dom (lc \\-> pc) by rewrite domPt inE; move/negbT: B.
   by case: dom_find Y=>//->_. 
 have D2': j2 \In Coh (lq \\-> pq lq Data qnodes serialize, Unit)
     by apply: (cohUnKR CD2 _); try apply: hook_complete0.
 
-rewrite -(locProjL CD2 _ C2') in L2; last by rewrite um_domPt inE eqxx.
-rewrite -(locProjR CD2 _ D2') in P3; last by rewrite um_domPt inE eqxx.
+rewrite -(locProjL CD2 _ C2') in L2; last by rewrite domPt inE eqxx.
+rewrite -(locProjR CD2 _ D2') in P3; last by rewrite domPt inE eqxx.
 clear C2 D2.
 
 (* So what's important is for the precondition ofattachment to be *)
 (* independent of the core protocol. *)  
 rewrite injWQ in R.
 rewrite /query_init_state/= in P4.
-rewrite (locProjR CD0 _ D1) in P4; last by rewrite um_domPt inE eqxx.
+rewrite (locProjR CD0 _ D1) in P4; last by rewrite domPt inE eqxx.
 have Q4: qry_init to j2.
 - by apply: (query_init_rely' lq Data qnodes serialize cn to _ _ P4 R).
 clear P4.
 rewrite /query_init_state/= -(locProjR CD2 _ D2') in Q4;
-  last by rewrite um_domPt inE eqxx.
+  last by rewrite domPt inE eqxx.
 
 (* Now ready to use the spec for querying. *)
 apply (gh_ex (g:=(rq, rs, (size ds, seq.zip chs ds)))).
@@ -230,7 +230,7 @@ apply: call_rule=>//=; last by move=>d m[->->T1 T2->]_; eexists _.
 move=>CD2'; split=>//.
 case/orP: P2=>[|P]; first by move/eqP=>Z; subst to; rewrite /core_state_to_data eqxx.  
 rewrite !(locProjL CD2 _ C2') in L2 *;
-  last by rewrite um_domPt inE eqxx.
+  last by rewrite domPt inE eqxx.
 move: (coh_coh lc C2'); rewrite prEq; case=>C3 _.
 rewrite /core_state_to_data; case:ifP=>//[|_]; first by move=>/eqP Z; subst to. 
 by apply: (@cn_agree lc cn pts [::] Hnin _ _ _ to C3 _ Inv).

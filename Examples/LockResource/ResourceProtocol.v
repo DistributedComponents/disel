@@ -4,11 +4,11 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
 
 Set Implicit Arguments.
@@ -120,7 +120,7 @@ Proof.
 move=>[H1 H2]Cm; split=>[|i ms/=]; first by rewrite valid_fresh.
 rewrite findUnL; last by rewrite valid_fresh.
 case: ifP=>E; first by move/H2.
-by move/um_findPt_inv=>[Z G]; subst i m.
+by move/findPt_inv=>[Z G]; subst i m.
 Qed.
 
 Definition state_coh d :=
@@ -209,16 +209,16 @@ Qed.
 
 Lemma getLocal_server_st_tp d (C : ResourceCoh d) s:
   find st (getLocal server d) = Some s ->
-  idyn_tp s = server_state.
+  dyn_tp s = server_state.
 Proof.
 have pf: server \in nodes by rewrite inE eqxx.
 move: (getLocal_coh C pf); rewrite eqxx; move =>[V][s']Z; rewrite Z in V *.
-by rewrite hfindPt -(hvalidPt _ s') V; case=><-.
+by rewrite findPt /=; case=><-.
 Qed.
 
 Definition getSt_server d (C : ResourceCoh d) : server_state :=
   match find st (getLocal server d) as f return _ = f -> _ with
-    Some v => fun epf => icoerce id (idyn_val v) (getLocal_server_st_tp C epf)
+    Some v => fun epf => icast (sym_eq (getLocal_server_st_tp C epf)) (dyn_val v)
   | _ => fun epf => ServerState 0 0 [::]
   end (erefl _).
 
@@ -229,7 +229,7 @@ move=>E; rewrite /getSt_server/=.
 have pf: server \in nodes by rewrite inE eqxx.
 have V: valid (getLocal server d) by case: (getLocal_coh C pf).
 move: (getLocal_server_st_tp C); rewrite !E=>/= H.
-by apply: ieqc.
+by apply: eqc.
 Qed.
 
 End GetterLemmas.
@@ -293,7 +293,7 @@ move=>n Ni. rewrite /local_coh/=.
 rewrite /getLocal/=findU; case: ifP=>B; last by case: C=>_ _ _/(_ n Ni).
 move/eqP: B=>Z; subst n this; rewrite eqxx (cohVl C)/=.
 split.
-by rewrite hvalidPt.
+by rewrite validPt.
 by eexists. 
 Qed. 
 
@@ -377,7 +377,7 @@ split=>/=; first by apply: consume_coh.
 move=>n Ni/=; rewrite /local_coh/=.
 rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni).
 move/eqP: B X=>Z/eqP X; subst n this; rewrite eqxx (cohVl C)/=.
-split; first by rewrite hvalidPt.
+split; first by rewrite validPt.
 by eexists.
 Qed.
 

@@ -1,18 +1,8 @@
--Q . DiSeL
+-Q Core DiSeL
+-Q Examples DiSeL
 -arg "-w -notation-overridden,-local-declaration,-redundant-canonical-projection,-projection-no-head-constant"
 
-Heaps/coding.v
-Heaps/domain.v
-Heaps/finmap.v
-Heaps/heap.v
-Heaps/idynamic.v
-Heaps/ordtype.v
-Heaps/pcm.v
-Heaps/pperm.v
-Heaps/pred.v
-Heaps/prelude.v
-Heaps/spcm.v
-Heaps/unionmap.v
+Core/Domain.v
 Core/State.v
 Core/Freshness.v
 Core/Protocols.v
@@ -50,5 +40,8 @@ Examples/TwoPhaseCommit/TwoPhaseParticipant.v
 Examples/TwoPhaseCommit/SimpleTPCApp.v
 Examples/TwoPhaseCommit/TwoPhaseExtraction.v
 Examples/TwoPhaseCommit/TwoPhaseInductiveInv.v
-Examples/TwoPhaseCommit/TwoPhaseInductiveProof.v 
+Examples/TwoPhaseCommit/TwoPhaseInductiveProof.v
+Examples/TwoPhaseCommit/TwoPhaseClient.v
 Examples/Querying/QueryPlusTPC.v
+Examples/LockResource/LockProtocol.v
+Examples/LockResource/ResourceProtocol.v

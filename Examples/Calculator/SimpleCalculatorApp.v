@@ -4,21 +4,19 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap.
-From DiSeL.Heaps
-Require Import heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
-From DiSeL.Core
+From DiSeL
 Require Import InductiveInv While.
-From DiSeL.Examples
+From DiSeL
 Require Import CalculatorProtocol CalculatorInvariant.
-From DiSeL.Examples
+From DiSeL
 Require Import CalculatorClientLib CalculatorServerLib.
-From DiSeL.Examples
+From DiSeL
 Require Import DelegatingCalculatorServer SimpleCalculatorServers.
 
 Export CalculatorProtocol.
@@ -68,7 +66,7 @@ Definition V := W1 \+ W2.
 Lemma validV : valid V.
 Proof.
 rewrite /V; apply/andP=>/=.
-split; first by rewrite gen_validPtUn/= gen_validPt/= gen_domPt inE/=.
+split; first by rewrite validPtUn/= validPt/= domPt inE/=.
 by rewrite unitR valid_unit.
 Qed.
 
@@ -100,15 +98,15 @@ Definition init_dstate2 := sv \\-> init_loc \+ sd \\-> init_loc.
 Lemma valid_init_dstate1 : valid init_dstate1.
 Proof.
 case: validUn=>//=;
-do?[case: validUn=>//; do?[rewrite ?gen_validPt/=//]|by rewrite gen_validPt/=].
-by move=>k; rewrite !gen_domPt !inE/==>/eqP<-/eqP.
+do?[case: validUn=>//; do?[rewrite ?validPt/=//]|by rewrite validPt/=].
+by move=>k; rewrite !domPt !inE/==>/eqP<-/eqP.
 Qed.
 
 Lemma valid_init_dstate2 : valid init_dstate2.
 Proof.
 case: validUn=>//=;
-do?[case: validUn=>//; do?[rewrite ?gen_validPt/=//]|by rewrite gen_validPt/=].
-by move=>k; rewrite !gen_domPt !inE/==>/eqP<-/eqP.
+do?[case: validUn=>//; do?[rewrite ?validPt/=//]|by rewrite validPt/=].
+by move=>k; rewrite !domPt !inE/==>/eqP<-/eqP.
 Qed.
 
 Notation init_dstatelet1 := (DStatelet init_dstate1 Unit).
@@ -120,76 +118,76 @@ Definition init_state : state :=
 Lemma validI : valid init_state.
 Proof.
 case: validUn=>//=; do?[case: validUn=>//;
-  do?[rewrite ?gen_validPt/=//]|by rewrite gen_validPt/=];
-  by move=>k; rewrite !gen_domPt !inE/==>/eqP<-/eqP.
+  do?[rewrite ?gen_validPt/=//]|by rewrite validPt/=];
+  by move=>k; rewrite !domPt !inE/==>/eqP<-/eqP.
 Qed.
 
 Lemma coh1': calcoh prec cs1 cls1 init_dstatelet1 /\
              CalcInv l1 f prec cs1 cls1 init_dstatelet1.
 Proof.
-split; last by move=>?????????/=/esym/empbP/=; rewrite um_empbPtUn.
+split; last by move=>?????????/=/esym/empbP/=; rewrite empbPtUn.
 split=>//; rewrite ?valid_init_dstate1//.
 - split; first by rewrite valid_unit.
   by move=>m ms; rewrite find0E. 
 - move=>z; rewrite /=/init_dstate1 domUn !inE/= valid_init_dstate1/=.
-  by rewrite !um_domPt !inE !(eq_sym z). 
+  by rewrite !domPt !inE !(eq_sym z). 
 move=>n/=; rewrite inE=>/orP; case=>//=. 
 - move/eqP=>->/=; exists [::]=>/=.
   rewrite /getLocal/init_dstate1/= findUnL?valid_init_dstate1//.
-  by rewrite um_domPt/= gen_findPt/=.
+  by rewrite domPt/= findPt/=.
 rewrite inE=>/eqP=>->; exists [::]=>/=.
 rewrite /getLocal/init_dstate1/= findUnL?valid_init_dstate1//.
-by rewrite um_domPt/= gen_findPt.
+by rewrite domPt/= findPt.
 Qed.
 
 Lemma coh1 : l1 \\-> init_dstatelet1 \In Coh W1.
 Proof.
 split=>//.
 - apply/andP; split; last by rewrite valid_unit.
-  by rewrite ?gen_validPt.
-- by rewrite gen_validPt/=.
+  by rewrite ?validPt.
+- by rewrite validPt/=.
 - by apply: hook_complete_unit.  
-- by move=>z; rewrite !gen_domPt !inE/=.   
+- by move=>z; rewrite !domPt !inE/=.
 move=>k; case B: (l1==k); last first.
 - have X: (k \notin dom W1.1).
-    by rewrite /init_state/W1/=!gen_domPt !inE/=; move/negbT: B. 
-  by rewrite /getProtocol /getStatelet/= ?gen_findPt2 eq_sym !B/=. 
-move/eqP:B=>B; subst k; rewrite prEq/getStatelet/init_state gen_findPt/=.
-apply: coh1'.
+    by rewrite /init_state/W1/=!domPt !inE/=; move/negbT: B. 
+  by rewrite /getProtocol /getStatelet/= ?findPt2 eq_sym !B/=. 
+move/eqP:B=>B; subst k; rewrite prEq/getStatelet/init_state findPt/=.
+exact: coh1'.
 Qed.
 
 Lemma coh2' : calcoh prec cs2 cls2 init_dstatelet2 /\
               CalcInv l2 f prec cs2 cls2 init_dstatelet2.
 Proof.
-split; last by move=>?????????/=/esym/empbP/=; rewrite um_empbPtUn.
+split; last by move=>?????????/=/esym/empbP/=; rewrite empbPtUn.
 split=>//; rewrite ?valid_init_dstate2//.
 - split; first by rewrite valid_unit.
   by move=>m ms; rewrite find0E//. 
 - move=>z; rewrite /=/init_dstate2 domUn !inE/= valid_init_dstate2//=.
-  by rewrite !um_domPt !inE !(eq_sym z) orbC. 
+  by rewrite !domPt !inE !(eq_sym z) orbC. 
 move=>n/=; rewrite inE=>/orP; case=>//=. 
 - move/eqP=>->/=; exists [::]=>/=.
   rewrite /getLocal/init_dstate2/= findUnL?valid_init_dstate2//.
-  by rewrite um_domPt/= gen_findPt/=.
+  by rewrite domPt/= findPt/=.
 rewrite inE=>/eqP=>->; exists [::]=>/=.
 rewrite /getLocal/init_dstate2/= findUnL?valid_init_dstate2//.
-by rewrite um_domPt/= gen_findPt.
+by rewrite domPt/= findPt.
 Qed.
 
 Lemma coh2 : l2 \\-> init_dstatelet2 \In Coh W2.
 Proof.
 split.
 - apply/andP; split; last by rewrite valid_unit.
-  by rewrite ?gen_validPt.
-- by rewrite gen_validPt/=.
+  by rewrite ?validPt.
+- by rewrite validPt/=.
 - by apply: hook_complete_unit.  
-- by move=>z; rewrite !gen_domPt !inE/=.   
+- by move=>z; rewrite !domPt !inE/=.
 move=>k; case B: (l2==k); last first.
 - have X: (k \notin dom W2.1).
-    by rewrite /init_state/W2/=!gen_domPt !inE/=; move/negbT: B. 
-  by rewrite /getProtocol /getStatelet/= ?gen_findPt2 eq_sym !B/=. 
-move/eqP:B=>B; subst k; rewrite prEq/getStatelet/init_state gen_findPt/=.
-apply: coh2'.
+    by rewrite /init_state/W2/=!domPt !inE/=; move/negbT: B. 
+  by rewrite /getProtocol /getStatelet/= ?findPt2 eq_sym !B/=. 
+move/eqP:B=>B; subst k; rewrite prEq/getStatelet/init_state findPt/=.
+exact: coh2'.
 Qed.
 
 Lemma init_coh : init_state \In Coh V.
@@ -197,21 +195,22 @@ Proof.
 split=>//; first by apply: validV.
 - by apply: validI.
 - rewrite /V/=/init_state/==>z.
-- by move=>???; rewrite domUn !inE/= dom0 inE andbC.
+- by move=>???; rewrite domUn !inE/= dom0 andbC.
 - rewrite /V/init_state=>z; rewrite !domUn !inE; case/andP:validV=>->_/=.
-  by rewrite validI/= !gen_domPt. 
+  by rewrite validI/= !domPt. 
 move=>k; case B: ((l1 == k) || (l2 == k)); last first.
 - have X: (k \notin dom V.1).
-  + by rewrite /V domUn inE/= !gen_domPt!inE/= B andbC. 
+  + by rewrite /V domUn inE/= !domPt!inE/= B andbC. 
   rewrite /getProtocol /getStatelet/=.
   case: dom_find (X)=>//->_/=; rewrite /init_state.
   case/negbT/norP: B=>/negbTE N1/negbTE N2.
-  rewrite findUnL; rewrite ?validI// um_domPt inE N1.
-by rewrite gen_findPt2 eq_sym N2/=.
+  rewrite findUnL; rewrite ?validI// domPt inE N1.
+  rewrite findPt2 eq_sym N1/=.
+  by rewrite findPt2 eq_sym N2/=.
 case/andP: validV=>V1 V2.
 case/orP:B=>/eqP Z; subst k;
-rewrite /getProtocol/V findUnL/= ?V1 ?gen_domPt ?inE/= ?um_findPt;
-rewrite /getStatelet ?findUnL/= ?validI// ?gen_domPt ?inE/= ?um_findPt;
+rewrite /getProtocol/V findUnL/= ?V1 ?domPt ?inE/= ?findPt;
+rewrite /getStatelet ?findUnL/= ?validI// ?domPt ?inE/= ?findPt;
 [by case: coh1'|by case coh2'].
 Qed.
 
@@ -237,7 +236,7 @@ Next Obligation.
 rewrite -(unitR V)/V.
 have V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
 apply: (injectL V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
-by move=>??????; rewrite dom0 inE.
+by move=>??????; rewrite dom0.
 Qed.
 
 Next Obligation.
@@ -250,10 +249,10 @@ case: (rely_ext X coh1 R)=>i1[j1][Z]C'; subst i.
 apply: inject_rule=>//.
 apply: call_rule=>C1{C'}/=; last by move=>m[H1]H2 H3.
 have E: (getStatelet i1 l1) = (getStatelet (i1 \+ j1) l1).
-- by rewrite (locProjL (proj2 (rely_coh R)) _ C1)=>//; rewrite /W1 um_domPt.
+- by rewrite (locProjL (proj2 (rely_coh R)) _ C1)=>//; rewrite /W1 domPt.
 rewrite E (rely_loc' _ R)/getLocal/=/getStatelet/=.
-rewrite findUnL ?validI// um_domPt inE eqxx gen_findPt/=.
-by rewrite /init_dstate1 findUnR?valid_init_dstate1// um_domPt/= gen_findPt/=. 
+rewrite findUnL ?validI// domPt inE eqxx findPt/=.
+by rewrite /init_dstate1 findUnR?valid_init_dstate1// domPt/= findPt/=.
 Qed.
 
 (* [S1] Delegating server, serving the client's needs *)
@@ -270,13 +269,13 @@ Next Obligation.
 move=>i/=R; apply: call_rule=>C1//=.
 rewrite (rely_loc' _ R)/getLocal/=/getStatelet/=.
 rewrite findUnL ?validI ?valid_init_dstate1//.
-rewrite um_domPt inE eqxx gen_findPt/=. 
+rewrite domPt inE eqxx findPt/=. 
 rewrite findUnR ?validI ?valid_init_dstate1//=.
-rewrite gen_domPt inE/= gen_findPt/=; split=>//.
+rewrite domPt inE/= findPt/=; split=>//.
 rewrite -(rely_loc _ R)/=/getStatelet findUnR ?validI ?valid_init_dstate1//=.
-rewrite gen_domPt inE/= gen_findPt/= /init_dstate2/=.
+rewrite domPt inE/= findPt/= /init_dstate2/=.
 rewrite findUnL ?validI ?valid_init_dstate2//.
-by rewrite gen_domPt inE/= gen_findPt/= /init_dstate2/=.
+by rewrite domPt inE/= findPt/= /init_dstate2/=.
 Qed.
 
 (* [S2] A memoizing server, serving as a delegate *)
@@ -295,7 +294,7 @@ Next Obligation.
 rewrite -(unitR V)/V.
 have V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
 apply: (injectR V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
-by move=>??????; rewrite dom0 inE.
+by move=>??????; rewrite dom0.
 Qed.
 
 Next Obligation.
@@ -312,11 +311,11 @@ case: (rely_ext X coh2 R)=>j1[i1][Z]C'; subst i.
 apply: inject_rule=>//=.
 apply: with_inv_rule; apply:call_rule=>//_.
 have E: (getStatelet j1 l2) = (getStatelet (j1 \+ i1) l2).
-- by rewrite (locProjL (proj2 (rely_coh R)) _ C')=>//; rewrite /W1 um_domPt.
+- by rewrite (locProjL (proj2 (rely_coh R)) _ C')=>//; rewrite /W1 domPt.
 rewrite E (rely_loc' _ R)/getLocal/=/getStatelet/=.
 rewrite findUnL ?validI//; last by rewrite joinC validI.
-rewrite um_domPt/= gen_findPt/=.
-by rewrite /init_dstate2 findUnL ?valid_init_dstate2 ?um_domPt/= ?gen_findPt.  
+rewrite domPt/= findPt/=.
+by rewrite /init_dstate2 findUnL ?valid_init_dstate2 ?domPt/= ?findPt.  
 Qed.
 
 End CalculatorApp.
@@ -328,5 +327,3 @@ End CalculatorApp.
 Definition c_runner (u : unit) := client_run u.
 Definition s_runner1 (u : unit) := server1_run u.
 Definition s_runner2 (u : unit) := server2_run u.
-
-

@@ -4,9 +4,9 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-From DiSeL.Core
+From fcsl
+Require Import pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem.
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -74,7 +74,7 @@ move: (coh_coh l C);
 rewrite /gets findU; case B: (l == k)=>//=; move/eqP: B=>B; subst k;
 rewrite (stepV1 S).
 - case: (dom_find l s)=>[|d->_]; first by move/find_none; rewrite D.
-  move=> C' E; rewrite -E; rewrite joinC gen_findPtUn2; last first.
+  move=> C' E; rewrite -E; rewrite joinC findPtUn2; last first.
   + rewrite joinC valid_fresh; apply: (cohVs C').
   case: ifP=>///eqP; move/find_some: E=>F Z.
   by move/negbTE: (dom_fresh (dsoup d)); rewrite -Z F.
@@ -109,7 +109,7 @@ move: (coh_coh l C);
 rewrite /gets findU; case B: (l == k)=>//=; do?[by exists b];
 move/eqP: B=>B; subst k; rewrite (stepV1 S).
 - case: (dom_find l s)=>[|d->_ C']; first by move/find_none; rewrite D.
-  rewrite joinC gen_findPtUn2; last first.
+  rewrite joinC findPtUn2; last first.
   + rewrite joinC valid_fresh; apply: (cohVs C').
   case B: (m == fresh (dsoup d)); first by case=>_ Z _; subst; move/eqP: N.
   by move=>H; exists b; split.
@@ -148,7 +148,7 @@ move: (coh_coh l C);
 rewrite /gets findU; case B: (l == k)=>//=; do?[by exists b];
 move/eqP: B=>B; subst k; rewrite (stepV1 S).
 - case: (dom_find l s)=>[|d->_ C']; first by move/find_none; rewrite D.
-  rewrite joinC gen_findPtUn2; last first.
+  rewrite joinC findPtUn2; last first.
   + rewrite joinC valid_fresh; apply: (cohVs C').
   case B: (m == fresh (dsoup d)); last by move=>->; exists b.
   move/eqP:B=>B; subst m; move: (dom_fresh (dsoup d))=>B.

@@ -4,15 +4,15 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
-From DiSeL.Core
+From DiSeL
 Require Import InductiveInv While.
-From DiSeL.Examples
+From DiSeL
 Require Import TwoPhaseProtocol.
 
 Module TwoPhaseParticipant.
@@ -39,7 +39,7 @@ Section ParticipantImplementation.
 Program Definition tryrecv_prep_req := act (@tryrecv_action_wrapper W p
       (fun k _ t b => (k == l) && (t == prep_req)) _).
 (* TODO: automate these kinds of proofs *)
-Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom gen_domPt inE/=. Qed.
+Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom domPt inE/=. Qed.
 
 (*
 
@@ -62,7 +62,7 @@ Program Definition tryrecv_commabrt_req c :=
   act (@tryrecv_action_wrapper W p
   (fun k _ t b => (k == l) &&
   (if c then (t == commit_req) || (t == abort_req) else (t == abort_req))) _).
-Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom gen_domPt inE/=. Qed.
+Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom domPt inE/=. Qed.
 
 (* Four send-actions, e -- id of the current era *)
 
@@ -85,7 +85,7 @@ Next Obligation. by rewrite !InE; do![right]. Qed.
 
 (************** Participant code **************)
 
-Implicit Arguments TPCProtocol.TPCCoh [cn pts others].
+Arguments TPCProtocol.TPCCoh [cn pts others].
 Notation coh := (@TPCProtocol.TPCCoh cn pts others).
 Notation getS s := (getStatelet s l).
 Notation loc i := (getLocal p (getStatelet i l)).
@@ -107,7 +107,9 @@ apply: act_rule=>j R; split=>[|r k m]; first by case: (rely_coh R).
 case=>/=H1[Cj]Z; subst j=>->R'.
 split; first by rewrite (rely_loc' l R') (rely_loc' _ R).
 case: (rely_coh R')=>_; case=>_ _ _ _/(_ l)=>/= pf; rewrite prEq in pf.
-exists pf; move: (rely_loc' l R') =>/sym E'.
+exists pf; move: (rely_loc' l R').
+move => E'.
+apply sym_eq in E'.
 suff X: getStP Hnin (Actions.safe_local (prEq tpc) H1) Pin = getStP Hnin pf Pin by rewrite X.
 by apply: (TPCProtocol.getStPE Hnin pf _ Pin Hpin E').
 Qed.
@@ -163,7 +165,7 @@ subst rt=>{G}.
 have P1: valid (dstate (getS i2))
   by apply: (@cohVl _ coh); case: (Cj')=>P1 P2 P3 P4; split=>//=; done.
 have P2: valid i2 by apply: (cohS (proj2 (rely_coh R1))).
-have P3: l \in dom i2 by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
+have P3: l \in dom i2 by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
 case: ifP=>G1; apply: ret_rule=>//i5 R4.
 - rewrite /rp_prep_req_inv; rewrite (rely_loc' _ R4) (rely_loc' _ R) locE//=.
   rewrite /TPCProtocol.rp_step Hpin/=. case/andP:G1=>/eqP=>Z1/eqP H2; subst from.
@@ -208,8 +210,12 @@ have Pre: forall i2, network_rely W p i i2 ->
     case: doCommit; split=>//; exists X, C, e, d;
     by rewrite -(rely_loc' _ R1) in E1; rewrite (getStP_K _ _ _ _ E1).
   + rewrite /Actions.can_send /nodes inE/= mem_cat Hpin orbC.
-    by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/= eqxx.
-  by rewrite /Actions.filter_hooks um_filt0=>???/sym/find_some; rewrite dom0 inE.
+    by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/= eqxx.
+  rewrite /Actions.filter_hooks umfilt0=>???.
+  move => F.
+  apply sym_eq in F.
+  move: F.
+  by move/find_some; rewrite dom0.
 
 case: doCommit Pre=>Pre; apply: act_rule=>i2 R1/=; move:(Pre i2 R1)=>{Pre}Pre.
 
@@ -219,11 +225,11 @@ case: {-1}(Sf)=>_/=[]_[H][]C'//; rewrite -(rely_loc' _ R1) in E1.
 rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)/=.
 case=>e'[d'][][]Z1 Z2 _ G; subst d' e'.
 move: St; rewrite/Actions.send_act_step/==>[][_][h][].
-rewrite /pn_step -!(proof_irrelevance C' (pn_safe_coh _))
-        -!(proof_irrelevance (pn_this_in _ H) (pn_this_in _ _)).
+rewrite /pn_step -!(pf_irr C' (pn_safe_coh _))
+        -!(pf_irr (pn_this_in _ H) (pn_this_in _ _)).
 rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)(getStL_Kp _ (pn_this_in _ H) E1)/=. 
 case=>Z Z';subst h i3; rewrite (rely_loc' _ R3) locE//; last by apply: (cohVl C').
-+ by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
++ by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
 by apply: (cohS (proj2 (rely_coh R1))).
 
 (* Send no-answer *)
@@ -233,11 +239,11 @@ case: {-1}(Sf)=>_/=[]_[H][]C'//; rewrite -(rely_loc' _ R1) in E1.
 rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)/=.
 case=>e'[d'][][]Z1 Z2 _ G; subst d' e'.
 move: St; rewrite/Actions.send_act_step/==>[][_][h][].
-rewrite /pn_step -!(proof_irrelevance C' (pn_safe_coh _))
-        -!(proof_irrelevance (pn_this_in _ H) (pn_this_in _ _)).
+rewrite /pn_step -!(pf_irr C' (pn_safe_coh _))
+        -!(pf_irr (pn_this_in _ H) (pn_this_in _ _)).
 rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)(getStL_Kp _ (pn_this_in _ H) E1)/=. 
 case=>Z Z';subst h i3; rewrite (rely_loc' _ R3) locE//; last by apply: (cohVl C').
-+ by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
++ by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
 by apply: (cohS (proj2 (rely_coh R1))).
 Qed.
 
@@ -294,7 +300,7 @@ move=>rt pf Cj' Hin R E2 Hw G E.
 have P1: valid (dstate (getS i2))
   by apply: (@cohVl _ coh); case: (Cj')=>P1 P2 P3 P4; split=>//=; done.
 have P2: valid i2 by apply: (cohS (proj2 (rely_coh R1))).
-have P3: l \in dom i2 by rewrite-(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
+have P3: l \in dom i2 by rewrite-(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
 (* See the remark [Overly cautious filtering] *)
 have D: if c
         then rt = pn_receive_commit_ack_trans _ Hnin \/
@@ -353,8 +359,12 @@ have Pre: forall i2, network_rely W p i i2 ->
     case: hasCommitted E1; split=>//; exists X, C, e, d;
     by rewrite -(rely_loc' _ R1) in E1; rewrite (getStP_K _ _ _ _ E1).
   + rewrite /Actions.can_send /nodes inE/= mem_cat Hpin orbC.
-    by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/= eqxx.
-  by rewrite /Actions.filter_hooks um_filt0=>???/sym/find_some; rewrite dom0 inE.
+    by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/= eqxx.
+  rewrite /Actions.filter_hooks umfilt0=>???.
+  move => F.
+  apply sym_eq in F.
+  move: F.
+  by move/find_some; rewrite dom0.
 
 case: hasCommitted E1 Pre=>E1 Pre; apply: act_rule=>i2 R1/=; move:(Pre i2 R1)=>{Pre}Pre.
 (* Send commit-ack *)
@@ -363,11 +373,11 @@ case: {-1}(Sf)=>_/=[]_[H][]C'//; rewrite -(rely_loc' _ R1) in E1.
 rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)/=.
 case=>e'[d'][][]Z1 Z2 _ G; subst d' e'.
 move: St; rewrite/Actions.send_act_step/==>[][_][h][].
-rewrite /pn_step -!(proof_irrelevance C' (pn_safe_coh _))
-        -!(proof_irrelevance (pn_this_in _ H) (pn_this_in _ _)).
+rewrite /pn_step -!(pf_irr C' (pn_safe_coh _))
+        -!(pf_irr (pn_this_in _ H) (pn_this_in _ _)).
 rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)(getStL_Kp _ (pn_this_in _ H) E1)/=. 
 case=>Z Z';subst h i3; rewrite (rely_loc' _ R3) locE//; last by apply: (cohVl C').
-+ by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
++ by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
 by apply: (cohS (proj2 (rely_coh R1))).
 (* Send abort-ack *)
 (* TODO: Remove proof duplication!!! *)  
@@ -376,11 +386,11 @@ case: {-1}(Sf)=>_/=[]_[H][]C'//; rewrite -(rely_loc' _ R1) in E1.
 rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)/=.
 case=>e'[d'][][]Z1 Z2 _ G; subst d' e'.
 move: St; rewrite/Actions.send_act_step/==>[][_][h][].
-rewrite /pn_step -!(proof_irrelevance C' (pn_safe_coh _))
-        -!(proof_irrelevance (pn_this_in _ H) (pn_this_in _ _)).
+rewrite /pn_step -!(pf_irr C' (pn_safe_coh _))
+        -!(pf_irr (pn_this_in _ H) (pn_this_in _ _)).
 rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)(getStL_Kp _ (pn_this_in _ H) E1)/=. 
 case=>Z Z';subst h i3; rewrite (rely_loc' _ R3) locE//; last by apply: (cohVl C').
-+ by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
++ by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
 by apply: (cohS (proj2 (rely_coh R1))).
 Qed.
 

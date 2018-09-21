@@ -5,19 +5,16 @@ compositional verification of distributed systems.
 
 This code accompanies the paper entitled **Programming and Proving
 with Distributed Protocols** by Ilya Sergey, James R. Wilcox and
-Zachary Tatlock, accepted for publication at POPL 2018.
+Zachary Tatlock, in the POPL 2018 proceedings.
 
 ## Building the Project
 
-A VM has been provided for your convenience and is described below. If
-you would like to use your own machine instead, you should clone this branch of
-the GitHub repository; the following dependencies are necessary.
-
 ### Requirements
 
-* Coq 8.7 (available from https://coq.inria.fr/download)
-* Mathematical Components 1.6.2 or later (http://math-comp.github.io/math-comp/)
-* OCaml 4.05.0 or later (to compile and run the extracted applications)
+* [Coq 8.7 or 8.8](https://coq.inria.fr)
+* [Mathematical Components 1.6.2 or later](http://math-comp.github.io/math-comp/) (`ssreflect`)
+* [FCSL PCM library 1.0.0 or later](https://github.com/imdea-software/fcsl-pcm)
+* [OCaml 4.05.0 or later](https://ocaml.org) (to compile and run the extracted applications)
 
 ### Building Manually
 
@@ -45,13 +42,13 @@ Make sure OPAM is installed and use the following commands:
 ```
 opam repo add coq-released https://coq.inria.fr/opam/released
 opam repo add distributedcomponents-dev http://opam-dev.distributedcomponents.net
-opam install disel-core
+opam install disel
 ```
 
+As an alternative, a VM for a previous version has been provided for
+your convenience and is described below.
 
 ## Project Structure
-
-* `Heaps` -- A theory of partial finite heaps; 
 
 * `Core` -- Disel implementation, metatheory and inference rules;
 

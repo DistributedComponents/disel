@@ -1,6 +1,6 @@
-From DiSeL.Core
+From DiSeL
 Require Import DiSeLExtraction.
-From DiSeL.Examples
+From DiSeL
 Require Import SimpleCalculatorApp.
 
 Cd "extraction".

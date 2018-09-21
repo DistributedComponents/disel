@@ -4,9 +4,9 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-From DiSeL.Core
+From fcsl
+Require Import pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols.
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -83,7 +83,7 @@ Definition hooks_consistent (c : context) (h : hooks) : Prop :=
 Definition hook_complete w := hooks_consistent (getc w) (geth w).
 
 Lemma hook_complete0 c : hook_complete (c, Unit).
-Proof. by move=>????; rewrite dom0 inE. Qed.
+Proof. by move=>????; rewrite dom0. Qed.
 
 Definition Coh (w : world) : Pred state := fun s =>
   let: c := fst w in
@@ -161,8 +161,9 @@ Qed.
 (* Coherence is trivially precise wrt. statelets *)
 Lemma coh_prec w: precise (Coh w).
 Proof.
-move=>s1 s2 t1 t2 V E C1 C2.
-case: (C1)(C2)=>H1 G1 K1 D1 _ [H2 G2 K2 D2 _].
+move=>s1 s2 t1 t2 V C1 C2.
+case: C1 => H1 G1 K1 D1 _.
+case: C2 => H2 G2 K2 D2 _ H.
 by apply: (@dom_prec _ _ _  s1 s2 t1 t2)=>//z; rewrite -D1 -D2.
 Qed.
 
@@ -201,7 +202,7 @@ Notation l := (plab p).
 Definition mkWorld : world := (l \\-> p, Unit).
 
 Lemma prEq : (getProtocol mkWorld l) = p.
-Proof. by rewrite /getProtocol um_findPt. Qed.
+Proof. by rewrite /getProtocol findPt. Qed.
                           
 (*
 

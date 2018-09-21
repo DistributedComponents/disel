@@ -1,7 +1,7 @@
 From mathcomp.ssreflect
 Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq.
-From DiSeL.Heaps
-Require Import pred prelude.
+From fcsl
+Require Import axioms pred prelude.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -122,7 +122,7 @@ Lemma sub_asym x y : sub_leq x y -> sub_leq y x -> x = y.
 Proof.
 move: x y=>[x Hx][y Hy]; rewrite /sub_leq /= => H1 H2.
 move: (poset_asym H1 H2) Hy=> <- Hy; congr exist.
-by apply: proof_irrelevance.
+by apply: pf_irr.
 Qed.
 
 Lemma sub_trans x y z : sub_leq x y -> sub_leq y z -> sub_leq x z.
@@ -235,7 +235,7 @@ Lemma ideal_asym x y : ideal_leq x y -> ideal_leq y x -> x = y.
 Proof.
 move: x y=>[x1 H1][x2 H2]; rewrite /ideal_leq /= => H3 H4; move: H1 H2.
 rewrite (poset_asym H3 H4)=>H1 H2.
-congr Ideal; apply: proof_irrelevance.
+congr Ideal; apply: pf_irr.
 Qed.
 
 Lemma ideal_trans x y z : ideal_leq x y -> ideal_leq y z -> ideal_leq x z.
@@ -344,7 +344,7 @@ Notation "[ 'lattice' 'of' T 'for' cT ]" := (@clone T cT _ id)
 Notation "[ 'lattice' 'of' T ]" := (@clone T _ _ id)
   (at level 0, format "[ 'lattice'  'of'  T ]") : form_scope.
 
-Implicit Arguments Lattice.sup [cT].
+Arguments Lattice.sup [cT].
 Prenex Implicits Lattice.sup.
 Notation sup := Lattice.sup.
 
@@ -399,9 +399,9 @@ Definition sup_closure (T : lattice) (s : Pred T) :=
 
 End Lat.
 
-Implicit Arguments lbot [T].
-Implicit Arguments sup_closed [T].
-Implicit Arguments sup_closure [T].
+Arguments lbot [T].
+Arguments sup_closed [T].
+Arguments sup_closure [T].
 Prenex Implicits sup_closed sup_closure.
 
 
@@ -628,20 +628,20 @@ End PredLattice.
 Lemma id_mono (T : poset) : monotone (@id T).
 Proof. by []. Qed.
 
-Implicit Arguments id_mono [T].
+Arguments id_mono [T].
 Prenex Implicits id_mono.
 
 Lemma const_mono (T1 T2 : poset) (y : T2) : monotone (fun x : T1 => y).
 Proof. by []. Qed.
 
-Implicit Arguments const_mono [T1 T2 y].
+Arguments const_mono [T1 T2 y].
 Prenex Implicits const_mono.
 
 Lemma comp_mono (T1 T2 T3 : poset) (f1 : T2 -> T1) (f2 : T3 -> T2) :
         monotone f1 -> monotone f2 -> monotone (f1 \o f2).
 Proof. by move=>M1 M2 x y H; apply: M1; apply: M2. Qed.
 
-Implicit Arguments comp_mono [T1 T2 T3 f1 f2].
+Arguments comp_mono [T1 T2 T3 f1 f2].
 Prenex Implicits comp_mono.
 
 Lemma proj1_mono (T1 T2 : poset) : monotone (@fst T1 T2).
@@ -650,27 +650,27 @@ Proof. by case=>x1 x2 [y1 y2][]. Qed.
 Lemma proj2_mono (T1 T2 : poset) : monotone (@snd T1 T2).
 Proof. by case=>x1 x2 [y1 y2][]. Qed.
 
-Implicit Arguments proj1_mono [T1 T2].
-Implicit Arguments proj2_mono [T1 T2].
+Arguments proj1_mono [T1 T2].
+Arguments proj2_mono [T1 T2].
 Prenex Implicits proj1_mono proj2_mono.
 
 Lemma diag_mono (T : poset) : monotone (fun x : T => (x, x)).
 Proof. by []. Qed.
 
-Implicit Arguments diag_mono [T].
+Arguments diag_mono [T].
 Prenex Implicits diag_mono.
 
 Lemma app_mono A (T : poset) (x : A) : monotone (fun f : A -> T => f x).
 Proof. by move=>f1 f2; apply. Qed.
 
-Implicit Arguments app_mono [A T].
+Arguments app_mono [A T].
 Prenex Implicits app_mono.
 
 Lemma dapp_mono A (T : A -> poset) (x : A) :
   monotone (fun f : dfunPoset T => f x).
 Proof. by move=>f1 f2; apply. Qed.
 
-Implicit Arguments dapp_mono [A T].
+Arguments dapp_mono [A T].
 Prenex Implicits dapp_mono.
 
 Lemma prod_mono (S1 S2 T1 T2 : poset) (f1 : S1 -> T1) (f2 : S2 -> T2) :
@@ -679,7 +679,7 @@ Proof.
 by move=>M1 M2 [x1] x2 [y1 y2][/= H1 H2]; split; [apply: M1 | apply: M2].
 Qed.
 
-Implicit Arguments prod_mono [S1 S2 T1 T2 f1 f2].
+Arguments prod_mono [S1 S2 T1 T2 f1 f2].
 Prenex Implicits prod_mono.
 
 
@@ -706,7 +706,7 @@ Lemma chainE (T : poset) (s1 s2 : chain T) :
         s1 = s2 <-> pred_of s1 =p pred_of s2.
 Proof.
 split=>[->//|]; move: s1 s2=>[s1 H1][s2 H2] /= E; move: H1 H2.
-suff: s1 = s2 by move=>-> H1 H2; congr Chain; apply: proof_irrelevance.
+suff: s1 = s2 by move=>-> H1 H2; congr Chain; apply: pf_irr.
 by apply: fext=>x; apply: pext; split; move/E.
 Qed.
 
@@ -900,8 +900,8 @@ Notation "[ 'cpo' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
 Notation "[ 'cpo' 'of' T ]" := (@clone T _ _ id)
   (at level 0, format "[ 'cpo'  'of'  T ]") : form_scope.
 
-Implicit Arguments CPO.bot [cT].
-Implicit Arguments CPO.lim [cT].
+Arguments CPO.bot [cT].
+Arguments CPO.lim [cT].
 Prenex Implicits CPO.lim.
 Prenex Implicits CPO.bot.
 Notation lim := CPO.lim.
@@ -1146,7 +1146,7 @@ Qed.
 
 End AdmissibleClosure.
 
-Implicit Arguments chain_closed [T].
+Arguments chain_closed [T].
 Prenex Implicits chain_closed.
 
 (* diagonal of an admissible set of pairs is admissible *)
@@ -1233,7 +1233,7 @@ Lemma contE (s : chain D1) (C : continuous) :
        f (lim s) = lim [f ^^ s by cont_mono C].
 Proof.
 case: C=>M E; rewrite E; congr (lim (image_chain _ _)).
-apply: proof_irrelevance.
+exact: pf_irr.
 Qed.
 
 End Continuity.
@@ -1326,7 +1326,7 @@ Export Kleene.Exports.
 Lemma id_cont (D : cpo) : continuous (@id D).
 Proof. by exists id_mono; move=>d; rewrite id_chainE. Qed.
 
-Implicit Arguments id_cont [D].
+Arguments id_cont [D].
 Prenex Implicits id_cont.
 
 Lemma const_cont (D1 D2 : cpo) (y : D2) : continuous (fun x : D1 => y).
@@ -1336,7 +1336,7 @@ exists const_mono; move=>s; apply: poset_asym.
 by apply: limM=>_ [x][->].
 Qed.
 
-Implicit Arguments const_cont [D1 D2 y].
+Arguments const_cont [D1 D2 y].
 Prenex Implicits const_cont.
 
 Lemma comp_cont (D1 D2 D3 : cpo) (f1 : D2 -> D1) (f2 : D3 -> D2) :
@@ -1346,7 +1346,7 @@ case=>M1 H1 [M2 H2]; exists (comp_mono M1 M2); move=>d.
 by rewrite /= H2 H1 comp_chainE.
 Qed.
 
-Implicit Arguments comp_cont [D1 D2 D3 f1 f2].
+Arguments comp_cont [D1 D2 D3 f1 f2].
 Prenex Implicits comp_cont.
 
 Lemma proj1_cont (D1 D2 : cpo) : continuous (@fst D1 D2).
@@ -1355,8 +1355,8 @@ Proof. by exists proj1_mono. Qed.
 Lemma proj2_cont (D1 D2 : cpo) : continuous (@snd D1 D2).
 Proof. by exists proj2_mono. Qed.
 
-Implicit Arguments proj1_cont [D1 D2].
-Implicit Arguments proj2_cont [D1 D2].
+Arguments proj1_cont [D1 D2].
+Arguments proj2_cont [D1 D2].
 Prenex Implicits proj1_cont proj2_cont.
 
 Lemma diag_cont (D : cpo) : continuous (fun x : D => (x, x)).
@@ -1365,7 +1365,7 @@ exists diag_mono=>d; apply: poset_asym;
 by split=>/=; [rewrite proj1_diagE | rewrite proj2_diagE].
 Qed.
 
-Implicit Arguments diag_cont [D].
+Arguments diag_cont [D].
 Prenex Implicits diag_cont.
 
 Lemma app_cont A (D : cpo) x : continuous (fun f : A -> D => f x).
@@ -1374,8 +1374,8 @@ Proof. by exists (app_mono x). Qed.
 Lemma dapp_cont A (D : A -> cpo) x : continuous (fun f : dfunCPO D => f x).
 Proof. by exists (dapp_mono x). Qed.
 
-Implicit Arguments app_cont [A D].
-Implicit Arguments dapp_cont [A D].
+Arguments app_cont [A D].
+Arguments dapp_cont [A D].
 Prenex Implicits app_cont dapp_cont.
 
 Lemma prod_cont (S1 S2 T1 T2 : cpo) (f1 : S1 -> T1) (f2 : S2 -> T2) :
@@ -1385,5 +1385,5 @@ case=>M1 H1 [M2 H2]; exists (prod_mono M1 M2)=>d; apply: poset_asym;
 by (split=>/=; [rewrite proj1_prodE H1 | rewrite proj2_prodE H2]).
 Qed.
 
-Implicit Arguments prod_cont [S1 S2 T1 T2 f1 f2].
+Arguments prod_cont [S1 S2 T1 T2 f1 f2].
 Prenex Implicits prod_cont.

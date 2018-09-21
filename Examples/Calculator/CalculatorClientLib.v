@@ -4,19 +4,17 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap.
-From DiSeL.Heaps
-Require Import heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
-From DiSeL.Core
-Require Import InductiveInv.
-From DiSeL.Examples
+From DiSeL
+Require Import InductiveInv While.
+From DiSeL
 Require Import CalculatorProtocol CalculatorInvariant.
-From DiSeL.Examples
+From DiSeL
 Require Import SeqLib.
 
 Section CalculatorRecieve.
@@ -51,7 +49,7 @@ Hypothesis  Hc : cl \in cls.
 
 Program Definition tryrecv_resp_act := act (@tryrecv_action_wrapper W cl
       (fun k _ t b => (k == l) && (t == resp)) _).
-Next Obligation. by case/andP:H=>/eqP->; rewrite gen_domPt inE/=. Qed.
+Next Obligation. by case/andP:H=>/eqP->; rewrite domPt inE/=. Qed.
 
 Notation loc i := (getLocal cl (getStatelet i l)).
 Notation st := (ptr_nat 1).
@@ -101,7 +99,7 @@ have Y : tms = head 0 tms :: behead tms.
   by case/andP: Hw=>_; case: (tms)=>//x xs _; exists x, xs.
 have Y' : from \in cs.
 - case: (proj1 C)=>Cs _ _ _. case: Cs=>Vs/(_ mid)Cs.
-  rewrite Es in Vs Cs; move: (um_findPtUn Vs)=>Ez.
+  rewrite Es in Vs Cs; move: (findPtUn Vs)=>Ez.
   by move: (Cs _ Ez)=>/=; rewrite/cohMsg/==>H; case: H.
 
 (* Using the invariant *)
@@ -114,7 +112,7 @@ have X: (cl, from, (behead tms)) \in rs.
 - by case/andP: Hw; rewrite (getStK (proj1 cohs) L1). 
 have P1: valid (dstate d) by apply: (cohVl C).
 have P2: valid i2 by apply: (cohS (proj2 (rely_coh R1))).
-have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1)))gen_domPt inE/=. 
+have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1)))domPt inE/=. 
 rewrite (rely_loc' _ R3)/= locE// /cr_step (getStK (proj1 cohs) L1)/=.
 clear R3 Hw P1 P2 P3; exists (remove_elem rs (cl, from, (behead tms))). 
 move: (remove_elem_in rs (cl, from, (behead tms))); rewrite X.
@@ -134,9 +132,6 @@ Definition receive_loop_inv (rs : reqs) :=
         f args = r]
      | None => loc i = st :-> rs
     end.
-
-From DiSeL.Core
-Require Import While.
 
 Program Definition receive_loop' :
   {(rs : reqs)}, DHT [cl, W]
@@ -227,9 +222,13 @@ have C': coh cal (getStatelet i2 l) by case: C2=>_ _ _ _/(_ l);rewrite prEq.
 split=>//=.
 - split=>//=.
   + by split=>//; case: C'. 
-  + rewrite/Actions.can_send -(cohD C2)/=gen_domPt inE/= eqxx.
+  + rewrite/Actions.can_send -(cohD C2)/=domPt inE/= eqxx.
     by rewrite mem_cat Hc orbC.
-  + by rewrite/Actions.filter_hooks um_filt0=>???/sym/find_some; rewrite dom0 inE.
+  + rewrite/Actions.filter_hooks umfilt0=>???.
+    move => F.
+    apply sym_eq in F.
+    move: F.
+    by move/find_some; rewrite dom0.
 move=>y i3 i4[S]/=;case=>Z[b]/=[F]E3 R3; subst y.
 case: F=>/=F; subst b i3=>/=.
 rewrite -(rely_loc' _ R1) in E1.
@@ -237,7 +236,7 @@ rewrite (getStK _ E1) in R3.
 apply: (gh_ex (g:=[:: (cl, server, args)])).
 apply: call_rule=>//.
 - move=>C4; rewrite (rely_loc' _ R3) locE//; last by apply: (cohVl C').
-  + by rewrite -(cohD C2) gen_domPt inE/=.
+  + by rewrite -(cohD C2) domPt inE/=.
   by apply: (cohS C2).
 clear R3=>v i5[rs'][from][args'][E5]P5 R C.  
 suff X: args = args' /\ rs' = [::] by case: X=>Z X; subst args' rs'.  
@@ -246,7 +245,7 @@ suff X': rs' = [::].
   move/P5: (cl, server, args).
   by rewrite inE eqxx inE/==>/esym/eqP; case=>_->.
 by case/perm_eq_size: P5=>/esym/size0nil. 
-Qed.  
+Qed.
 
 (**************************************************)
 (*
@@ -309,8 +308,3 @@ by move=>i1/=[L1]??; apply: call_rule=>//; rewrite cats0.
 Qed.
 
 End CalculatorRecieve.
-
-
-
-
-

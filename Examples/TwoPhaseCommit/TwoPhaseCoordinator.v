@@ -4,15 +4,15 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
-From DiSeL.Core
+From DiSeL
 Require Import InductiveInv While.
-From DiSeL.Examples
+From DiSeL
 Require Import TwoPhaseProtocol.
 
 Module TwoPhaseCoordinator.
@@ -53,15 +53,15 @@ Program Definition tryrecv_prep_resp := act (@tryrecv_action_wrapper W cn
       (* filter *)
       (fun k _ t b => (k == l) && ((t == prep_yes) || (t == prep_no))) _).
 (* TODO: automate these kinds of proofs *)
-Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom gen_domPt inE/=. Qed.
+Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom domPt inE/=. Qed.
 
 Program Definition tryrecv_commit_ack :=
   act (@tryrecv_action_wrapper W cn (fun k _ t b => (k == l) && (t == commit_ack)) _).
-Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom gen_domPt inE/=. Qed.
+Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom domPt inE/=. Qed.
 
 Program Definition tryrecv_abort_ack :=
   act (@tryrecv_action_wrapper W cn (fun k _ t b => (k == l) && (t == abort_ack)) _).
-Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom gen_domPt inE/=. Qed.
+Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom domPt inE/=. Qed.
 
 
 (************** Coordinator code **************)
@@ -91,9 +91,11 @@ apply: act_rule=>j R; split=>[|r k m]; first by case: (rely_coh R).
 case=>/=H1[Cj]Z; subst j=>->R'.
 split; first by rewrite (rely_loc' l R') (rely_loc' _ R).
 case: (rely_coh R')=>_; case=>_ _ _ _/(_ l)=>/= pf; rewrite prEq in pf.
-exists pf; move: (rely_loc' l R') =>/sym E'.
+exists pf; move: (rely_loc' l R').
+move => E'.
+apply sym_eq in E'.
 suff X: getStC (Actions.safe_local (prEq tpc) H1) = getStC pf by rewrite X.
-by apply: (getStCE pf _ E').   
+by apply: (getStCE pf _ E').
 Qed.
 
 (*******************************************)
@@ -143,8 +145,12 @@ case=>[[E1 P1 C1]|].
     left; exists e; split; last by exists d.
     by rewrite -(rely_loc' _ R1) in E1; rewrite (getStC_K _ E1).
   + rewrite /Actions.can_send /nodes inE eqxx andbC/=.
-    by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
-  + by rewrite /Actions.filter_hooks um_filt0=>???/sym/find_some; rewrite dom0 inE.
+    by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
+  + rewrite /Actions.filter_hooks umfilt0=>???.
+    move => F.
+    apply sym_eq in F.
+    move: F.
+    by move/find_some; rewrite dom0.
 case: {-1}(Sf)=>_/=[]Hc[C][]; last first.
 - move=>[n][d'][ps][E1'][]Z1 Z2 _; subst n d'.
   rewrite -(rely_loc' _ R1) in E1.
@@ -163,26 +169,30 @@ have Pre:
   have Y: pts == [:: to] by rewrite (perm_eq_small _ Hp).
   rewrite /cstep_send/= Y in G. 
   move: (proj2 Hc)=>Y'; rewrite Y' in G=>{Y'}.
-  rewrite [cn_safe_coh _ ](proof_irrelevance _ C) E1' in G. (* TADA! *)
+  rewrite [cn_safe_coh _ ](pf_irr _ C) E1' in G. (* TADA! *)
   rewrite (rely_loc' l R2); subst k; rewrite -(rely_loc' _ R1) in E1.
   rewrite locE; last apply: (cohVl C).
-  + by rewrite -(proof_irrelevance (cn_in cn pts others) (cn_this_in _ _))
+  + by rewrite -(pf_irr (cn_in cn pts others) (cn_this_in _ _))
                   (getStL_Kc _ (cn_in cn pts others) E1). 
-  + by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
+  + by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
   by apply: (cohS (proj2 (rely_coh R1))).
 - exists [:: to]; split; last by rewrite cat_cons/=.
   have Y: pts == [:: to] = false.
   + apply/negP=>/eqP Z; rewrite Z in Hp.
-    by move/perm_eq_size: (Hp); case=>/sym/size0nil=>Z'; rewrite Z' eqxx in X.
+    move/perm_eq_size: (Hp).
+    move => F.
+    apply sym_eq in F.
+    move: F.
+    by case=>/size0nil=>Z'; rewrite Z' eqxx in X.
     (* This part is similar to the previous step *)
   rewrite /cstep_send/= Y in G. 
   move: (proj2 Hc)=>Y'; rewrite Y' in G=>{Y'}.
-  rewrite [cn_safe_coh _ ](proof_irrelevance _ C) E1' in G. (* TADA! *)
+  rewrite [cn_safe_coh _ ](pf_irr _ C) E1' in G. (* TADA! *)
   rewrite (rely_loc' l R2); subst k; rewrite -(rely_loc' _ R1) in E1.
   rewrite locE; last apply: (cohVl C).
-  + by rewrite -(proof_irrelevance (cn_in cn pts others) (cn_this_in _ _))
+  + by rewrite -(pf_irr (cn_in cn pts others) (cn_this_in _ _))
                   (getStL_Kc _ (cn_in cn pts others) E1). 
-  + by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
+  + by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
   by apply: (cohS (proj2 (rely_coh R1))).
 
 apply: call_rule'=>/=[Cm|r2 m2]; first by right.
@@ -210,12 +220,19 @@ case: Y=>to[tos] Z; subst to_send=>{X}.
     case: (proj2 (rely_coh R1))=>_ _ _ _/(_ l); rewrite prEq=>C; exists C.
     right; exists e, d, ps; split=>//.
       by rewrite -(rely_loc' _ R1) in E1; rewrite (getStC_K _ E1).
-  + move/perm_eq_uniq: Hp; rewrite Puniq sym.
+  + move/perm_eq_uniq: Hp; rewrite Puniq.
+    move => F.
+    apply sym_eq in F.
+    move: F.
     rewrite -cat_rcons cat_uniq -cats1 cat_uniq=>/andP[]/andP[_]/andP[].
     by rewrite /= orbC/=.
   + rewrite /Actions.can_send /nodes inE eqxx andbC.
-    by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
-  by rewrite /Actions.filter_hooks um_filt0=>???/sym/find_some; rewrite dom0 inE.
+    by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
+  rewrite /Actions.filter_hooks umfilt0=>???.
+  move => F.
+  apply sym_eq in F.
+  move: F.
+  by move/find_some; rewrite dom0.
 (* dismiss the bogus branch *)    
 case: {-1}(Sf)=>_/=[]Hc[C][]. 
 - case=>b[E1'][d'][Z1 Z2]_; subst b d'.
@@ -238,32 +255,36 @@ suff Pre:
 - case X: ([::] == tos);
     [move/eqP: X=>X; subst tos; rewrite eqxx| rewrite eq_sym X].
     rewrite /cstep_send/= (proj2 Hc)/= in G.
-    rewrite [cn_safe_coh _ ](proof_irrelevance _ C) E1' in G.
+    rewrite [cn_safe_coh _ ](pf_irr _ C) E1' in G.
   have Y: perm_eq (to :: ps) pts.
     rewrite (perm_eq_sym pts) in Hp.
     by apply/perm_eqlE; rewrite -cat1s perm_catC; apply/perm_eqlP. 
   rewrite Y/= in G.     
   rewrite (rely_loc' l R2); subst k; rewrite locE; last apply: (cohVl C).
-  + by rewrite -(proof_irrelevance (cn_in cn pts others) (cn_this_in _ _))
+  + by rewrite -(pf_irr (cn_in cn pts others) (cn_this_in _ _))
                (getStL_Kc _ (cn_in cn pts others) E1). 
-  + by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
+  + by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
   by apply: (cohS (proj2 (rely_coh R1))).   
 
 rewrite /cstep_send/= (proj2 Hc)/= in G.
-rewrite [cn_safe_coh _ ](proof_irrelevance _ C) E1' in G.
+rewrite [cn_safe_coh _ ](pf_irr _ C) E1' in G.
 have Y : perm_eq (to :: ps) pts = false.
 - apply/negP=>Hp'; move: (perm_eq_trans Hp' Hp).
   rewrite -[to::ps]cat1s -[to::tos]cat1s.
   move/perm_eqlE: (perm_catC ps [::to])=>Hs.
   move/(perm_eq_trans Hs); rewrite -[_++[::_]]cats0 catA perm_cat2l.
-  by move/perm_eq_size/sym/size0nil=>Z; subst tos. 
+  move/perm_eq_size.
+  move => F.
+  apply sym_eq in F.
+  move: F.
+  by move/size0nil=>Z; subst tos.
 rewrite Y/= in G.     
 rewrite (rely_loc' l R2); subst k; rewrite locE; last apply: (cohVl C).
-  + rewrite -(proof_irrelevance (cn_in cn pts others) (cn_this_in _ _))
+  + rewrite -(pf_irr (cn_in cn pts others) (cn_this_in _ _))
                (getStL_Kc _ (cn_in cn pts others) E1); exists (to::ps).
     split=>//; move: Hp.
     by rewrite -cat_rcons -cat1s -!catA !(perm_eq_sym pts) -perm_catCA catA cats1. 
-  + by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
+  + by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
   by apply: (cohS (proj2 (rely_coh R1))).   
 Qed.
 
@@ -328,7 +349,7 @@ have D: rt = cn_receive_prep_yes_trans _ _ _ \/ rt = cn_receive_prep_no_trans _ 
 have P1: valid (dstate (getS j))
   by apply: (@cohVl _ TPCCoh); case: (Cj')=>P1 P2 P3 P4; split=>//=; done. 
 have P2: valid j by apply: (cohS (proj2 (rely_coh R1))).
-have P3: l \in dom j by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.  
+have P3: l \in dom j by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
 (* Two cases: received yes or no from a participant *)
 case: D=>{Hin G Hw}Z; subst rt; rewrite/= in E1 R; case:ifP=>G1;
 apply: ret_rule=>m' R'=>{d lg I1}[[d lg][I1]]; rewrite /rc_prep_inv ?E1 ?eqxx/=;
@@ -400,9 +421,9 @@ apply: step; apply: (gh_ex (g:=e)); apply: (gh_ex (g:=d));
   apply: (gh_ex (g:=lg)); apply: (gh_ex (g:=res)).
 apply: call_rule=>// b s4 [E4]->{b}C4/=.
 apply: ret_rule=>i5 R5 lg'[e'] E0'; exists e.
-rewrite E0 in E0'; case: (hcancelV _ E0'); first by rewrite hvalidPtUn.
+rewrite E0 in E0'; case: (hcancelV _ E0'); first by rewrite validPtUn.
 case=>Z1 _; subst e'; move/(hcancelPtV _)=>/=.
-by rewrite hvalidPt (rely_loc' _ R5)=>/(_ is_true_true)=><-.
+by rewrite validPt (rely_loc' _ R5)=>/(_ is_true_true)=><-.
 Qed.                                                     
 
 (*******************************************)
@@ -442,9 +463,13 @@ apply: step; apply: act_rule=>s2 R2/=.
 have Pre: Actions.send_act_safe W (p:=tpc) cn l
           (cn_send_commit_trans cn pts others) [:: e] to s2.
 - split; [by case: (rely_coh R2) | | |]; last first.
-  + by rewrite /Actions.filter_hooks um_filt0=>???/sym/find_some; rewrite dom0 inE.
+  + rewrite /Actions.filter_hooks umfilt0=>???.
+    move => F.
+    apply sym_eq in F.
+    move: F.
+    by move/find_some; rewrite dom0.
   + rewrite /Actions.can_send /nodes inE eqxx andbC/=.
-    by rewrite -(cohD (proj2 (rely_coh R2)))/ddom gen_domPt inE/=.
+    by rewrite -(cohD (proj2 (rely_coh R2)))/ddom domPt inE/=.
   case: (proj2 (rely_coh R2))=>_ _ _ _/(_ l); rewrite prEq=>C; split.
   + split=>//; case: H; first by case=>?[_]<-; rewrite inE eqxx.
     by case=>ps[_]/perm_eq_mem->; rewrite mem_cat orbC inE eqxx.
@@ -452,7 +477,10 @@ have Pre: Actions.send_act_safe W (p:=tpc) cn l
   rewrite -(rely_loc' _ R2) in P1; rewrite (getStC_K _ P1);
   first by exists e, d, res=>//.
   exists e, d, ps; split=>//.
-  move/perm_eq_uniq: P2; rewrite Puniq sym.
+  move/perm_eq_uniq: P2; rewrite Puniq.
+  move => F.
+  apply sym_eq in F.
+  move: F.
   rewrite -cat_rcons cat_uniq -cats1 cat_uniq=>/andP[]/andP[_]/andP[].
   by rewrite /= orbC.                                                          
   
@@ -488,7 +516,11 @@ have X: perm_eq (to :: ps) pts = (tos == [::]).
     rewrite -[to::ps]cat1s -[to::tos]cat1s.
     move/perm_eqlE: (perm_catC ps [::to])=>Hs.
     move/(perm_eq_trans Hs); rewrite -[_++[::_]]cats0 catA perm_cat2l.
-    by move/perm_eq_size/sym/size0nil=>Z; subst tos. 
+    move/perm_eq_size.
+    move => F.
+    apply sym_eq in F.
+    move: F.
+    by move/size0nil=>Z; subst tos. 
   move/eqP=>Z; subst tos; rewrite perm_eq_sym; apply: (perm_eq_trans P2).
   by apply/perm_eqlE; move: (perm_catC ps [:: to]).
 rewrite X in G=>{X}; subst i3.
@@ -544,9 +576,13 @@ apply: step; apply: act_rule=>s2 R2/=.
 have Pre: Actions.send_act_safe W (p:=tpc) cn l
           (cn_send_abort_trans cn pts others) [:: e] to s2.
 - split; [by case: (rely_coh R2) | | |]; last first.
-  + by rewrite /Actions.filter_hooks um_filt0=>???/sym/find_some; rewrite dom0 inE.
+  + rewrite /Actions.filter_hooks umfilt0=>???.
+    move => F.
+    apply sym_eq in F.
+    move: F.
+    by move/find_some; rewrite dom0.
   + rewrite /Actions.can_send /nodes inE eqxx andbC/=.
-    by rewrite -(cohD (proj2 (rely_coh R2)))/ddom gen_domPt inE/=.
+    by rewrite -(cohD (proj2 (rely_coh R2)))/ddom domPt inE/=.
   case: (proj2 (rely_coh R2))=>_ _ _ _/(_ l); rewrite prEq=>C; split.
   + split=>//; case: H; first by case=>?[_]<-; rewrite inE eqxx.
     by case=>ps[_]/perm_eq_mem->; rewrite mem_cat orbC inE eqxx.
@@ -554,7 +590,10 @@ have Pre: Actions.send_act_safe W (p:=tpc) cn l
   rewrite -(rely_loc' _ R2) in P1; rewrite (getStC_K _ P1);
   first by exists e, d, res=>//.
   exists e, d, ps; split=>//.
-  move/perm_eq_uniq: P2; rewrite Puniq sym.
+  move/perm_eq_uniq: P2; rewrite Puniq.
+  move => F.
+  apply sym_eq in F.
+  move: F.
   rewrite -cat_rcons cat_uniq -cats1 cat_uniq=>/andP[]/andP[_]/andP[].
   by rewrite /= orbC.                                                          
 
@@ -592,7 +631,11 @@ have X: perm_eq (to :: ps) pts = (tos == [::]).
     rewrite -[to::ps]cat1s -[to::tos]cat1s.
     move/perm_eqlE: (perm_catC ps [::to])=>Hs.
     move/(perm_eq_trans Hs); rewrite -[_++[::_]]cats0 catA perm_cat2l.
-    by move/perm_eq_size/sym/size0nil=>Z; subst tos. 
+    move/perm_eq_size.
+    move => F.
+    apply sym_eq in F.
+    move: F.
+    by move/size0nil=>Z; subst tos. 
   move/eqP=>Z; subst tos; rewrite perm_eq_sym; apply: (perm_eq_trans P2).
   by apply/perm_eqlE; move: (perm_catC ps [:: to]).
 rewrite X in G=>{X}; subst i3.
@@ -672,7 +715,7 @@ have D: rt = cn_receive_commit_ack_trans _ _ _.
 have P1: valid (dstate (getS j))
   by apply: (@cohVl _ TPCCoh); case: (Cj')=>P1 P2 P3 P4; split=>//=; done.
 have P2: valid j by apply: (cohS (proj2 (rely_coh R1))).
-have P3: l \in dom j by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
+have P3: l \in dom j by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
 (* The final blow *)
 by subst rt; rewrite/= in E1 R; case:ifP=>G1;
 apply: ret_rule=>m' R'; rewrite /rc_commit_cond=>{d lg I1}[[d lg][I1]];
@@ -690,7 +733,12 @@ apply: ghC=>i[d lg]E1 C1.
 have Pre: rc_commit_inv e (d, lg) [::] i.
 - rewrite /rc_commit_inv/= E1/=.
   have X: perm_eq [::] pts = false.
-  - apply/negP. move/perm_eq_size/sym/size0nil=>Z.
+  - apply/negP. 
+    move/perm_eq_size.
+    move => F.
+    apply sym_eq in F.
+    move: F.
+    move/size0nil=>Z.
     by move: (PtsNonEmpty); rewrite Z.
   by rewrite X.
 apply: call_rule'=>[|acc m]; first by exists (d, lg).
@@ -750,7 +798,7 @@ have D: rt = cn_receive_abort_ack_trans _ _ _.
 have P1: valid (dstate (getS j))
   by apply: (@cohVl _ TPCCoh); case: (Cj')=>P1 P2 P3 P4; split=>//=; done.
 have P2: valid j by apply: (cohS (proj2 (rely_coh R1))).
-have P3: l \in dom j by rewrite -(cohD (proj2 (rely_coh R1)))/ddom gen_domPt inE/=.
+have P3: l \in dom j by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
 (* The final blow *)
 by subst rt; rewrite/= in E1 R; case:ifP=>G1;
 apply: ret_rule=>m' R'; rewrite /rc_abort_cond=>{d lg I1}[[d lg][I1]];
@@ -768,7 +816,12 @@ apply: ghC=>i[d lg]E1 C1.
 have Pre: rc_abort_inv e (d, lg) [::] i.
 - rewrite /rc_abort_inv/= E1/=.
   have X: perm_eq [::] pts = false.
-  - apply/negP. move/perm_eq_size/sym/size0nil=>Z.
+  - apply/negP. 
+    move/perm_eq_size.
+    move => F.
+    apply sym_eq in F.
+    move: F.
+    move/size0nil=>Z.
     by move: (PtsNonEmpty); rewrite Z.
   by rewrite X.
 apply: call_rule'=>[|acc m]; first by exists (d, lg).
@@ -813,17 +866,17 @@ case:ifP=>A.
   move=>s5 E5 C5; apply: (gh_ex (g:=(d, lg))).
   apply: call_rule=>//_ s6 E6 C6.
   apply: ret_rule=>i6 R6 e' lg' E0'.
-  rewrite E0 in E0'; case: (hcancelV _ E0'); first by rewrite hvalidPtUn.
+  rewrite E0 in E0'; case: (hcancelV _ E0'); first by rewrite validPtUn.
   + case=>Z1 _; subst e'; move/(hcancelPtV _)=>/=.
-  by rewrite hvalidPt (rely_loc' _ R6)=>/(_ is_true_true)=><-.
+  by rewrite validPt (rely_loc' _ R6)=>/(_ is_true_true)=><-.
 do![apply: step]; apply: (gh_ex (g:=lg)).
 apply: call_rule=>_; first by exists res; rewrite has_predC A.
 move=>s5 E5 C5; apply: (gh_ex (g:=(d, lg))).
 apply: call_rule=>//_ s6 E6 C6.
 apply: ret_rule=>i6 R6 e' lg' E0'.
-rewrite E0 in E0'; case: (hcancelV _ E0'); first by rewrite hvalidPtUn.
+rewrite E0 in E0'; case: (hcancelV _ E0'); first by rewrite validPtUn.
 - case=>Z1 _; subst e'; move/(hcancelPtV _)=>/=.
-by rewrite hvalidPt (rely_loc' _ R6)=>/(_ is_true_true)=><-.
+by rewrite validPt (rely_loc' _ R6)=>/(_ is_true_true)=><-.
 Qed.                                                     
 
 (**************************************************)

@@ -4,11 +4,11 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding.
-From DiSeL.Core
+From fcsl
+Require Import pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection InductiveInv.
 
 Set Implicit Arguments.
@@ -37,11 +37,11 @@ Inductive schedule :=
 
 End ProcessSyntax.
 
-Implicit Arguments Unfinished [this W A].
-Implicit Arguments Ret [this W A].
-Implicit Arguments Act [this W A].
-Implicit Arguments Seq [this W A B].
-Implicit Arguments WithInv [this W A].
+Arguments Unfinished [this W A].
+Arguments Ret [this W A].
+Arguments Act [this W A].
+Arguments Seq [this W A B].
+Arguments WithInv [this W A].
 
 Section ProcessSemantics.
 
@@ -211,7 +211,7 @@ case=>C; case: sc=>//=; last first.
   by left; exists s1'; exists v. 
 move=>sc /= [s'][X] S [s1'][s2'][t'][t2'][??? C1'] T; subst q s1 s2. 
 right; exists sc, t2', s1', s2', t'; do !split=>//.
-by case: X=>t'' [E] Cs' _; rewrite (coh_prec (cohS C) E _ Cs'). 
+by case: X=>t'' [E] Cs' _; rewrite (coh_prec (cohS C)  _ Cs' E). 
 Qed.
 
 Lemma stepWithInv W A pr I (ii : InductiveInv pr I) s1 
@@ -267,7 +267,7 @@ elim: sc W A s1 s2 t q=>/=.
   subst sc' q s1 s2=>C; move/HI=>S; apply: (sem_extend pf)=>//.
   apply/(cohE pf); exists s2', s; case: (step_coh S)=>C1 C2; split=>//.
   move/(cohE pf): (C)=>[s1][s2][E]C' H.
-  by move: (coh_prec (cohS C) E C1 C')=>Z; subst s1'; rewrite (joinfK (cohS C) E). 
+  by move: (coh_prec (cohS C) C1 C' E)=>Z; subst s1'; rewrite (joinxK (cohS C) E). 
   by move=>?????; case.   
 - move=>W A s1 s2 p q; case: p; do?[by case|by move=>?; case].
   + by move=>???; case.

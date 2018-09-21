@@ -4,17 +4,15 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap.
-From DiSeL.Heaps
-Require Import heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
-From DiSeL.Core
+From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
-From DiSeL.Core
+From DiSeL
 Require Import InductiveInv StatePredicates.
-From DiSeL.Examples
+From DiSeL
 Require Import CalculatorProtocol.
 
 Section CalculatorInductiveInv.
@@ -60,9 +58,7 @@ Notation cal' := (CalculatorProtocol f prec cs cls l).
 Notation coh' := (coh cal).
 Notation Sinv := (@S_inv cal (fun d _ => CalcInv d)).
 Notation Rinv := (@R_inv cal (fun d _ => CalcInv d)).
-Notation PI := proof_irrelevance.
-From DiSeL.Examples
-Require Import CalculatorProtocol.
+Notation PI := pf_irr.
 
 Program Definition s1: Sinv (server_send_trans f prec cs cls).
 Proof.
@@ -71,7 +67,7 @@ move=>/= Hi E G C' n to' v' args' i s1 N1 N2/= Es.
 case: (S)=>_[_][C]/hasP[[[me cc]args]]_.
 case/andP=>/eqP Z1/andP[/eqP Y]/eqP Z2. 
 move: (cohVs C')=>V; rewrite joinC/= in Es V.
-move: (um_cancel2 V Es)=>/=; case: ifP.
+move: (cancel2 V Es)=>/=; case: ifP.
 - move=>_; case. case=>Z3 Z4 Z5 Z6; subst s1 to to' msg.
   by simpl in Y; case: Z2=>->.
 move=>_[E1]/=E2 E3; subst to. clear Es V.
@@ -84,7 +80,7 @@ Proof.
 move=>this to d msg S b.
 move=>/= Hi E G C' n to' v' args' i s1 N1 N2/= Es.
 move: (cohVs C')=>V; rewrite joinC/= in Es V.
-move: (um_cancel2 V Es)=>/=; case: ifP; last first.
+move: (cancel2 V Es)=>/=; case: ifP; last first.
 - move=>_[E1]/=E2 E3; clear Es V.
   by case: (S)=>_[_]C _; apply: (Hi C n to' v' args' i _ _ _ E2).
 move/eqP=>Z; subst i; by case; discriminate.
@@ -106,13 +102,13 @@ move: (cohVs C)=>V; rewrite S1 in V.
 rewrite S1 joinC consumeUn ?eqxx joinC// in Es. 
 suff V': valid (i \\-> mark_msg vm \+
                 free (cT:=union_mapUMC mid (msg TaggedMessage)) i (dsoup d)).
-- move: (um_cancel2 V' Es); case: ifP=>B.
+- move: (cancel2 V' Es); case: ifP=>B.
   - move/eqP:B=>B{S1 V V' Es}; subst i'.
     by case: vm=>????/=; rewrite /mark_msg/=; case; discriminate.
   by case=>_ X2 _; rewrite X2 joinCA in S1; rewrite S1; eexists _. 
 move: (consume_valid i V).
-rewrite /consume_msg/= findUnL// ?gen_domPt inE/= eqxx gen_findPt/=. 
-by rewrite updUnL/= gen_domPt/=!inE eqxx !gen_updPt/=.
+rewrite /consume_msg/= findUnL// ?domPt inE/= eqxx findPt/=. 
+by rewrite updUnL/= domPt/=!inE eqxx !updPt/=.
 Qed.
 
 Program Definition r2: Rinv (client_recv_trans prec cs cls).
@@ -131,13 +127,13 @@ move: (cohVs C)=>V; rewrite S1 in V.
 rewrite S1 joinC consumeUn ?eqxx joinC// in Es. 
 suff V': valid (i \\-> mark_msg vm \+
                 free (cT:=union_mapUMC mid (msg TaggedMessage)) i (dsoup d)).
-- move: (um_cancel2 V' Es); case: ifP=>B.
+- move: (cancel2 V' Es); case: ifP=>B.
   - move/eqP:B=>B{S1 V V' Es}; subst i'.
     by case: vm=>????/=; rewrite /mark_msg/=; case; discriminate.
   by case=>_ X2 _; rewrite X2 joinCA in S1; rewrite S1; eexists _. 
 move: (consume_valid i V).
-rewrite /consume_msg/= findUnL// ?gen_domPt inE/= eqxx gen_findPt/=. 
-by rewrite updUnL/= gen_domPt/=!inE eqxx !gen_updPt/=.
+rewrite /consume_msg/= findUnL// ?domPt inE/= eqxx findPt/=. 
+by rewrite updUnL/= domPt/=!inE eqxx !updPt/=.
 Qed.
 
 Definition sts' := [:: SI s1; SI s2].

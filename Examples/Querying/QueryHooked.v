@@ -1,18 +1,14 @@
 From mathcomp.ssreflect
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
-From mathcomp
-Require Import path.
+Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq path.
 Require Import Eqdep.
-From DiSeL.Heaps
-Require Import pred prelude idynamic ordtype finmap pcm unionmap heap coding domain.
-From DiSeL.Core
+From fcsl
+Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely Actions.
-From DiSeL.Examples
-Require Import SeqLib QueryProtocol.
-From DiSeL.Core
-Require Import NewStatePredicates.
-From DiSeL.Core
-Require Import Actions Injection Process Always HoareTriples InferenceRules.
+From DiSeL
+Require Import SeqLib QueryProtocol NewStatePredicates Actions.
+From DiSeL
+Require Import Injection Process Always HoareTriples InferenceRules While.
 
 Section QueryHooked.
 
@@ -46,23 +42,29 @@ Hypothesis Lab_neq: lq != (plab pc).
 
 Lemma W_valid : valid W.
 Proof.
-apply/andP; split=>/=; last by rewrite um_validPt.
-case: validUn=>//; rewrite ?um_validPt// =>l.
-rewrite !um_domPt !inE=>/eqP=>Z; subst l=>/eqP=>Z.
+apply/andP; split=>/=; last by rewrite validPt.
+case: validUn=>//; rewrite ?validPt// =>l.
+rewrite !domPt !inE=>/eqP=>Z; subst l=>/eqP=>Z.
 by subst lq; move/negbTE: Lab_neq; rewrite eqxx.
 Qed.
 
 Lemma W_complete : hook_complete W.
 Proof.
-move=>z lc ls t/=; rewrite um_domPt inE=>/eqP[]_<-<-_.
-rewrite !domUn !inE/= !um_domPt !inE !eqxx/= orbC.
-by case/andP:W_valid=>->_.
+move=>z lc ls t/=; rewrite domPt inE=>/eqP[]_<-<-_.
+rewrite !domUn !inE/= !domPt !inE !eqxx/= orbC.
+case/andP:W_valid=>->_.
+rewrite 3!andTb.
+rewrite inE.
+by apply/orP; left.
 Qed.
 
 Lemma W_dom : dom W.1 =i [:: plab pc; lq].
 Proof.
 move=>z/=; rewrite domUn !inE/=; case/andP: W_valid=>->/=_. 
-by rewrite !um_domPt !inE; rewrite -!(eq_sym z).
+rewrite !domPt !inE; rewrite -!(eq_sym z).
+rewrite /cond /= inE orbC.
+apply sym_eq.
+by rewrite orbC eq_sym.
 Qed.
 
 Lemma eqW : 
@@ -77,12 +79,17 @@ Lemma injW : injects (plab pc \\-> pc, Unit) W query_hookz.
 Proof.
 rewrite eqW; apply:injectL=>//; try by move=>????/=; rewrite dom0 inE.
 - by rewrite -eqW W_valid.
-- move=>z lc ls t; rewrite um_domPt inE.
+- move=>z lc ls t; rewrite domPt inE.
+  by rewrite /cond /= dom0.
+- move=>z lc ls t; rewrite domPt inE.
+  by rewrite /cond /= dom0.
+- move=>z lc ls t; rewrite domPt inE.
   case/eqP=>Z1 Z2 Z3 Z4; subst ls z lc t.
-  rewrite !domUn !inE !um_domPt !inE !eqxx/=.
-  by case/andP:W_valid=>/=->_/=; rewrite orbC.
-move=>l; rewrite um_domPt inE=>/eqP=><-.
-move=>z lc ls t; rewrite um_domPt inE=>/eqP[]_ _<-_.  
+  rewrite !domUn !inE !domPt !inE !eqxx/=.
+  case/andP:W_valid=>/=->_/=; rewrite orbC inE.
+  by apply/orP; left.
+move=>l; rewrite domPt inE=>/eqP=><-.
+move=>z lc ls t; rewrite domPt inE=>/eqP[]_ _<-_.  
 apply/negbT; apply/eqP=>Z; subst lq; move/negbTE: Lab_neq.
 by rewrite eqxx.
 Qed.
@@ -90,13 +97,14 @@ Qed.
 Lemma labC : plab pc \in dom W.1.
 Proof.
 case/andP: W_valid=>V1 V2.
-by rewrite domUn !inE V1/= um_domPt inE eqxx.
+by rewrite domUn !inE V1/= domPt inE eqxx.
 Qed.
 
 Lemma labQ : lq \in dom W.1.
 Proof.
 case/andP: W_valid=>V1 V2.
-by rewrite domUn !inE V1/= !um_domPt !inE eqxx orbC.
+rewrite domUn !inE V1/= !domPt !inE /cond /= inE.
+by apply/orP; right.
 Qed.
 
 Lemma injWQ : inj_ext injW = (lq \\-> pq, Unit).
@@ -105,29 +113,29 @@ move: (W_valid)=>V; move: (cohK injW).
 rewrite {1}eqW/mkWorld/= -!joinA /PCM.join/= in V.
 case/andP: V=>/=V V'.
 rewrite {1}eqW/mkWorld/= -!joinA /PCM.join/=; case=>H K.
-case: (um_cancel V H)=>_; rewrite !unitR=>_{H}H1.
+case: (cancel V H)=>_; rewrite !unitR=>_{H}H1.
 rewrite [inj_ext _]surjective_pairing -H1{H1}; congr (_, _).
 rewrite !unitL joinC/=/query_hookz/= in V' K.
 rewrite -[_ \\-> _]unitR in V'.
 have Z:  (1, plab pc, (lq, tresp)) \\-> query_hook \+ Unit =
          (1, plab pc, (lq, tresp)) \\-> query_hook \+ (inj_ext injW).2
   by rewrite unitR.
-by case: (um_cancel V' Z).
+by case: (cancel V' Z).
 Qed.
 
 Lemma prEqC : getProtocol W (plab pc) = pc.
 rewrite /getProtocol/W/= findUnL; last by case/andP: W_valid.
-by rewrite um_domPt inE eqxx um_findPt.
+by rewrite domPt inE eqxx findPt.
 Qed.
 
 Lemma prEqQ : getProtocol W lq = pq.
 Proof.
 rewrite /getProtocol/W/= findUnR; last by case/andP: W_valid.
-by rewrite um_domPt inE eqxx um_findPt.
+by rewrite domPt inE eqxx findPt.
 Qed.
 
 Lemma prEqQ' : getProtocol (lq \\-> pq, Unit) lq = pq.
-Proof. by rewrite /getProtocol um_findPt. Qed.
+Proof. by rewrite /getProtocol findPt. Qed.
 
 (* Finished constructing the composite world *)
 
@@ -174,28 +182,28 @@ move=> N H S; case: (step_coh S)=>C1 _.
 case: S; [by case=>_<- |
   move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}|
   move=>l rt H1 i from pf H3 C msg H2/=[H4]_->{s'}];
-rewrite -(cohD C) um_domPt inE in H3; move/eqP: H3=>H3; subst l;
+rewrite -(cohD C) domPt inE in H3; move/eqP: H3=>H3; subst l;
 (* TODO: Get rid of irrelevant cases: by means of a tactic *)
 rewrite /query_init_state/getStatelet !findU !eqxx (cohS C1)/=;
-have Cq: coh pq (getStatelet s lq) by move: (coh_coh lq C1); rewrite /getProtocol um_findPt.
+have Cq: coh pq (getStatelet s lq) by move: (coh_coh lq C1); rewrite /getProtocol findPt.
 (* Send-transitions. *)
 - case:H=>G1 G2 G3 G4.
   move: st H1 H4 H5 H6; rewrite /get_st prEqQ'=>st H1 H4 H5 H6.
   case B: (to == z); rewrite /holds_res_perms/getLocal findU B/=; last first.
   + split=>//.
     move=>m t c; rewrite findUnR ?valid_fresh ?(cohVs Cq)//; case: ifP; last by move=>_/G3.
-    rewrite um_domPt inE=>/eqP<-{m}; rewrite um_findPt; case=>_ _ Z; subst z.
+    rewrite domPt inE=>/eqP<-{m}; rewrite findPt; case=>_ _ Z; subst z.
     by move/negbTE: N; rewrite eqxx.
   + move=>m t c; rewrite findUnR ?valid_fresh ?(cohVs Cq)//; case: ifP; last by move=>_/G4.
-    rewrite um_domPt inE=>/eqP<-{m}; rewrite um_findPt; case=>_ _ Z; subst z.
+    rewrite domPt inE=>/eqP<-{m}; rewrite findPt; case=>_ _ Z; subst z.
     by rewrite eqxx in B.
   move/eqP: B=>B; subst z; split=>//; first 1 last.
   + move=>m t c; rewrite findUnR ?valid_fresh ?(cohVs Cq)//; case: ifP; last by move=>_/G3.  
-    rewrite um_domPt inE=>/eqP<-{m}; rewrite um_findPt; case=>_ _ Z; subst to.
+    rewrite domPt inE=>/eqP<-{m}; rewrite findPt; case=>_ _ Z; subst to.
     by move/negbTE: N; rewrite eqxx.
   (* Now two interesting assertions. *)  
   + move=>m t c; rewrite findUnR ?valid_fresh ?(cohVs Cq)//; case: ifP; last by move=>_/G4.
-    rewrite um_domPt inE=>/eqP<-{m}; rewrite um_findPt; case=>Z' Z2 Z; subst to' t c.
+    rewrite domPt inE=>/eqP<-{m}; rewrite findPt; case=>Z' Z2 Z; subst to' t c.
     (* Consider two possible send-transitions. *)
     case: H1;[|case=>//]; move=>Z; subst st=>//. 
     case: (H4)=>_[C']/=[rid][d][_]; case: G2=>rq[rs][E]H.
@@ -214,7 +222,7 @@ have Cq: coh pq (getStatelet s lq) by move: (coh_coh lq C1); rewrite /getProtoco
 (* Receive-transitions *)
 case:H=>G1 G2 G3 G4.
 move: (coh_s _ _) rt pf H1 H2.
-rewrite /get_rt prEqQ'/==>Cq'; rewrite !(proof_irrelevance Cq' Cq)=>{Cq'}.
+rewrite /get_rt prEqQ'/==>Cq'; rewrite !(pf_irr Cq' Cq)=>{Cq'}.
 move=>rt pf H1 H2.
 case B: (to == z); rewrite /holds_res_perms/getLocal findU B/=; last first.
 - by split=>//; apply: no_msg_from_to_consume'=>//; rewrite ?(cohVs Cq).
@@ -240,7 +248,7 @@ Proof.
 move=>H1 [n]H2; elim: n s H2 H1=>/=[s | n Hi s]; first by case=>Z _; subst s'.
 case=>z[s1][N]H1 H2 H3; apply: (Hi s1 H2).
 by apply: (query_init_step' _ _ _ _ N H3 H1).
-Qed.  
+Qed.
 
 (* TODO: this is a good candidate for a general lemma in the
 framework. *)
@@ -259,8 +267,8 @@ move=>i1[j1][C1 D1 Z]; subst s.
 case: (coh_split CD' _ _); try apply: hook_complete0.
 move=>i2[j2][C2 D2 Z]; subst s2.
 rewrite /query_init_state in Q *.
-rewrite (locProjR CD _ D1) in Q; last by rewrite gen_domPt inE andbC eqxx.
-rewrite (locProjR CD' _ D2); last by rewrite gen_domPt inE andbC eqxx.
+rewrite (locProjR CD _ D1) in Q; last by rewrite domPt inE andbC eqxx.
+rewrite (locProjR CD' _ D2); last by rewrite domPt inE andbC eqxx.
 case: (rely_split injW C1 C2 R)=>Rc Rq; rewrite injWQ in Rq.
 by apply: (query_init_rely' _ _ _ Q Rq).
 Qed.
@@ -307,7 +315,7 @@ Hypothesis core_state_stable_step : forall z s data s' n,
   core_state_to_data n (getLc' s' n) data.
 
 Lemma prEqC' : (getProtocol (plab pc \\-> pc, Unit) (plab pc)) = pc.
-Proof. by rewrite /getProtocol gen_findPt/=. Qed.
+Proof. by rewrite /getProtocol findPt/=. Qed.
   
 (* Showing that the core assertion is stable *)
 Lemma core_state_stable_step_W s data s' z :
@@ -329,14 +337,14 @@ move: (C1) (C2) =>C1' C2'.
 rewrite E1 E2 in H2 C1' C2'.
 have [X X'] : (forall z, getLc' s z  = getLc' s1 z) /\
               (forall z, getLc' s' z = getLc' s1' z).
-- by split; move=>z'; rewrite /getStatelet find_um_filt um_domPt inE eqxx.
+- by split; move=>z'; rewrite /getStatelet find_umfilt domPt inE eqxx.
 case: (sem_split injW _ _ H2).
 - apply: (@projectS_cohL (plab pc \\-> pc, Unit)
                          ((plab pq \\-> pq, Unit) \+ (Unit, query_hookz)))=>//.
-  by move=>????; rewrite dom0 inE.
+  by move=>????; rewrite dom0.
 - suff H : hook_complete (plab pc \\-> pc, Unit).
   apply: (@projectS_cohL _ ((plab pq \\-> pq, Unit)\+(Unit, query_hookz)))=>//.
-  by move=>????; rewrite dom0 inE.
+  by move=>????; rewrite dom0.
 - case=>H _; rewrite X'; rewrite !X in L H1.
   by apply: (core_state_stable_step _ _ _ _ _ N H _ L H1).
 by case=>_ E; rewrite X'; rewrite !X in L H1; rewrite -E.
@@ -387,7 +395,7 @@ move=>H5 H6; case: M=>G1 G2 G3 G4[rq][rs][E]Np; split=>//.
 - rewrite /getStatelet findU  eqxx(cohS C)/==>z t c.
   rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
   case: ifP; [|by move=>_; apply: G2].
-  rewrite um_domPt inE=>/eqP<-; rewrite um_findPt; case=>???; subst t c to'.
+  rewrite domPt inE=>/eqP<-; rewrite findPt; case=>???; subst t c to'.
   case: H1;[|case=>//]; move=>Z; subst st=>//; simpl in H5, H6;
   rewrite/QueryProtocol.send_step (getStK _ E)/= in H6; case: H6=>H6/=; subst n.                                  
   by case:H4=>_[C'][rid][_][_]; rewrite (getStK _ E); move/Np. 
@@ -395,12 +403,12 @@ move=>H5 H6; case: M=>G1 G2 G3 G4[rq][rs][E]Np; split=>//.
   case:G4; case=>i[[c']Q1 Q3] Q2; split; last first.
   + move=>j c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
     case:ifP; last by move=>_; apply Q2. 
-    rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+    rewrite domPt inE=>/eqP<-; rewrite findPt.
     by case=>???; subst to; rewrite eqxx in N.
   exists i; split=>[|j[c1]];rewrite findUnL ?(valid_fresh) ?(cohVs (cohQ s C))//.   
   + by exists c'; rewrite (find_some Q1). 
   case: ifP=>_; first by move=> T; apply: Q3; exists c1. 
-  by case/um_findPt_inv=>_[]_ _?; subst to; rewrite eqxx in N. 
+  by case/findPt_inv=>_[]_ _?; subst to; rewrite eqxx in N. 
 rewrite /getStatelet findU eqxx (cohS C)/=/holds_res_perms.
 rewrite /getLocal/=findU eqxx/= (cohVl (cohQ s C)).  
 case: H1;[|case=>//]; move=>Z; subst st=>//; simpl in H5, H6;
@@ -431,23 +439,23 @@ case: M=>G1 G2 G3 G4[rq][rs][E]Np; split=>//.
 - rewrite /getStatelet findU  eqxx(cohS C)/==>z t c.
   rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
   case: ifP; [|by move=>_; apply: G3].
-  rewrite um_domPt inE=>/eqP<-; rewrite um_findPt; case=>????; subst t c to to'.
+  rewrite domPt inE=>/eqP<-; rewrite findPt; case=>????; subst t c to to'.
   by rewrite eqxx in N.
 - rewrite /getStatelet findU  eqxx(cohS C)/=.
   case:G4; case=>i[[c']Q1 Q3] Q2; split; last first.
   + move=>j c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
     case:ifP; last by move=>_; apply Q2. 
-    rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+    rewrite domPt inE=>/eqP<-; rewrite findPt.
     case=>???; subst to' c.
     case: H1;[|case=>//]; move=>Z; subst st=>//; simpl in H5, H6;
-    rewrite/QueryProtocol.send_step (getStK _ E)/= in H6; case: H6=>H6/=; subst n.                                  
+    rewrite/QueryProtocol.send_step (getStK _ E)/= in H6; case: H6=>H6/=; subst n.
     by case:H4=>_[C']; rewrite (getStK _ E); case=>rid[d][->]/=/Np. 
   exists i; split=>[|j[c1]];rewrite findUnL ?(valid_fresh) ?(cohVs (cohQ s C))//.   
   + by exists c'; rewrite (find_some Q1). 
   case: ifP=>_; first by move=> T; apply: Q3; exists c1. 
-  case/um_findPt_inv=>_[]???; subst to'.
+  case/findPt_inv=>_[]???; subst to'.
   case: H1;[|case=>//]; move=>Z; subst st=>//; simpl in H5, H6;
-  rewrite/QueryProtocol.send_step (getStK _ E)/= in H6; case: H6=>H6/=; subst n.                                  
+  rewrite/QueryProtocol.send_step (getStK _ E)/= in H6; case: H6=>H6/=; subst n.
   by case:H4=>_[C']; rewrite (getStK _ E); case=>rid[d][_]/=/Np. 
 rewrite /getStatelet findU eqxx (cohS C)/=/holds_res_perms.
 rewrite /getLocal/=findU eqxx/= (cohVl (cohQ s C)).  
@@ -489,14 +497,14 @@ Ltac kill_g3 s C G3 to N :=
   rewrite /getStatelet findU  eqxx(cohS C)/==>z t c;
   rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//;
   case: ifP; [|by move=>_; apply: G3]; 
-  rewrite um_domPt inE=>/eqP<-; rewrite um_findPt;
+  rewrite domPt inE=>/eqP<-; rewrite findPt;
   by case=>_ _ Z _; subst to; rewrite eqxx in N.
 
 Ltac kill_g4 s C G4 to' t B:=
   rewrite /getStatelet findU  eqxx(cohS C)/==>z t c;
   rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//;
   case: ifP; [|by move=>_; apply: G4]; 
-  rewrite um_domPt inE=>/eqP<-; rewrite um_findPt;
+  rewrite domPt inE=>/eqP<-; rewrite findPt;
   by case=>??; try move=>?; try subst t; try subst to'; try rewrite ?eqxx in B.
 
 (* now he can send us the message, this is the crucial step. *)
@@ -529,7 +537,7 @@ case: (H4)=>_[C']/=[rid][d][Zm]Tr; subst msg.
 rewrite  (getStK _ E)/= in Tr.
 rewrite Tr; constructor 3.
 (* Now exploit the hook! *)
-move: (H5 1 (plab pc) query_hook); rewrite um_findPt -!(cohD C).
+move: (H5 1 (plab pc) query_hook); rewrite findPt -!(cohD C).
 move/(_ (erefl _) labC labQ to rid d (erefl _))=>D.
 move: (core_state_to_data_inj _ _ _ _ D H)=>Z; subst d.
 split=>//; first 3 last.
@@ -539,26 +547,26 @@ split=>//; first 3 last.
   move/Np/eqP: (mem_rem R)=>Zr; subst rn.
   move/Np:Tr=>/eqP=>Zr; subst rid.
   case: (C')=>_ _ _/(_ to); rewrite E (cohDom C')=>/(_ Qn). 
-  case=>[[x1 x2]][]/(hcancelPtV _); rewrite hvalidPt/==>/(_ is_true_true).
+  case=>[[x1 x2]][]/(hcancelPtV _); rewrite validPt/==>/(_ is_true_true).
   case=>Z1 Z2; subst x1 x2=>/andP[_]G.
   by rewrite (rem_filter (this, req_num) G) mem_filter/= eqxx/= in R.
 + by rewrite /getStatelet findU eqxx(cohS C)/getLocal findU (negbTE N). 
 + rewrite /getStatelet findU eqxx (cohS C)/==>z t c.
   rewrite findUnR ?(valid_fresh) ?(cohVs C')//.
   case: ifP=>[|_]; last by apply: G3.
-  by rewrite um_domPt inE=>/eqP<-{z}; rewrite um_findPt; case=><-.
+  by rewrite domPt inE=>/eqP<-{z}; rewrite findPt; case=><-.
 (* Here's the big hooking moment *)  
 split=>[|i m]; 
   rewrite /getStatelet findU eqxx/= (cohS C)/=; last first.
 + rewrite findUnR ?(valid_fresh) ?(cohVs C')//; case: ifP=>[|_]; last by move/G4. 
-  rewrite um_domPt inE=>/eqP<-; rewrite um_findPt; case=><-.
+  rewrite domPt inE=>/eqP<-; rewrite findPt; case=><-.
   by move/Np/eqP: Tr=>->; rewrite eqxx.
 exists (fresh (dsoup (getStatelet s lq))); split.
 + exists (rid :: serialize data).
-  by rewrite findUnR ?(valid_fresh)?(cohVs C')// um_domPt inE eqxx um_findPt.
+  by rewrite findUnR ?(valid_fresh)?(cohVs C')// domPt inE eqxx findPt.
 move=>i[c]; rewrite findUnR ?(valid_fresh)?(cohVs C')//.
 case: ifP=>[|_]; last by move/G4. 
-by rewrite um_domPt inE=>/eqP<-; rewrite um_findPt. 
+by rewrite domPt inE=>/eqP<-; rewrite findPt. 
 Qed.
 
 (*  A lemma covering send-cases in the lc-part of the world  *)
@@ -747,7 +755,7 @@ move=> N H S; case: H=> Qn H L M; split=>//.
 case: S; [by case=>_<- |
   move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}|
   move=>l rt H1 i from pf H3 C msg H2/=[H4]_->{s'}];
-  rewrite -(cohD C) domUn !inE !um_domPt !inE in H3;
+  rewrite -(cohD C) domUn !inE !domPt !inE in H3;
   case/andP:H3=>_ H3; case/orP: H3=>/eqP H3; subst l.
 
 (* Something sending in lc, should be irrelevant for us. *)
@@ -788,7 +796,7 @@ move=> N H S; case: H=> Qn H L M; split=>//.
 case: S; [by case=>_<- |
   move=>l st H1 to'/= msg n H2 H3 C H4 H5 H6->{s'}|
   move=>l rt H1 i from pf H3 C msg H2/=[H4]_->{s'}];
-  rewrite -(cohD C) domUn !inE !um_domPt !inE in H3;
+  rewrite -(cohD C) domUn !inE !domPt !inE in H3;
   case/andP:H3=>_ H3; case/orP: H3=>/eqP H3; subst l;
   do? [by rewrite /getStatelet findU (negbTE Lab_neq)];
   rewrite /getStatelet findU eqxx(cohS C)/=.                
@@ -802,28 +810,28 @@ case:M; case=>G1 G2 G3 G4 G5; [constructor 1|constructor 2|constructor 3].
 - split=>//=; first by rewrite /getLocal/= findU (negbTE N) in G1 *. 
   + move=>i t c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
     case:ifP; last by move=>_; apply G2. 
-    rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+    rewrite domPt inE=>/eqP<-; rewrite findPt.
     by case=>???; subst to; rewrite eqxx in A.
   + case: G4; case=>i[[c']Q1 Q3] Q2; split; last first.
     - move=>j c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
       case:ifP; last by move=>_; apply Q2.
-      rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+      rewrite domPt inE=>/eqP<-; rewrite findPt.
       by case=>????; subst z to' c; rewrite eqxx in N.
     exists i; split=>[|j[c1]];rewrite findUnL ?(valid_fresh) ?(cohVs (cohQ s C))//.   
     - by exists c'; rewrite (find_some Q1). 
     case: ifP=>_; first by move=> T; apply: Q3; exists c1. 
-    by case/um_findPt_inv=>_[]????; subst to' z; rewrite eqxx in N.
+    by case/findPt_inv=>_[]????; subst to' z; rewrite eqxx in N.
   by case:G5=>rq[rs][Tr]Np; exists rq, rs; rewrite /getLocal/=findU A/=. 
     
 (* Send-transition, case 2 *)
 - split=>//=; first by rewrite /getLocal/= findU (negbTE N) in G1 *. 
   + move=>i t c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
     case:ifP; last by move=>_; apply G3. 
-    rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+    rewrite domPt inE=>/eqP<-; rewrite findPt.
     by case=>????; subst z to'; rewrite eqxx in N.
   + move=>i t c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
     case:ifP; last by move=>_; apply G4. 
-    rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+    rewrite domPt inE=>/eqP<-; rewrite findPt.
     by case=>????; subst z to'; rewrite eqxx in A.
   by case:G5=>rq[rs][Tr]Np; exists rq, rs; rewrite /getLocal/=findU A/=. 
 
@@ -831,17 +839,17 @@ case:M; case=>G1 G2 G3 G4 G5; [constructor 1|constructor 2|constructor 3].
 - split=>//=; first by rewrite /getLocal/= findU (negbTE N) in G1 *. 
   + move=>i t c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
     case:ifP; last by move=>_; apply G3. 
-    rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+    rewrite domPt inE=>/eqP<-; rewrite findPt.
     by case=>????; subst to' z; rewrite eqxx in N.
   + case: G4; case=>i[[c']Q1 Q3] Q2; split; last first.
     - move=>j c; rewrite findUnR ?(valid_fresh) ?(cohVs (cohQ s C))//.
       case:ifP; last by move=>_; apply Q2.
-      rewrite um_domPt inE=>/eqP<-; rewrite um_findPt.
+      rewrite domPt inE=>/eqP<-; rewrite findPt.
       by case=>????; subst z to' c; rewrite eqxx in A.
     exists i; split=>[|j[c1]];rewrite findUnL ?(valid_fresh) ?(cohVs (cohQ s C))//.   
     - by exists c'; rewrite (find_some Q1). 
     case: ifP=>_; first by move=> T; apply: Q3; exists c1. 
-    by case/um_findPt_inv=>_[]????; subst to' z; rewrite eqxx in A.
+    by case/findPt_inv=>_[]????; subst to' z; rewrite eqxx in A.
   by case:G5=>rq[rs][Tr]Np; exists rq, rs; rewrite /getLocal/=findU A/=. 
 
 (** Receive-transitions **)
@@ -869,7 +877,7 @@ case:M; case=>G1 G2 G3 G4 G5; [constructor 1|constructor 2|constructor 3].
     by rewrite (negbTE N) orbC.
   by case:G5=>rq[rs][Tr]Np; exists rq, rs; rewrite /getLocal/=findU A/=.
 Qed.
-      
+
 
 Lemma msg_story_rely req_num to data reqs resp s s2 :
   msg_story s req_num to data reqs resp ->
@@ -953,8 +961,11 @@ apply: act_rule=>i1 R0; split=>//=[|r i2 i3[Hs]St R2].
   split=>//; [split=>//; try by case:Q| | ].
   + by exists Cq1; rewrite /QueryProtocol.send_req_prec (getStK _ P1)/= P2.
   + by apply/andP; split=>//; rewrite -(cohD C1) W_dom !inE eqxx orbC.
-  move=>z lc hk; rewrite find_um_filt eqxx /query_hookz/==>/sym.
-  by move/find_some; rewrite um_domPt !inE=>/eqP. 
+  move=>z lc hk; rewrite find_umfilt eqxx /query_hookz.
+  move => F.
+  apply sym_eq in F.
+  move: F.
+  by move/find_some; rewrite domPt !inE=>/eqP.
 (* Postcondition *)
 have N: network_step W this i1 i2.
 - apply: (Actions.send_act_step_sem _ _ St)=>//; first by rewrite prEqQ.
@@ -964,7 +975,7 @@ rewrite -(rely_loc' _ R0) in P1.
 move/rely_coh: (R0)=>[_]C1; move: (coh_coh lq C1);rewrite prEqQ=>Cq1.
 case: St=>->[h]/=[].
 rewrite/QueryProtocol.send_step/QueryProtocol.send_step_fun/=.
-rewrite (proof_irrelevance (QueryProtocol.send_safe_coh _) Cq1).
+rewrite (pf_irr (QueryProtocol.send_safe_coh _) Cq1).
 rewrite (getStK _ P1); case=>Z Z'; subst h rid.
 rewrite Z' locE; last first;
 [by apply: cohVl Cq1| by apply: cohS C1|
@@ -996,21 +1007,21 @@ split=>//; rewrite ?inE ?eqxx=>//=.
 - move=>m t c; rewrite /getStatelet findU eqxx (cohS C1)/=.
   set ds := (dsoup _); rewrite findUnR; last first.
   by rewrite valid_fresh; apply: cohVs Cq1.
-  rewrite gen_domPt !inE/=; case:ifP=>[/eqP<-|_]; last by apply: Q4.
-  by rewrite um_findPt; case=><-. 
+  rewrite domPt !inE/=; case:ifP=>[/eqP<-|_]; last by apply: Q4.
+  by rewrite findPt; case=><-. 
 (* TODO: refactor this into a separate lemma about those state predicates *)
 - rewrite /getStatelet findU eqxx (cohS C1)/=.
   set ds := (dsoup _); split=>//.
   exists (fresh ds); split=>//.
   + exists [:: fresh_id reqs].
     rewrite findUnR; last by rewrite valid_fresh; apply: cohVs Cq1.
-    by rewrite um_domPt inE eqxx um_findPt. 
+    by rewrite domPt inE eqxx findPt. 
   + move=>x[c]; rewrite findUnR; last by rewrite valid_fresh; apply: cohVs Cq1.
-    case:ifP=>[|_[]]; first by rewrite um_domPt inE=>/eqP->.
+    case:ifP=>[|_[]]; first by rewrite domPt inE=>/eqP->.
     by move/(Q3 x treq c).
   move=>x c ; rewrite findUnR; last by rewrite valid_fresh; apply: cohVs Cq1.
   case:ifP=>[|_[]]; last by move/(Q3 x treq c).
-  by rewrite um_domPt inE=>/eqP->; rewrite um_findPt;case=>->.
+  by rewrite domPt inE=>/eqP->; rewrite findPt;case=>->.
 set ds := (dsoup _).
 case: Q2=>reqs'[resp'][G1 G2].
 case X: (to == this).
@@ -1039,9 +1050,9 @@ Program Definition tryrecv_resp (rid : nat) (to : nid) :=
       (fun k n t (b : seq nat) => [&& k == lq, n == to, t == tresp,
                                    head 0 b == rid & to \in qnodes]) _).
 Next Obligation.
-case/andP:H=>/eqP=>->_; rewrite joinC domUn inE um_domPt inE eqxx andbC/=.
-case: validUn=>//=; rewrite ?um_validPt//.
-move=>k; rewrite !um_domPt !inE=>/eqP<-/eqP Z; subst lq.
+case/andP:H=>/eqP=>->_; rewrite joinC domUn inE domPt inE eqxx andbC/=.
+case: validUn=>//=; rewrite ?validPt//.
+move=>k; rewrite !domPt !inE=>/eqP<-/eqP Z; subst lq.
 by move/negbTE: Lab_neq; rewrite eqxx.
 Qed.
 
@@ -1064,9 +1075,6 @@ Definition recv_resp_inv (rid : nat) to
     else [/\ getLq i = qst :-> ((to, rid) :: reqs, resp),
           local_indicator data (getLc i) &
           msg_story i rid to data ((to, rid) :: reqs) resp].
-
-From DiSeL.Core
-Require Import While.
 
 Program Definition receive_resp_loop (rid : nat) to :
   {(rrd : (seq (nid * nat) * seq (nid * nat) * Data))}, DHT [this, W]
@@ -1140,7 +1148,7 @@ move: (msg_story_rely _ _ _ _ _ _ _ Q3 R1)=>{Q3}Q3.
 have P1: valid (dstate (getSq i1)) by case: (C1')=>P1 P2 P3 P4.
 have P2: valid i1 by apply: (cohS C1).
 have P3: lq \in dom i1.
-- rewrite -(cohD C1) domUn inE !um_domPt !inE/= eqxx orbC andbC/=.
+  rewrite -(cohD C1) domUn inE !domPt !inE/= inE eqxx orbC andbC/=.
   by case/andP: W_valid.
 clear Hin R1 C0 i0 i3 Hw. 
 (* Consider different cases for msg_story. *)
@@ -1155,7 +1163,8 @@ case=>X1 _ X2 X3 X4; rewrite /query_init_state.
 subst i2.
 rewrite /receive_step/=/QueryProtocol.receive_step !(getStK C1' X1)/=!inE!eqxx/=.
 rewrite !locE ?Qn/=;[|by case: C1'|by apply: cohS C1|by case: C1'].
-move/sym:E=>E; split=>//; last 1 first.
+apply sym_eq in E.
+split=>//; last 1 first.
 - case:X3; case=>m'[[c]]E'/(_ mid) H.
   have Z: m' = mid by apply: H; exists (tms_cont tms);
     rewrite E; case: (tms) E2=>/=t c'->.
@@ -1171,7 +1180,7 @@ split=>//.
     by rewrite /getLocal/= findU; case:ifP=>//=/eqP Z; subst to; rewrite eqxx in B.
   move/eqP:B=>B; subst to; case: X4=> rq[rs][G1 G2].
   rewrite G1 in X1.
-  have V: valid (qst :-> (rq, rs)) by apply: hvalidPt.
+  have V: valid (qst :-> (rq, rs)) by apply: validPt.
   case: (hcancelPtV V X1)=>Z1 Z2; subst rq rs; exists reqs, resp; split=>//.
   rewrite /getStatelet/= findU eqxx (cohS C1)/=/getLocal/=findU eqxx/=. 
   by case: C1'=>_->. 
@@ -1229,4 +1238,3 @@ by apply: (core_state_stable _ _ _ _ R _ T2 T4); case: T3.
 Qed.
 
 End QueryHooked.
-

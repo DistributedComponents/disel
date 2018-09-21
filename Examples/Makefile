@@ -8,9 +8,8 @@ default: Makefile.coq
 install: Makefile.coq
 	$(MAKE) -f Makefile.coq install
 
-clean:
-	if [ -f Makefile.coq ]; then \
-	  $(MAKE) -f Makefile.coq clean; fi
+clean: Makefile.coq
+	$(MAKE) -f Makefile.coq cleanall
 	rm -f Makefile.coq Makefile.coq.conf
 
 Makefile.coq: Make
