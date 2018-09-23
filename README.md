@@ -32,7 +32,7 @@ several parallel make jobs, e.g., `make -j 4`.
 
 ### Installation via OPAM
 
-The framework components of the project may be installed into Coq's
+The latest release of the framework components of the project may be installed into Coq's
 `user-contrib` directory via [OPAM](https://opam.ocaml.org/doc/Install.html)
 for easy use in other developments; this will automatically install all
 requirements.
@@ -41,8 +41,7 @@ Make sure OPAM is installed and use the following commands:
 
 ```
 opam repo add coq-released https://coq.inria.fr/opam/released
-opam repo add distributedcomponents-dev http://opam-dev.distributedcomponents.net
-opam install disel
+opam install coq-disel
 ```
 
 As an alternative, a VM for a previous version has been provided for
