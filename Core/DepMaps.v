@@ -81,21 +81,21 @@ Lemma joinC f1 f2 : f1 \+ f2 = f2 \+ f1.
 Proof.
 case: f1 f2=>d1 pf1[d2 pf2]; rewrite /join/=.
 move: (dmDom_join pf1 pf2) (dmDom_join pf2 pf1); rewrite joinC=>G1 G2.
-by move: (bool_irrelevance G1 G2)=>->.
+by move: (eq_irrelevance G1 G2)=>->.
 Qed.
 
 Lemma joinCA f1 f2 f3 : f1 \+ (f2 \+ f3) = f2 \+ (f1 \+ f3).
 Proof.
 case: f1 f2 f3=>d1 pf1[d2 pf2][d3 pf3]; rewrite /join/=.
 move: (dmDom_join pf1 (dmDom_join pf2 pf3)) (dmDom_join pf2 (dmDom_join pf1 pf3)).
-by rewrite joinCA=>G1 G2; move: (bool_irrelevance G1 G2)=>->.
+by rewrite joinCA=>G1 G2; move: (eq_irrelevance G1 G2)=>->.
 Qed.
 
 Lemma joinA f1 f2 f3 : f1 \+ (f2 \+ f3) = (f1 \+ f2) \+ f3.
 Proof.
 case: f1 f2 f3=>d1 pf1[d2 pf2][d3 pf3]; rewrite /join/=.
 move: (dmDom_join pf1 (dmDom_join pf2 pf3)) (dmDom_join (dmDom_join pf1 pf2) pf3).
-by rewrite joinA=>G1 G2; move: (bool_irrelevance G1 G2)=>->.
+by rewrite joinA=>G1 G2; move: (eq_irrelevance G1 G2)=>->.
 Qed.
 
 Lemma validL f1 f2 : valid (f1 \+ f2) -> valid f1.
@@ -105,7 +105,7 @@ Lemma unitL f : unit \+ f = f.
 Proof.
 rewrite /join/unit/=; case: f=>//=u pf.
 move: pf (dmDom_join (dmDom_unit labF) pf); rewrite unitL=>g1 g2.
-by move: (bool_irrelevance g1 g2)=>->.
+by move: (eq_irrelevance g1 g2)=>->.
 Qed.
 
 Lemma validU : valid unit.
@@ -124,7 +124,7 @@ Definition DepMap := DepMap.
 Lemma dep_unit (d : depmap labF) : dmap d = Unit -> d = unit labF.
 Proof.
 case: d=>u pf/=; rewrite /unit. move: (dmDom_unit labF)=>pf' Z; subst u.
-by rewrite (bool_irrelevance pf).
+by rewrite (eq_irrelevance pf).
 Qed.
 
 Coercion dmap := dmap.
