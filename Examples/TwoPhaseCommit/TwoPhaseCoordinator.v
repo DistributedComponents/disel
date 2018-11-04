@@ -67,7 +67,7 @@ Next Obligation. by case/andP: H=>/eqP->_; rewrite /ddom domPt inE/=. Qed.
 (************** Coordinator code **************)
 
 (*** Reading internal state ***)
-Implicit Arguments TPCProtocol.TPCCoh [cn pts others].
+Arguments TPCProtocol.TPCCoh [cn pts others].
 Notation coh := (@TPCProtocol.TPCCoh cn pts others).
 Notation getS s := (getStatelet s l).
 Notation loc i := (getLocal cn (getStatelet i l)).
