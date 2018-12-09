@@ -11,8 +11,8 @@ Zachary Tatlock, in the POPL 2018 proceedings.
 
 ### Requirements
 
-* [Coq 8.7 or 8.8](https://coq.inria.fr)
-* [Mathematical Components 1.6.2 or later](http://math-comp.github.io/math-comp/) (`ssreflect`)
+* [Coq 8.7 or later](https://coq.inria.fr)
+* [Mathematical Components 1.6.2 or later](http://math-comp.github.io/math-comp/) (`ssreflect` suffices)
 * [FCSL PCM library 1.0.0 or later](https://github.com/imdea-software/fcsl-pcm)
 * [OCaml 4.05.0 or later](https://ocaml.org) (to compile and run the extracted applications)
 

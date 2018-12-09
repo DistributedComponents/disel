@@ -1,5 +1,9 @@
 -Q . DiSeL
--arg "-w -notation-overridden,-local-declaration,-redundant-canonical-projection,-projection-no-head-constant"
+
+-arg -w -arg -notation-overridden
+-arg -w -arg -local-declaration
+-arg -w -arg -redundant-canonical-projection
+-arg -w -arg -projection-no-head-constant
 
 Calculator/CalculatorInvariant.v
 Calculator/DelegatingCalculatorServer.v

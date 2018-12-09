@@ -6,7 +6,7 @@ maintainer: "palmskog@gmail.com"
 homepage: "https://github.com/DistributedComponents/disel"
 dev-repo: "https://github.com/DistributedComponents/disel.git"
 bug-reports: "https://github.com/DistributedComponents/disel/issues"
-license: "BSD2"
+license: "BSD 2"
 
 build: [ make "-j" "%{jobs}%" ]
 install: [ make "install" ]
@@ -22,8 +22,9 @@ tags: [
   "keyword:program verification"
   "keyword:separation logic"
   "keyword:distributed algorithms"
+  "logpath:DiSeL"
 ]
 authors: [
-  "Ilya Sergey <>"
-  "James R. Wilcox <>"
+  "Ilya Sergey"
+  "James R. Wilcox"
 ]

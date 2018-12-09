@@ -1,6 +1,10 @@
 -Q Core DiSeL
 -Q Examples DiSeL
--arg "-w -notation-overridden,-local-declaration,-redundant-canonical-projection,-projection-no-head-constant"
+
+-arg -w -arg -notation-overridden
+-arg -w -arg -local-declaration
+-arg -w -arg -redundant-canonical-projection
+-arg -w -arg -projection-no-head-constant
 
 Core/Domain.v
 Core/State.v
