@@ -11,14 +11,14 @@ synopsis: "Example systems for Disel, a separation-style logic for compositional
 build: [ make "-j" "%{jobs}%" "-C" "Examples" ]
 install: [ make "-C" "Examples" "install" ]
 remove: [ "sh" "-c" "rm -rf '%{lib}%/coq/user-contrib/DiSeL/Examples'" ]
+flags: light-uninstall
 depends: [
   "ocaml"
-  "coq" {>= "8.7" & < "8.10~"}
-  "coq-mathcomp-ssreflect" {>= "1.6.2" & < "1.9~"}
+  "coq" {(>= "8.7" & < "8.10~") | (= "dev")}
+  "coq-mathcomp-ssreflect" {(>= "1.6.2" & < "1.9~") | (= "dev")}
   "coq-fcsl-pcm"
   "coq-disel" {= "dev"}
 ]
-flags: light-uninstall
 
 tags: [
   "category:Computer Science/Concurrent Systems and Protocols/Theory of concurrent systems"

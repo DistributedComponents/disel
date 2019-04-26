@@ -3,9 +3,8 @@
 Implementation and case studies of Disel, a separation-style logic for
 compositional verification of distributed systems.
 
-This code accompanies the paper entitled **Programming and Proving
-with Distributed Protocols** by Ilya Sergey, James R. Wilcox and
-Zachary Tatlock, in the POPL 2018 proceedings.
+This code accompanies the paper entitled [Programming and Proving with Distributed Protocols](http://homes.cs.washington.edu/~jrw12/disel.pdf)
+by Ilya Sergey, James R. Wilcox, and Zachary Tatlock, in the POPL 2018 proceedings.
 
 ## Building the Project
 
@@ -99,8 +98,7 @@ Extracting and running the example applications is described below.
 
 ## Code corresponding to the paper
 
-The following describes how [the paper](http://homes.cs.washington.edu/~jrw12/disel.pdf)
-corresponds to the code:
+The following describes how the paper corresponds to the code:
 
 * The Calculator (Section 2)
     - The directory `Examples/Calculator` contains the relevant files.
