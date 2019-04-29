@@ -19,8 +19,6 @@ from implementation details.
 
 build: [ make "-j" "%{jobs}%" "-C" "Core" ]
 install: [ make "-C" "Core" "install" ]
-remove: [ "sh" "-c" "rm -rf '%{lib}%/coq/user-contrib/DiSeL'" ]
-flags: light-uninstall
 depends: [
   "ocaml"
   "coq" {(>= "8.7" & < "8.10~") | (= "dev")}
