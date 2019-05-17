@@ -1,7 +1,3 @@
-ifeq "$(COQBIN)" ""
-COQBIN=$(dir $(shell which coqtop))/
-endif
-
 default: Makefile.coq
 	$(MAKE) -f Makefile.coq
 
