@@ -1,5 +1,4 @@
 opam-version: "2.0"
-version: "dev"
 maintainer: "palmskog@gmail.com"
 
 homepage: "https://github.com/DistributedComponents/disel"
@@ -17,11 +16,11 @@ as protocols, which capture system-specific logic and disentangle system definit
 from implementation details.
 """
 
-build: [ make "-j" "%{jobs}%" "-C" "Core" ]
-install: [ make "-C" "Core" "install" ]
+build: [make "-j%{jobs}%" "-C" "Core"]
+install: [make "-C" "Core" "install"]
 depends: [
   "ocaml"
-  "coq" {(>= "8.7" & < "8.10~") | (= "dev")}
+  "coq" {(>= "8.7" & < "8.11~") | (= "dev")}
   "coq-mathcomp-ssreflect" {(>= "1.6.2" & < "1.9~") | (= "dev")}
   "coq-fcsl-pcm"
 ]
