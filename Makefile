@@ -1,4 +1,4 @@
-OCAMLBUILD = ocamlbuild -tag safe_string -libs unix
+OCAMLBUILD = ocamlbuild -tag safe_string -libs unix -I shims
 
 default: Makefile.coq
 	$(MAKE) -f Makefile.coq
@@ -19,15 +19,15 @@ Makefile.coq: _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 
 TPCMain.d.byte: default
-	$(OCAMLBUILD) -I extraction/TPC -I shims shims/TPCMain.d.byte
+	$(OCAMLBUILD) -I extraction/TPC shims/TPCMain.d.byte
 
 TPCMain.native: default
-	$(OCAMLBUILD) -I extraction/TPC -I shims shims/TPCMain.native
+	$(OCAMLBUILD) -I extraction/TPC shims/TPCMain.native
 
 CalculatorMain.d.byte: default
-	$(OCAMLBUILD) -I extraction/calculator -I shims shims/CalculatorMain.d.byte
+	$(OCAMLBUILD) -I extraction/calculator shims/CalculatorMain.d.byte
 
 CalculatorMain.native: default
-	$(OCAMLBUILD) -I extraction/calculator -I shims shims/CalculatorMain.native
+	$(OCAMLBUILD) -I extraction/calculator shims/CalculatorMain.native
 
 .PHONY: default clean install tpc calculator
