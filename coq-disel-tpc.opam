@@ -10,8 +10,8 @@ synopsis: "Two-phase commit implemented in Disel, a separation-style logic for c
 build: [make "-j%{jobs}%" "tpc"]
 depends: [
   "ocaml" {>= "4.05.0"}
-  "coq" {(>= "8.7" & < "8.11~") | (= "dev")}
-  "coq-mathcomp-ssreflect" {(>= "1.6.2" & < "1.10~") | (= "dev")}
+  "coq" {(>= "8.7" & < "8.12~") | (= "dev")}
+  "coq-mathcomp-ssreflect" {(>= "1.6.2" & < "1.11~") | (= "dev")}
   "coq-fcsl-pcm"
   "ocamlbuild" {build}
 ]

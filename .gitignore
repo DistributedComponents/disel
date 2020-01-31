@@ -25,6 +25,9 @@ Thumbs.db
 *.thr_debug_o
 *.o
 *.vo
+*.vio
+*.vos
+*.vok
 *.a
 *.o.cmd
 *.depend*
@@ -84,4 +87,5 @@ _build
 *.d.byte
 *.native
 Makefile.coq.conf
+.Makefile.coq.d
 .coqdeps.d
