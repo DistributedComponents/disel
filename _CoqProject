@@ -5,6 +5,7 @@
 -arg -w -arg -local-declaration
 -arg -w -arg -redundant-canonical-projection
 -arg -w -arg -projection-no-head-constant
+-arg -w -arg -duplicate-clear
 
 Core/Domain.v
 Core/State.v
