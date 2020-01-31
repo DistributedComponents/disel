@@ -37,7 +37,7 @@ Inductive schedule :=
 
 End ProcessSyntax.
 
-Arguments Unfinished [this W A].
+Arguments Unfinished {this W A}.
 Arguments Ret [this W A].
 Arguments Act [this W A].
 Arguments Seq [this W A B].

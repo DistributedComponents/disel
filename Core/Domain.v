@@ -70,7 +70,7 @@ Proof. by case: T y x z=>S [[l R A Tr]] ? x y z; apply: (Tr). Qed.
 
 End Laws.
 
-Hint Resolve poset_refl.
+Hint Resolve poset_refl : core.
 
 Add Parametric Relation (T : poset) : T (@Poset.leq T)
   reflexivity proved by (@poset_refl _)
@@ -399,8 +399,8 @@ Definition sup_closure (T : lattice) (s : Pred T) :=
 
 End Lat.
 
-Arguments lbot [T].
-Arguments sup_closed [T].
+Arguments lbot {T}.
+Arguments sup_closed {T}.
 Arguments sup_closure [T].
 Prenex Implicits sup_closed sup_closure.
 
@@ -900,7 +900,7 @@ Notation "[ 'cpo' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
 Notation "[ 'cpo' 'of' T ]" := (@clone T _ _ id)
   (at level 0, format "[ 'cpo'  'of'  T ]") : form_scope.
 
-Arguments CPO.bot [cT].
+Arguments CPO.bot {cT}.
 Arguments CPO.lim [cT].
 Prenex Implicits CPO.lim.
 Prenex Implicits CPO.bot.
@@ -927,7 +927,7 @@ End CPO.
 
 Export CPO.Exports.
 
-Hint Resolve botP.
+Hint Resolve botP : core.
 
 (* common chain constructions *)
 
@@ -936,7 +936,7 @@ Hint Resolve botP.
 Section LiftChain.
 Variable (D : cpo) (s : chain D).
 
-Hint Resolve botP.
+Hint Resolve botP : core.
 
 Lemma lift_chainP : chain_axiom [Pred x : D | x = bot \/ x \In s].
 Proof.
@@ -1146,7 +1146,7 @@ Qed.
 
 End AdmissibleClosure.
 
-Arguments chain_closed [T].
+Arguments chain_closed {T}.
 Prenex Implicits chain_closed.
 
 (* diagonal of an admissible set of pairs is admissible *)
@@ -1326,7 +1326,7 @@ Export Kleene.Exports.
 Lemma id_cont (D : cpo) : continuous (@id D).
 Proof. by exists id_mono; move=>d; rewrite id_chainE. Qed.
 
-Arguments id_cont [D].
+Arguments id_cont {D}.
 Prenex Implicits id_cont.
 
 Lemma const_cont (D1 D2 : cpo) (y : D2) : continuous (fun x : D1 => y).
@@ -1336,7 +1336,7 @@ exists const_mono; move=>s; apply: poset_asym.
 by apply: limM=>_ [x][->].
 Qed.
 
-Arguments const_cont [D1 D2 y].
+Arguments const_cont {D1 D2 y}.
 Prenex Implicits const_cont.
 
 Lemma comp_cont (D1 D2 D3 : cpo) (f1 : D2 -> D1) (f2 : D3 -> D2) :
@@ -1355,8 +1355,8 @@ Proof. by exists proj1_mono. Qed.
 Lemma proj2_cont (D1 D2 : cpo) : continuous (@snd D1 D2).
 Proof. by exists proj2_mono. Qed.
 
-Arguments proj1_cont [D1 D2].
-Arguments proj2_cont [D1 D2].
+Arguments proj1_cont {D1 D2}.
+Arguments proj2_cont {D1 D2}.
 Prenex Implicits proj1_cont proj2_cont.
 
 Lemma diag_cont (D : cpo) : continuous (fun x : D => (x, x)).
@@ -1365,7 +1365,7 @@ exists diag_mono=>d; apply: poset_asym;
 by split=>/=; [rewrite proj1_diagE | rewrite proj2_diagE].
 Qed.
 
-Arguments diag_cont [D].
+Arguments diag_cont {D}.
 Prenex Implicits diag_cont.
 
 Lemma app_cont A (D : cpo) x : continuous (fun f : A -> D => f x).

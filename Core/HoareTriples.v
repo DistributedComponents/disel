@@ -448,7 +448,7 @@ Lemma conseq_refl (W : world) A this (e : DT this W A) :
   conseq e (spec_of e).
 Proof. by case: e; case=>p q [T H i] /= Hp C t; apply: H. Qed.
 
-Hint Resolve conseq_refl.
+Hint Resolve conseq_refl : core.
 
 
 (* Weakening the specifications *)
