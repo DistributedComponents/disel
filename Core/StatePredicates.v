@@ -267,7 +267,7 @@ Lemma has_all_true xs (ps : seq nid) x:
   all id [seq i.2 | i <- xs] ->
   x \in ps -> (x, true) \in xs.
 Proof.
-move=>P A D; move: (perm_eq_mem P x).
+move=>P A D; move: (perm_mem P x).
 rewrite D=>/mapP[z] I Z; subst x.
 rewrite all_map/= in A; move/allP: A=>/(_ z I)/=<-.
 by rewrite -surjective_pairing.
@@ -277,7 +277,7 @@ Lemma has_some_false (xs : seq (nid * bool)) ps x:
   perm_eq [seq i.1 | i <- xs] ps ->
   x \in ps -> exists b, (x, b) \in xs.
 Proof.
-move=>P D; move: (perm_eq_mem P x).
+move=>P D; move: (perm_mem P x).
 rewrite D=>/mapP[z] I Z; subst x.
 by exists z.2; rewrite -surjective_pairing.
 Qed.

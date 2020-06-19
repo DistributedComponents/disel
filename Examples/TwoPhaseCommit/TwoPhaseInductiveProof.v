@@ -126,7 +126,7 @@ split; do?[by rewrite /cn_state locE'?(cohVl C)///cstep_send H1 X]=>//;
   by apply:(@pt_PhaseOneE l cn pts others Hnin d e dt lg pt to _ _ C Hp Z1 G).
 
 case Z1: (pt == to); last first.
-- move/perm_eq_mem: X=>/(_ pt); rewrite inE Z1/= Hp=>Z.
+- move/perm_mem: X=>/(_ pt); rewrite inE Z1/= Hp=>Z.
   move: (H4 _ Hp); rewrite Z.
   by apply:(@pt_PhaseOneE l cn pts others Hnin d e dt lg pt to _ _ C Hp Z1 G).
 move/eqP:Z1=>Z1; subst to.
@@ -199,7 +199,7 @@ move=>[[round][next_data][recvd]|[round][next_data][sent]].
     by rewrite /cn_state locE' ?(cohVl C).
     move=>pt Hpt.
     rewrite in_nil.
-    move/perm_eq_mem: X=>/(_ pt); rewrite inE Hpt.
+    move/perm_mem: X=>/(_ pt); rewrite inE Hpt.
     case/orP.
     * move/eqP=>?; subst pt.
       move: (Hsent to Hto).
@@ -317,7 +317,7 @@ move=>[[round][next_data][recvd]|[round][next_data][sent]].
     by rewrite /cn_state locE' ?(cohVl C).
     move=>pt Hpt.
     rewrite in_nil.
-    move/perm_eq_mem: X=>/(_ pt); rewrite inE Hpt.
+    move/perm_mem: X=>/(_ pt); rewrite inE Hpt.
     case/orP.
     * move/eqP=>?; subst pt.
       move: (Hsent to Hto).
@@ -910,7 +910,7 @@ case: ifP.
     by rewrite (getStL_Kc C _ Hst).
   + move=>pt Hpt.
     move/Pts: (Hpt).
-    move: (perm_eq_mem P) => {P}P.
+    move: (perm_mem P) => {P}P.
     move: (Hpt).
     rewrite -P inE.
     case/orP.
@@ -1007,7 +1007,7 @@ case: ifP.
     by rewrite (getStL_Kc C _ Hst).
   + move=>pt Hpt.
     move/Pts: (Hpt).
-    move: (perm_eq_mem P) => {P}P.
+    move: (perm_mem P) => {P}P.
     move: (Hpt).
     rewrite -P inE.
     case/orP.

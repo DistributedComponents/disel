@@ -116,7 +116,7 @@ have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1)))domPt inE/=.
 rewrite (rely_loc' _ R3)/= locE// /cr_step (getStK (proj1 cohs) L1)/=.
 clear R3 Hw P1 P2 P3; exists (remove_elem rs (cl, from, (behead tms))). 
 move: (remove_elem_in rs (cl, from, (behead tms))); rewrite X.
-by rewrite perm_eq_sym=>H.
+by rewrite perm_sym=>H.
 Qed.
 
 
@@ -241,10 +241,10 @@ apply: call_rule=>//.
 clear R3=>v i5[rs'][from][args'][E5]P5 R C.  
 suff X: args = args' /\ rs' = [::] by case: X=>Z X; subst args' rs'.  
 suff X': rs' = [::].
-- subst rs'; split=>//; move/perm_eq_mem: P5=>P5. 
+- subst rs'; split=>//; move/perm_mem: P5=>P5. 
   move/P5: (cl, server, args).
   by rewrite inE eqxx inE/==>/esym/eqP; case=>_->.
-by case/perm_eq_size: P5=>/esym/size0nil. 
+by case/perm_size: P5=>/esym/size0nil. 
 Qed.
 
 (**************************************************)

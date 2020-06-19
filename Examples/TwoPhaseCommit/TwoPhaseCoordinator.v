@@ -137,10 +137,10 @@ case=>[[E1 P1 C1]|].
 (*--------------------------------------*)
 
 - case: to_send P1=>[|to tos Hp].
-  + by move/perm_eq_size=>/=/size0nil=>Z; rewrite Z in (PtsNonEmpty). 
+  + by move/perm_size=>/=/size0nil=>Z; rewrite Z in (PtsNonEmpty). 
 - apply: step; apply:act_rule=>j1 R1/=; split=>[|r k m[Sf]St R2]. 
   split=>//=; first by case: (rely_coh R1).
-  + split; first by split=>//; move/perm_eq_mem: Hp->; rewrite inE eqxx.
+  + split; first by split=>//; move/perm_mem: Hp->; rewrite inE eqxx.
     case: (proj2 (rely_coh R1))=>_ _ _ _/(_ l); rewrite (prEq tpc)=>C; exists C.
     left; exists e; split; last by exists d.
     by rewrite -(rely_loc' _ R1) in E1; rewrite (getStC_K _ E1).
@@ -166,7 +166,7 @@ have Pre:
    else exists ps : seq nid, loc m = st :-> (e, CSentPrep d ps) \+ log :-> lg /\ perm_eq pts (ps ++ tos)).
 - case X: ([::] == tos);[move/eqP: X=>X; subst tos; rewrite eqxx|
                          rewrite eq_sym X].
-  have Y: pts == [:: to] by rewrite (perm_eq_small _ Hp).
+  have Y: pts == [:: to] by rewrite (perm_small_eq _ Hp).
   rewrite /cstep_send/= Y in G. 
   move: (proj2 Hc)=>Y'; rewrite Y' in G=>{Y'}.
   rewrite [cn_safe_coh _ ](pf_irr _ C) E1' in G. (* TADA! *)
@@ -179,7 +179,7 @@ have Pre:
 - exists [:: to]; split; last by rewrite cat_cons/=.
   have Y: pts == [:: to] = false.
   + apply/negP=>/eqP Z; rewrite Z in Hp.
-    move/perm_eq_size: (Hp).
+    move/perm_size: (Hp).
     move => F.
     apply sym_eq in F.
     move: F.
@@ -215,12 +215,12 @@ have Y: exists to tos, to_send = to :: tos.
 case: Y=>to[tos] Z; subst to_send=>{X}.
 - apply: step; apply:act_rule=>j1 R1/=; split=>[|r k m[Sf]St R2]. 
   split=>//=; first by case: (rely_coh R1).
-  + split; first by split=>//; move/perm_eq_mem: Hp->;
+  + split; first by split=>//; move/perm_mem: Hp->;
                     rewrite mem_cat orbC inE eqxx.
     case: (proj2 (rely_coh R1))=>_ _ _ _/(_ l); rewrite prEq=>C; exists C.
     right; exists e, d, ps; split=>//.
       by rewrite -(rely_loc' _ R1) in E1; rewrite (getStC_K _ E1).
-  + move/perm_eq_uniq: Hp; rewrite Puniq.
+  + move/perm_uniq: Hp; rewrite Puniq.
     move => F.
     apply sym_eq in F.
     move: F.
@@ -257,8 +257,8 @@ suff Pre:
     rewrite /cstep_send/= (proj2 Hc)/= in G.
     rewrite [cn_safe_coh _ ](pf_irr _ C) E1' in G.
   have Y: perm_eq (to :: ps) pts.
-    rewrite (perm_eq_sym pts) in Hp.
-    by apply/perm_eqlE; rewrite -cat1s perm_catC; apply/perm_eqlP. 
+    rewrite (perm_sym pts) in Hp.
+    by apply/permEl; rewrite -cat1s perm_catC; apply/permPl. 
   rewrite Y/= in G.     
   rewrite (rely_loc' l R2); subst k; rewrite locE; last apply: (cohVl C).
   + by rewrite -(pf_irr (cn_in cn pts others) (cn_this_in _ _))
@@ -269,11 +269,11 @@ suff Pre:
 rewrite /cstep_send/= (proj2 Hc)/= in G.
 rewrite [cn_safe_coh _ ](pf_irr _ C) E1' in G.
 have Y : perm_eq (to :: ps) pts = false.
-- apply/negP=>Hp'; move: (perm_eq_trans Hp' Hp).
+- apply/negP=>Hp'; move: (perm_trans Hp' Hp).
   rewrite -[to::ps]cat1s -[to::tos]cat1s.
-  move/perm_eqlE: (perm_catC ps [::to])=>Hs.
-  move/(perm_eq_trans Hs); rewrite -[_++[::_]]cats0 catA perm_cat2l.
-  move/perm_eq_size.
+  move/permEl: (perm_catC ps [::to])=>Hs.
+  move/(perm_trans Hs); rewrite -[_++[::_]]cats0 catA perm_cat2l.
+  move/perm_size.
   move => F.
   apply sym_eq in F.
   move: F.
@@ -283,7 +283,7 @@ rewrite (rely_loc' l R2); subst k; rewrite locE; last apply: (cohVl C).
   + rewrite -(pf_irr (cn_in cn pts others) (cn_this_in _ _))
                (getStL_Kc _ (cn_in cn pts others) E1); exists (to::ps).
     split=>//; move: Hp.
-    by rewrite -cat_rcons -cat1s -!catA !(perm_eq_sym pts) -perm_catCA catA cats1. 
+    by rewrite -cat_rcons -cat1s -!catA !(perm_sym pts) -perm_catCA catA cats1. 
   + by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
   by apply: (cohS (proj2 (rely_coh R1))).   
 Qed.
@@ -472,12 +472,12 @@ have Pre: Actions.send_act_safe W (p:=tpc) cn l
     by rewrite -(cohD (proj2 (rely_coh R2)))/ddom domPt inE/=.
   case: (proj2 (rely_coh R2))=>_ _ _ _/(_ l); rewrite prEq=>C; split.
   + split=>//; case: H; first by case=>?[_]<-; rewrite inE eqxx.
-    by case=>ps[_]/perm_eq_mem->; rewrite mem_cat orbC inE eqxx.
+    by case=>ps[_]/perm_mem->; rewrite mem_cat orbC inE eqxx.
   exists C; case:H=>[[res][P1]P2 P3|[ps][P1 P2]];[left|right];  
   rewrite -(rely_loc' _ R2) in P1; rewrite (getStC_K _ P1);
   first by exists e, d, res=>//.
   exists e, d, ps; split=>//.
-  move/perm_eq_uniq: P2; rewrite Puniq.
+  move/perm_uniq: P2; rewrite Puniq.
   move => F.
   apply sym_eq in F.
   move: F.
@@ -512,21 +512,21 @@ rewrite (getStC_K _ E1) (getStL_Kc _ _ E1)
         /cstep_send Tp in G.
 have X: perm_eq (to :: ps) pts = (tos == [::]).
 - apply/Bool.eq_iff_eq_true; split.
-  + move=>Hp'; move: (perm_eq_trans Hp' P2).
+  + move=>Hp'; move: (perm_trans Hp' P2).
     rewrite -[to::ps]cat1s -[to::tos]cat1s.
-    move/perm_eqlE: (perm_catC ps [::to])=>Hs.
-    move/(perm_eq_trans Hs); rewrite -[_++[::_]]cats0 catA perm_cat2l.
-    move/perm_eq_size.
+    move/permEl: (perm_catC ps [::to])=>Hs.
+    move/(perm_trans Hs); rewrite -[_++[::_]]cats0 catA perm_cat2l.
+    move/perm_size.
     move => F.
     apply sym_eq in F.
     move: F.
     by move/size0nil=>Z; subst tos. 
-  move/eqP=>Z; subst tos; rewrite perm_eq_sym; apply: (perm_eq_trans P2).
-  by apply/perm_eqlE; move: (perm_catC ps [:: to]).
+  move/eqP=>Z; subst tos; rewrite perm_sym; apply: (perm_trans P2).
+  by apply/permEl; move: (perm_catC ps [:: to]).
 rewrite X in G=>{X}; subst i3.
 rewrite locE//; [|by apply: (cohS C2)|by apply: (cohVl C2')].
 case:ifP=>->//; exists (to :: ps);split=>//.
-apply: (perm_eq_trans P2); apply/perm_eqlE.
+apply: (perm_trans P2); apply/permEl.
 by rewrite -[to::ps]cat1s -[to::tos]cat1s -!catA perm_catCA.
 Qed.
 
@@ -585,12 +585,12 @@ have Pre: Actions.send_act_safe W (p:=tpc) cn l
     by rewrite -(cohD (proj2 (rely_coh R2)))/ddom domPt inE/=.
   case: (proj2 (rely_coh R2))=>_ _ _ _/(_ l); rewrite prEq=>C; split.
   + split=>//; case: H; first by case=>?[_]<-; rewrite inE eqxx.
-    by case=>ps[_]/perm_eq_mem->; rewrite mem_cat orbC inE eqxx.
+    by case=>ps[_]/perm_mem->; rewrite mem_cat orbC inE eqxx.
   exists C; case:H=>[[res][P1]P2 P3|[ps][P1 P2]];[left|right];
   rewrite -(rely_loc' _ R2) in P1; rewrite (getStC_K _ P1);
   first by exists e, d, res=>//.
   exists e, d, ps; split=>//.
-  move/perm_eq_uniq: P2; rewrite Puniq.
+  move/perm_uniq: P2; rewrite Puniq.
   move => F.
   apply sym_eq in F.
   move: F.
@@ -627,21 +627,21 @@ rewrite (getStC_K _ E1) (getStL_Kc _ _ E1)
         /cstep_send Tp in G.
 have X: perm_eq (to :: ps) pts = (tos == [::]).
 - apply/Bool.eq_iff_eq_true; split.
-  + move=>Hp'; move: (perm_eq_trans Hp' P2).
+  + move=>Hp'; move: (perm_trans Hp' P2).
     rewrite -[to::ps]cat1s -[to::tos]cat1s.
-    move/perm_eqlE: (perm_catC ps [::to])=>Hs.
-    move/(perm_eq_trans Hs); rewrite -[_++[::_]]cats0 catA perm_cat2l.
-    move/perm_eq_size.
+    move/permEl: (perm_catC ps [::to])=>Hs.
+    move/(perm_trans Hs); rewrite -[_++[::_]]cats0 catA perm_cat2l.
+    move/perm_size.
     move => F.
     apply sym_eq in F.
     move: F.
     by move/size0nil=>Z; subst tos. 
-  move/eqP=>Z; subst tos; rewrite perm_eq_sym; apply: (perm_eq_trans P2).
-  by apply/perm_eqlE; move: (perm_catC ps [:: to]).
+  move/eqP=>Z; subst tos; rewrite perm_sym; apply: (perm_trans P2).
+  by apply/permEl; move: (perm_catC ps [:: to]).
 rewrite X in G=>{X}; subst i3.
 rewrite locE//; [|by apply: (cohS C2)|by apply: (cohVl C2')].
 case:ifP=>->//; exists (to :: ps);split=>//.
-apply: (perm_eq_trans P2); apply/perm_eqlE.
+apply: (perm_trans P2); apply/permEl.
 by rewrite -[to::ps]cat1s -[to::tos]cat1s -!catA perm_catCA.
 Qed.
 
@@ -734,7 +734,7 @@ have Pre: rc_commit_inv e (d, lg) [::] i.
 - rewrite /rc_commit_inv/= E1/=.
   have X: perm_eq [::] pts = false.
   - apply/negP. 
-    move/perm_eq_size.
+    move/perm_size.
     move => F.
     apply sym_eq in F.
     move: F.
@@ -817,7 +817,7 @@ have Pre: rc_abort_inv e (d, lg) [::] i.
 - rewrite /rc_abort_inv/= E1/=.
   have X: perm_eq [::] pts = false.
   - apply/negP. 
-    move/perm_eq_size.
+    move/perm_size.
     move => F.
     apply sym_eq in F.
     move: F.
