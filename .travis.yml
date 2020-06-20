@@ -45,6 +45,11 @@ matrix:
     - NJOBS=2
     <<: *OPAM
   - env:
+    - COQ_IMAGE=coqorg/coq:8.12
+    - PACKAGE=coq-disel
+    - NJOBS=2
+    <<: *OPAM
+  - env:
     - COQ_IMAGE=coqorg/coq:dev
     - PACKAGE=coq-disel
     - NJOBS=2
