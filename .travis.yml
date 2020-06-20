@@ -36,21 +36,21 @@ matrix:
   # Test supported versions of Coq via OPAM
   - env:
     - COQ_IMAGE=coqorg/coq:8.10
-    - PACKAGE=coq-disel
+    - PACKAGE=coq-disel.dev
     - NJOBS=2
     <<: *OPAM
   - env:
     - COQ_IMAGE=coqorg/coq:8.11
-    - PACKAGE=coq-disel
+    - PACKAGE=coq-disel.dev
     - NJOBS=2
     <<: *OPAM
   - env:
     - COQ_IMAGE=coqorg/coq:8.12
-    - PACKAGE=coq-disel
+    - PACKAGE=coq-disel.dev
     - NJOBS=2
     <<: *OPAM
   - env:
     - COQ_IMAGE=coqorg/coq:dev
-    - PACKAGE=coq-disel
+    - PACKAGE=coq-disel.dev
     - NJOBS=2
     <<: *OPAM
