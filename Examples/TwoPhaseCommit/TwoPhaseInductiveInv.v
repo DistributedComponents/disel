@@ -15,7 +15,7 @@ Require Import InductiveInv While StatePredicates.
 From DiSeL
 Require Import TwoPhaseProtocol.
 
-Require Import Omega.
+Require Import Lia.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -2027,7 +2027,7 @@ case.
   match goal with
   | [ H : pt_state _ _ _ _ |- _ ] =>
     move: H =>/(pt_state_functional V' PS')[]; try discriminate
-  end; case; intros; subst; auto; try omega.
+  end; case; intros; subst; auto; try lia.
 Qed.
 
 Lemma cn_log_agreement d r lg pt :
