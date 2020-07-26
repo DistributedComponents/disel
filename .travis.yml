@@ -1,6 +1,9 @@
-opam: &OPAM
-  language: minimal
-  sudo: required
+os: linux
+dist: bionic
+language: shell
+
+.opam: &OPAM
+  language: shell
   services: docker
   install: |
     # Prepare the COQ container
@@ -30,7 +33,7 @@ opam: &OPAM
   - docker stop COQ  # optional
   - echo -en 'travis_fold:end:script\\r'
 
-matrix:
+jobs:
   include:
 
   # Test supported versions of Coq via OPAM
