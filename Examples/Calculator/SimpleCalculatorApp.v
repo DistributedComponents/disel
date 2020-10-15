@@ -90,7 +90,7 @@ Notation loc2 i := (loc i l2).
 (***********        Initial state     ***************)
 (****************************************************)
 
-Definition init_loc := st :-> ([::] : reqs). 
+Definition init_loc := st :-> ([::] : reqs).
 
 Definition init_dstate1 := sv \\-> init_loc \+ cl \\-> init_loc.
 Definition init_dstate2 := sv \\-> init_loc \+ sd \\-> init_loc.
@@ -125,13 +125,13 @@ Qed.
 Lemma coh1': calcoh prec cs1 cls1 init_dstatelet1 /\
              CalcInv l1 f prec cs1 cls1 init_dstatelet1.
 Proof.
-split; last by move=>?????????/=/esym/empbP/=; rewrite empbPtUn.
+split; last by move=>?????????/=/esym/unitbP/=; rewrite um_unitbPtUn.
 split=>//; rewrite ?valid_init_dstate1//.
 - split; first by rewrite valid_unit.
-  by move=>m ms; rewrite find0E. 
+  by move=>m ms; rewrite find0E.
 - move=>z; rewrite /=/init_dstate1 domUn !inE/= valid_init_dstate1/=.
-  by rewrite !domPt !inE !(eq_sym z). 
-move=>n/=; rewrite inE=>/orP; case=>//=. 
+  by rewrite !domPt !inE !(eq_sym z).
+move=>n/=; rewrite inE=>/orP; case=>//=.
 - move/eqP=>->/=; exists [::]=>/=.
   rewrite /getLocal/init_dstate1/= findUnL?valid_init_dstate1//.
   by rewrite domPt/= findPt/=.
@@ -146,12 +146,12 @@ split=>//.
 - apply/andP; split; last by rewrite valid_unit.
   by rewrite ?validPt.
 - by rewrite validPt/=.
-- by apply: hook_complete_unit.  
+- by apply: hook_complete_unit.
 - by move=>z; rewrite !domPt !inE/=.
 move=>k; case B: (l1==k); last first.
 - have X: (k \notin dom W1.1).
-    by rewrite /init_state/W1/=!domPt !inE/=; move/negbT: B. 
-  by rewrite /getProtocol /getStatelet/= ?findPt2 eq_sym !B/=. 
+    by rewrite /init_state/W1/=!domPt !inE/=; move/negbT: B.
+  by rewrite /getProtocol /getStatelet/= ?findPt2 eq_sym !B/=.
 move/eqP:B=>B; subst k; rewrite prEq/getStatelet/init_state findPt/=.
 exact: coh1'.
 Qed.
@@ -159,13 +159,13 @@ Qed.
 Lemma coh2' : calcoh prec cs2 cls2 init_dstatelet2 /\
               CalcInv l2 f prec cs2 cls2 init_dstatelet2.
 Proof.
-split; last by move=>?????????/=/esym/empbP/=; rewrite empbPtUn.
+split; last by move=>?????????/=/esym/unitbP/=; rewrite um_unitbPtUn.
 split=>//; rewrite ?valid_init_dstate2//.
 - split; first by rewrite valid_unit.
-  by move=>m ms; rewrite find0E//. 
+  by move=>m ms; rewrite find0E//.
 - move=>z; rewrite /=/init_dstate2 domUn !inE/= valid_init_dstate2//=.
-  by rewrite !domPt !inE !(eq_sym z) orbC. 
-move=>n/=; rewrite inE=>/orP; case=>//=. 
+  by rewrite !domPt !inE !(eq_sym z) orbC.
+move=>n/=; rewrite inE=>/orP; case=>//=.
 - move/eqP=>->/=; exists [::]=>/=.
   rewrite /getLocal/init_dstate2/= findUnL?valid_init_dstate2//.
   by rewrite domPt/= findPt/=.
@@ -180,12 +180,12 @@ split.
 - apply/andP; split; last by rewrite valid_unit.
   by rewrite ?validPt.
 - by rewrite validPt/=.
-- by apply: hook_complete_unit.  
+- by apply: hook_complete_unit.
 - by move=>z; rewrite !domPt !inE/=.
 move=>k; case B: (l2==k); last first.
 - have X: (k \notin dom W2.1).
-    by rewrite /init_state/W2/=!domPt !inE/=; move/negbT: B. 
-  by rewrite /getProtocol /getStatelet/= ?findPt2 eq_sym !B/=. 
+    by rewrite /init_state/W2/=!domPt !inE/=; move/negbT: B.
+  by rewrite /getProtocol /getStatelet/= ?findPt2 eq_sym !B/=.
 move/eqP:B=>B; subst k; rewrite prEq/getStatelet/init_state findPt/=.
 exact: coh2'.
 Qed.
@@ -197,10 +197,10 @@ split=>//; first by apply: validV.
 - rewrite /V/=/init_state/==>z.
 - by move=>???; rewrite domUn !inE/= dom0 andbC.
 - rewrite /V/init_state=>z; rewrite !domUn !inE; case/andP:validV=>->_/=.
-  by rewrite validI/= !domPt. 
+  by rewrite validI/= !domPt.
 move=>k; case B: ((l1 == k) || (l2 == k)); last first.
 - have X: (k \notin dom V.1).
-  + by rewrite /V domUn inE/= !domPt!inE/= B andbC. 
+  + by rewrite /V domUn inE/= !domPt!inE/= B andbC.
   rewrite /getProtocol /getStatelet/=.
   case: dom_find (X)=>//->_/=; rewrite /init_state.
   case/negbT/norP: B=>/negbTE N1/negbTE N2.
@@ -242,9 +242,10 @@ Qed.
 Next Obligation.
 move=>i/=R.
 have X: injects W1 V Unit.
-- move: (@injectL W1 W2 Unit)=>/=; rewrite !unitR validV=>H.
-  apply: H=>//; do? [by apply: hook_complete0]. 
-  by move=>l _=>????; rewrite dom0. 
+- move: (@injectL W1 W2 Unit)=>/=; rewrite !unitR =>H.
+  apply: H=>//; do? [by apply: hook_complete0].
+  + by rewrite -[Unit]unitR; move: validV.
+  by move=>l _=>????; rewrite dom0.
 case: (rely_ext X coh1 R)=>i1[j1][Z]C'; subst i.
 apply: inject_rule=>//.
 apply: call_rule=>C1{C'}/=; last by move=>m[H1]H2 H3.
@@ -269,7 +270,7 @@ Next Obligation.
 move=>i/=R; apply: call_rule=>C1//=.
 rewrite (rely_loc' _ R)/getLocal/=/getStatelet/=.
 rewrite findUnL ?validI ?valid_init_dstate1//.
-rewrite domPt inE eqxx findPt/=. 
+rewrite domPt inE eqxx findPt/=.
 rewrite findUnR ?validI ?valid_init_dstate1//=.
 rewrite domPt inE/= findPt/=; split=>//.
 rewrite -(rely_loc _ R)/=/getStatelet findUnR ?validI ?valid_init_dstate1//=.
@@ -282,7 +283,7 @@ Qed.
 
 Definition secondary_server (u : unit) :=
   with_inv (ii l2 f prec cs2 cls2)
-           (memoizing_server l2 f prec prec_valid cs2 cls2 sd Hs2).  
+           (memoizing_server l2 f prec prec_valid cs2 cls2 sd Hs2).
 
 Program Definition server2_run (u : unit) :
   DHT [sd, V]
@@ -302,9 +303,9 @@ move=>i/=R; apply: step.
 rewrite /init_state joinC.
 
 have X: injects W2 V Unit.
-- move: (@injectL W2 W1 Unit)=>/=; rewrite !unitR=>H. 
+- move: (@injectL W2 W1 Unit)=>/=; rewrite !unitR=>H.
   rewrite /V joinC;apply: H=>//; do? [by apply: hook_complete0].
-  + by rewrite joinC validV.
+  + by rewrite joinC -[Unit]unitR; move: validV.
   by move=>l _=>????; rewrite dom0.
 rewrite /V joinC in R X; rewrite /init_state [l1 \\->_ \+ _]joinC in R.
 case: (rely_ext X coh2 R)=>j1[i1][Z]C'; subst i.
@@ -315,7 +316,7 @@ have E: (getStatelet j1 l2) = (getStatelet (j1 \+ i1) l2).
 rewrite E (rely_loc' _ R)/getLocal/=/getStatelet/=.
 rewrite findUnL ?validI//; last by rewrite joinC validI.
 rewrite domPt/= findPt/=.
-by rewrite /init_dstate2 findUnL ?valid_init_dstate2 ?domPt/= ?findPt.  
+by rewrite /init_dstate2 findUnL ?valid_init_dstate2 ?domPt/= ?findPt.
 Qed.
 
 End CalculatorApp.

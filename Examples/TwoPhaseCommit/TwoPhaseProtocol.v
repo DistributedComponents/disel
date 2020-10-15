@@ -10,6 +10,7 @@ From DiSeL
 Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
 From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
+Obligation Tactic := Tactics.program_simpl.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -25,21 +26,21 @@ Definition data := seq nid.
 Inductive CState :=
 (* Waiting at a current stage *)
 | CInit
-(* Sent prepare message to some nodes at a current stage *)         
+(* Sent prepare message to some nodes at a current stage *)
 | CSentPrep of data & seq nid
 (* Received results from some nodes, bool for commit/abort *)
 | CWaitPrepResponse of data & seq (nid * bool)
 (* Send commit/abort requests *)
 | CSentCommit of data & seq nid
 | CSentAbort of data & seq nid
-(* Waiting for acks on Commit with some already collected *)                        
+(* Waiting for acks on Commit with some already collected *)
 | CWaitAckCommit of data & seq nid
-(* Waiting for acks on Abort with some already collected *)                       
+(* Waiting for acks on Abort with some already collected *)
 | CWaitAckAbort of data & seq nid.
 
 Inductive PState :=
 | PInit
-| PGotRequest of data 
+| PGotRequest of data
 | PRespondedYes of data | PRespondedNo of data
 | PCommitted of data | PAborted of data.
 
@@ -131,7 +132,7 @@ Definition msgFromCoordinator (tms : TaggedMessage) (y : nat) : Prop :=
   if tag tms == prep_req
   then exists data, body = y :: data
   else if tag tms == commit_req
-       then body = [:: y] 
+       then body = [:: y]
        else if tag tms == abort_req
             then body = [:: y]
             else False.
@@ -170,7 +171,7 @@ Definition TPCCoh := CohPred (CohPredMixin l1 l2 l3).
 
 Section TransitionLemmas.
 
-Lemma send_soupCoh d m : 
+Lemma send_soupCoh d m :
     soupCoh (dsoup d) -> (exists y, cohMsg m y) -> soupCoh (post_msg (dsoup d) m).1.
 Proof.
 move=>[H1 H2][y]Cm; split=>[|i ms/=]; first by rewrite valid_fresh.
@@ -213,7 +214,7 @@ End TransitionLemmas.
 (****************************************************)
 
 Lemma locCn n d (C : TPCCoh d):
-  n \in nodes -> 
+  n \in nodes ->
   valid (getLocal n d) /\
   if n == cn
   then exists (s : CStateT) (l : Log),
@@ -221,14 +222,14 @@ Lemma locCn n d (C : TPCCoh d):
   else if n \in pts
        then exists (s : PStateT) (l : Log),
            getLocal n d = st :-> s \+ log :-> l
-       else log \notin dom (getLocal n d).            
+       else log \notin dom (getLocal n d).
 Proof.
-by case: C=>_ _ _ /(_ n)G; move: G; rewrite /localCoh/=.  
+by case: C=>_ _ _ /(_ n)G; move: G; rewrite /localCoh/=.
 Qed.
 
 Lemma cohStC d (C : TPCCoh d) s:
   find st (getLocal cn d) = Some s ->
-  dyn_tp s = CStateT. 
+  dyn_tp s = CStateT.
 Proof.
 have pf: cn \in nodes by rewrite inE eqxx.
 move: (locCn C pf); rewrite eqxx; move =>[V][s'][l']Z; rewrite Z in V *.
@@ -238,14 +239,14 @@ Qed.
 
 Lemma cohStP n d (C : TPCCoh d) (H : n \in pts) s:
   find st (getLocal n d) = Some s ->
-  dyn_tp s = PStateT. 
+  dyn_tp s = PStateT.
 Proof.
 have pf: n \in nodes by rewrite inE/=orbC mem_cat H.
 move: (locCn C pf); rewrite H=>[[V]].
 case E: (n == cn); last first.
 - move=>[s'][l']Z; rewrite Z in V *.
   by rewrite findUnL//; rewrite domPt inE/= findPt/=; case=><-.
-by move/eqP: E=>E; subst n; move: Hnin; rewrite H. 
+by move/eqP: E=>E; subst n; move: Hnin; rewrite H.
 Qed.
 
 Definition getStC d (C : TPCCoh d) : CStateT :=
@@ -278,7 +279,7 @@ Lemma getStP_K n d (C : TPCCoh d) (pf : n \in nodes) m (l : Log):
 Proof.
 move=>X E; rewrite /getStP/=.
 have V: valid (getLocal n d) by case: (locCn C pf).
-rewrite E in V. 
+rewrite E in V.
 move: (cohStP C); case B: (n \in pts)=>//=; last by rewrite X in B.
 move=>H; move: (H (erefl true))=>{H}; rewrite E=>/=H.
 by apply: eqc.
@@ -302,7 +303,7 @@ Qed.
 
 Definition getStL n d (C : TPCCoh d) (pf : n \in nodes) : Log :=
   match find log (getLocal n d) as f return _ = f -> _ with
-    Some v => fun epf => icast (sym_eq (cohStL C pf epf)) (dyn_val v) 
+    Some v => fun epf => icast (sym_eq (cohStL C pf epf)) (dyn_val v)
   | _ => fun epf => [::]
   end (erefl _).
 
@@ -338,10 +339,10 @@ Lemma getStCE l i j pf pf' :
 Proof.
 case: {-1}(pf)=>_ _ _/(_ _ cn_in)[]V; rewrite eqxx=>[[cs]][lg]E.
 by rewrite (getStC_K _ E); rewrite E=>E'; rewrite (getStC_K _ E').
-Qed.  
+Qed.
 
 Lemma getStPE l n i j C C' pf :
-  n \in pts -> 
+  n \in pts ->
   getLocal n (getStatelet j l) = getLocal n (getStatelet i l) ->
   @getStP n (getStatelet j l) C' pf = @getStP n (getStatelet i l) C pf.
 Proof.
@@ -349,7 +350,7 @@ move=>I; case: {-1}(C)=>_ _ _/(_ _ pf)[]V; rewrite I.
 case: ifP; first by move/eqP=>Z; subst n; move: (Hnin); rewrite I.
 move=>_[ps][lg] E.
 by rewrite (getStP_K _ pf I E);rewrite E=>E'; rewrite (getStP_K _ pf I E').
-Qed.  
+Qed.
 
 Lemma getStLE l this i j pf pf' :
   forall (N : this \in cn :: pts),
@@ -365,7 +366,7 @@ move: (N)=>N'. rewrite inE in N; case/orP: N.
 move=>Z; rewrite (this_not_pts Z) Z=>[[cs]][lg]E.
 rewrite (@getStL_Kp _ _ pf (cn_pts_in N') cs lg)//.
 by rewrite E=>E'; rewrite (@getStL_Kp _ _ pf' (cn_pts_in N') cs lg)//.
-Qed.  
+Qed.
 
 
 (****************************************************************)
@@ -392,7 +393,7 @@ Definition cstep_send (cs: CStateT) (to : nid) (d : data) (l : Log) :
       if perm_eq (to :: tos) pts
       (* If all sent, switch to the receiving state *)
       then (e, CWaitPrepResponse d' [::], l)
-      else (e, CSentPrep d' (to :: tos), l)                  
+      else (e, CSentPrep d' (to :: tos), l)
     | CWaitPrepResponse d' res =>
       (* Switch into sending commit or abort-messages mode *)
       if (perm_eq (map fst res) pts)
@@ -408,12 +409,12 @@ Definition cstep_send (cs: CStateT) (to : nid) (d : data) (l : Log) :
       (* Sending commit messages *)
       if perm_eq (to :: tos) pts
       then (e, CWaitAckCommit d' [::], l)
-      else (e, CSentCommit d' (to :: tos), l)                  
+      else (e, CSentCommit d' (to :: tos), l)
     | CSentAbort d' tos =>
       if perm_eq (to :: tos) pts
       then (e, CWaitAckAbort d' [::], l)
-      else (e, CSentAbort d' (to :: tos), l)                  
-    | _ => (cs, l) 
+      else (e, CSentAbort d' (to :: tos), l)
+    | _ => (cs, l)
     end
   else (cs, l).
 
@@ -433,7 +434,7 @@ Definition cstep_recv' (cs : CStateT) (from : nid) (mtag : ttag)
   let: (e, s) := cs in
   match s with
   | CWaitPrepResponse d' res =>
-    (* All responses already collected or 
+    (* All responses already collected or
        already received from this participant  *)
     if (from \in (map fst res))
     then (cs, l)
@@ -461,16 +462,16 @@ Definition cstep_recv (cs: CStateT) (from : nid) (mtag : ttag)
     if (head 0 mbody != e) then (cs, l) else
       cstep_recv' cs from mtag mbody l
 .
-    
-(* 
 
-There should be 3 send-transitions for the coordinator: 
+(*
+
+There should be 3 send-transitions for the coordinator:
 
 - send-prepare
 - send-commit
 - send-abort
 
-There should be 4 receive-transitions for the coordinator: 
+There should be 4 receive-transitions for the coordinator:
 
 - receive-prepare-yes
 - receive-prepare-no
@@ -519,10 +520,10 @@ Qed.
 Definition cn_step (this to : nid) (d : dstatelet)
            (msg : seq nat)
            (pf : cn_safe this to d msg) :=
-  let C := cn_safe_coh pf in 
+  let C := cn_safe_coh pf in
   let s := getStC C in
   let l := getStL C (cn_this_in (proj1 pf)) in
-  Some (mkLocal (cstep_send s to (behead msg) l)). 
+  Some (mkLocal (cstep_send s to (behead msg) l)).
 
 Lemma cn_step_coh : s_step_coh_t coh stag cn_step.
 Proof.
@@ -535,9 +536,9 @@ split=>/=.
   case: (pf)=>H[C']P/=; move: (conj H _)=>pf'.
   by move: (cn_prec_safe H P); rewrite -(pf_irr C' (cn_safe_coh pf')).
 - by apply: trans_updDom=>//; case: (cn_safe_in pf).
-- by rewrite validU; apply: cohVl C.    
+- by rewrite validU; apply: cohVl C.
 move=>n Ni. rewrite /localCoh/=.
-rewrite /getLocal/=findU; case: ifP=>B; last by case: C=>_ _ _/(_ n Ni). 
+rewrite /getLocal/=findU; case: ifP=>B; last by case: C=>_ _ _/(_ n Ni).
 move/eqP: B=>Z; subst n this; rewrite eqxx (cohVl C)/=.
 by split; rewrite ?validPtUn//; last by eexists _, _.
 Qed.
@@ -546,12 +547,12 @@ Lemma cn_safe_def this to d msg :
       cn_safe this to d msg <->
       exists b pf, @cn_step this to d msg pf = Some b.
 Proof.
-split=>[pf/=|]; last by case=>?[]. 
-set b := let C := cn_safe_coh pf in 
+split=>[pf/=|]; last by case=>?[].
+set b := let C := cn_safe_coh pf in
          let s := getStC C in
          let l := getStL C (cn_this_in (proj1 pf)) in
-         mkLocal (cstep_send s to (behead msg) l). 
-by exists b, pf. 
+         mkLocal (cstep_send s to (behead msg) l).
+by exists b, pf.
 Qed.
 
 Definition cn_send_trans :=
@@ -594,7 +595,7 @@ Definition send_abort_prec (p : CStateT) to (m : payload) :=
     [/\ p = (n, CWaitPrepResponse d res), m = [::n],
         perm_eq (map fst res) pts & has (fun r => negb r) (map snd res)]) \/
     exists n d ps, [/\ p = (n, CSentAbort d ps), m = [::n] & to \notin ps].
-  
+
 Program Definition cn_send_abort_trans : send_trans TPCCoh :=
   @cn_send_trans abort_req send_abort_prec _.
 Next Obligation.
@@ -629,10 +630,10 @@ rewrite /rc_step; case X: (this == cn); last first.
   + by rewrite validU; apply: cohVl C.
   by move=>n Ni/=; case: (C)=>_ _ _/(_ n Ni)=>L; rewrite -(getLocalU)// (cohVl C).
 split=>/=; first by apply: consume_coh.
-- by apply: trans_updDom.  
+- by apply: trans_updDom.
 - by rewrite validU; apply: cohVl C.
 move=>n Ni/=; rewrite /localCoh/=.
-rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni). 
+rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni).
 move/eqP: B X=>Z/eqP X; subst n this; rewrite eqxx (cohVl C)/=.
 by split; rewrite ?hvalidPtUn//; last by eexists _, _.
 Qed.
@@ -717,8 +718,8 @@ Proof. by case; rewrite /nodes inE/= mem_cat=>->_/=; rewrite orbC. Qed.
 
 Definition pn_safe (this n : nid)
            (d : dstatelet) (msg : data) :=
-  HPn this n /\ 
-  exists (Hp : HPn this n) (C : coh d), prec (getStP C (pn_this_in Hp)) msg. 
+  HPn this n /\
+  exists (Hp : HPn this n) (C : coh d), prec (getStP C (pn_this_in Hp)) msg.
 
 Lemma pn_safe_coh this to d m : pn_safe this to d m -> coh d.
 Proof. by case=>_; case=>?[]. Qed.
@@ -737,10 +738,10 @@ Variable commit : bool.
 Definition pn_step (this to : nid) (d : dstatelet)
            (msg : seq nat)
            (pf : pn_safe this to d msg) :=
-  let C := pn_safe_coh pf in 
+  let C := pn_safe_coh pf in
   let s := getStP C (pn_this_in (proj1 pf)) in
   let l := getStL C (pn_this_in (proj1 pf)) in
-  Some (mkLocal (pstep_send s l commit)). 
+  Some (mkLocal (pstep_send s l commit)).
 
 Lemma pn_step_coh : s_step_coh_t coh ptag pn_step.
 Proof.
@@ -752,11 +753,11 @@ split=>/=.
   exists (getStP C (pn_this_in (proj1 pf))).1.
   case: (pf)=>H[H'][C']P/=; move: (conj H _)=>pf'.
   move: (pn_prec_safe H P); rewrite (pf_irr C' C)/=.
-  by rewrite (pf_irr (pn_this_in H') _)//; apply: pn_this_in. 
+  by rewrite (pf_irr (pn_this_in H') _)//; apply: pn_this_in.
 - by apply: trans_updDom=>//; case: (pn_safe_in pf).
-- by rewrite validU; apply: cohVl C.    
+- by rewrite validU; apply: cohVl C.
 move=>n Ni. rewrite /localCoh/=.
-rewrite /getLocal/=findU; case: ifP=>B/=; last by case: C=>_ _ _/(_ n Ni). 
+rewrite /getLocal/=findU; case: ifP=>B/=; last by case: C=>_ _ _/(_ n Ni).
 move/eqP: B=>Z; subst n=>/=.
 have X : this == cn = false by apply/negP=>/eqP Z; subst this; move: E (Hnin)=>->.
 rewrite X (cohVl C)/=; split=>//.
@@ -768,12 +769,12 @@ Lemma pn_safe_def this to d msg :
       pn_safe this to d msg <->
       exists b pf, @pn_step this to d msg pf = Some b.
 Proof.
-split=>[pf/=|]; last by case=>?[]. 
-set b := let C := pn_safe_coh pf in 
+split=>[pf/=|]; last by case=>?[].
+set b := let C := pn_safe_coh pf in
          let s := getStP C (pn_this_in (proj1 pf)) in
          let l := getStL C (pn_this_in (proj1 pf)) in
-         mkLocal (pstep_send s l commit). 
-by exists b, pf. 
+         mkLocal (pstep_send s l commit).
+by exists b, pf.
 Qed.
 
 Definition pn_send_trans :=
@@ -842,13 +843,13 @@ rewrite /rp_step; case X: (this \in pts); last first.
   + by rewrite validU; apply: cohVl C.
     have Y: forall z : nat_eqType, z \in nodes -> localCoh z (getLocal z d)
         by case: (C).
-  by move=>n Ni/=; move: (Y n Ni)=>L; rewrite -(getLocalU)// (cohVl C). 
+  by move=>n Ni/=; move: (Y n Ni)=>L; rewrite -(getLocalU)// (cohVl C).
 split=>/=; first by apply: consume_coh.
-- by apply: trans_updDom.  
+- by apply: trans_updDom.
 - by rewrite validU; apply: cohVl C.
 move=>n Ni/=; rewrite /localCoh/=.
-rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni). 
-move/eqP: B X=>Z/eqP X/= ;rewrite !(cohVl C); subst n. 
+rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni).
+move/eqP: B X=>Z/eqP X/= ;rewrite !(cohVl C); subst n.
 split; first by rewrite ?hvalidPtUn.
 by move/eqP: X => X; rewrite (this_not_pts X) X; eexists _, _.
 Qed.
@@ -916,7 +917,7 @@ End TPCProtocol.
 
 Module Exports.
 Section Exports.
-      
+
 Definition TwoPhaseCommitProtocol := TwoPhaseCommitProtocol.
 
 (* Variable l : Label. *)

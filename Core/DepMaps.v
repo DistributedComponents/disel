@@ -44,12 +44,12 @@ End PCMOps.
 
 Section DJoin.
 
-Variables (dm1 dm2 : depmap). 
+Variables (dm1 dm2 : depmap).
 
 Lemma dmDom_join um1 um2:
   dmDom um1 -> dmDom um2 -> dmDom (um1 \+ um2).
 Proof.
-case; case W: (valid (um1 \+ um2)); last first.
+case W: (valid (um1 \+ um2)); last first.
 - by move=> _ _; apply/allP=>l; move/dom_valid; rewrite W.
 move/allP=>D1/allP D2; apply/allP=>l.
 rewrite domUn inE=>/andP[_]/orP; rewrite findUnL//; case=>E; rewrite ?E.

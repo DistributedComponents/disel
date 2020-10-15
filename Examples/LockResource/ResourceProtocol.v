@@ -10,6 +10,7 @@ From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
 From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
+Obligation Tactic := Tactics.program_simpl.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -163,12 +164,12 @@ move=>D C z; rewrite -(cohDom C) domU inE/=.
 by case: ifP=>///eqP->{z}; rewrite (cohDom C) D; apply: cohVl C.
 Qed.
 
-Definition server_send_step (ss : server_state) (to : nid) (tag : nat) (msg : seq nat) 
+Definition server_send_step (ss : server_state) (to : nid) (tag : nat) (msg : seq nat)
   : server_state :=
   if to \in clients
-  then if tag == update_response_tag 
+  then if tag == update_response_tag
        then if msg is [:: e; v; b]
-            then let: r := Update (to, e, v) 
+            then let: r := Update (to, e, v)
                  in if current_epoch ss <= e
                     then ServerState e v (seq.rem r (outstanding ss))
                     else ServerState (current_epoch ss) (current_value ss) (seq.rem r (outstanding ss))
@@ -291,11 +292,11 @@ split=>/=.
 - by rewrite validU; apply: cohVl C.
 move=>n Ni. rewrite /local_coh/=.
 rewrite /getLocal/=findU; case: ifP=>B; last by case: C=>_ _ _/(_ n Ni).
-move/eqP: B=>Z; subst n this; rewrite eqxx (cohVl C)/=.
+move/eqP: B=>Z; subst n this; rewrite eqxx (cohVl C).
 split.
 by rewrite validPt.
-by eexists. 
-Qed. 
+by eexists.
+Qed.
 
 Lemma server_step_def this to d msg :
       server_send_safe this to d msg <->
@@ -314,28 +315,28 @@ End ServerGenericSendTransitions.
 Section ServerSendTransitions.
 
 Definition server_send_update_response_prec (ss : server_state) to m :=
-  exists e v b e0 v0 outstanding, 
+  exists e v b e0 v0 outstanding,
     m = [:: e; v; b] /\
-    let: r := Update (to, e, v) 
+    let: r := Update (to, e, v)
     in r \in outstanding /\
-       ss = ServerState e0 v0 outstanding /\ 
+       ss = ServerState e0 v0 outstanding /\
        b = if e0 <= e then 1 else 0.
 
 Program Definition server_send_update_response_trans : send_trans ResourceCoh :=
   @server_send_trans update_response_tag server_send_update_response_prec _.
 Next Obligation.
 case: H=>/eqP->H; rewrite /coh_msg eqxx; split=>//=.
-case: H0=>[e][v][b][e0][v0][out][]->[U][_]->.  
-rewrite /msg_from_server /= eqxx. left. split=>//. by eexists _, _, _. 
+case: H0=>[e][v][b][e0][v0][out][]->[U][_]->.
+rewrite /msg_from_server /= eqxx. left. split=>//. by eexists _, _, _.
 Qed.
 
 Definition server_send_read_response_prec (ss : server_state) to m :=
-  exists e e0 v0 outstanding, 
-    ss = ServerState e0 v0 outstanding /\ 
-    let: r := Read (to, e) 
-    in r \in outstanding /\ 
-       m = if e0 <= e 
-           then [:: e; v0 ] 
+  exists e e0 v0 outstanding,
+    ss = ServerState e0 v0 outstanding /\
+    let: r := Read (to, e)
+    in r \in outstanding /\
+       m = if e0 <= e
+           then [:: e; v0 ]
            else [:: e].
 
 Program Definition server_send_read_response_trans : send_trans ResourceCoh :=
@@ -343,7 +344,7 @@ Program Definition server_send_read_response_trans : send_trans ResourceCoh :=
 Next Obligation.
 case: H=>/eqP->H; rewrite /coh_msg eqxx; split=>//=.
 case: H0=>[e][e0][v0][out][_][R]->.
-rewrite /msg_from_server /= eqxx. right. split=>//. 
+rewrite /msg_from_server /= eqxx. right. split=>//.
 by case: ifP=>_; [left; eexists _,_|right; eexists].
 Qed.
 
@@ -376,7 +377,7 @@ split=>/=; first by apply: consume_coh.
 - by rewrite validU; apply: cohVl C.
 move=>n Ni/=; rewrite /local_coh/=.
 rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni).
-move/eqP: B X=>Z/eqP X; subst n this; rewrite eqxx (cohVl C)/=.
+move/eqP: B X=>Z/eqP X; subst n this; rewrite eqxx (cohVl C).
 split; first by rewrite validPt.
 by eexists.
 Qed.
@@ -431,7 +432,7 @@ Proof. by case=>_/eqP->; rewrite /nodes inE/= eqxx. Qed.
 Lemma client_send_safe_in this to d m : client_send_safe this to d m ->
                                   this \in nodes /\ to \in nodes.
 Proof.
-case=>HC C P. 
+case=>HC C P.
 split.
 - exact: (client_send_this_in HC).
 exact: (client_send_to_in HC).
@@ -449,7 +450,7 @@ have C : (coh d) by exact: (client_send_safe_coh pf).
 have E: this \in clients by case: pf=>[][].
 split=>/=.
 - apply: soup_coh_post_msg; first by case:(client_send_safe_coh pf).
-  case: (pf)=>H _ P/=. 
+  case: (pf)=>H _ P/=.
   rewrite/coh_msg/= client_not_server// E.
   split; first by case: (H).
   by apply: (prec_safe H P).

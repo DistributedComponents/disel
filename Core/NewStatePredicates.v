@@ -58,9 +58,9 @@ case: dom_find=>// msg->_ _; case B: (m == i).
 have X: j = i by apply: (H1 i); exists cnt.
 subst j; rewrite findU B/==>H.
 case X: (t' == tg)=>//=.
-move/eqP: X=>X; subst t'. 
+move/eqP: X=>X; subst t'.
 suff X: i = m by subst i; rewrite eqxx in B.
-by apply: (H1 m); exists c'.  
+by apply: (H1 m); exists c'.
 Qed.
 
 Lemma msg_spec_consumeE i d from to from' to' t c' t' cond:
@@ -76,16 +76,16 @@ have Nij: i != j.
 - case H: (i == j)=>//.
   move/eqP in H; subst i; move: E; rewrite F=>[][???]; subst.
   move: N=>/orP []/eqP; first by congruence.
-  move/eqP/orP; case; first by move=>X Z; subst to'; rewrite eqxx in X. 
+  move/eqP/orP; case; first by move=>X Z; subst to'; rewrite eqxx in X.
   by rewrite eqxx.
 split.
 - exists j; split; first by exists c; rewrite mark_other// eq_sym; apply/negbTE.
-  move=> x [c1][E'].
+  move=> x [c1] E'.
   case H: (x == i).
-  + by move/eqP in H; subst x; rewrite (find_consume _ E) in E'. 
+  + by move/eqP in H; subst x; rewrite (find_consume _ E) in E'.
   by apply: H1; exists c1; rewrite mark_other in E'.
 move=>k c1.
-case H: (k == i); first by move/eqP in H; subst k; rewrite (find_consume _ E).  
+case H: (k == i); first by move/eqP in H; subst k; rewrite (find_consume _ E).
 by rewrite mark_other//; apply: H2.
 Qed.
 

@@ -96,12 +96,12 @@ Notation Pin := (TPCProtocol.pts_in cn others Hpin).
 
 Program Definition read_round_p :
   {(ecl : (nat * PState) * Log)}, DHT [p, W]
-  (fun i => loc i = st :-> ecl.1 \+ log :-> ecl.2, 
+  (fun i => loc i = st :-> ecl.1 \+ log :-> ecl.2,
    fun r m => loc m = st :-> ecl.1 \+ log :-> ecl.2 /\
               exists (pf : coh (getS m)), r = (getStP Hnin pf Pin).1) :=
   Do (act (@skip_action_wrapper W p l tpc (prEq tpc) _
                                 (fun s pf => (getStP Hnin pf Pin).1))).
-Next Obligation.  
+Next Obligation.
 apply: ghC=>i [[e c]lg]/= E _.
 apply: act_rule=>j R; split=>[|r k m]; first by case: (rely_coh R).
 case=>/=H1[Cj]Z; subst j=>->R'.
@@ -143,7 +143,7 @@ Program Definition receive_prep_req_loop (e : nat):
              then ret _ _ (Some (behead body))
              else ret _ _ None
            | None => ret _ _ None
-           end              
+           end
         )) None).
 
 Next Obligation. by apply: with_spec x. Defined.
@@ -160,7 +160,7 @@ case/andP=>/eqP Z G->[]Z1 Z2 Z3 R2; subst l' from' e' d.
 move: rt pf (coh_s (w:=W) l (s:=i2) C2) Hin R2 E2 Hw G E; rewrite prEq/=.
 move=>rt pf Cj' Hin R E2 Hw G E.
 have D: rt = pn_receive_got_prep_trans _ Hnin.
-- move: Hin G; by do! [case=>/=; first by move=>->].  
+- move: Hin G; by do! [case=>/=; first by move=>->].
 subst rt=>{G}.
 have P1: valid (dstate (getS i2))
   by apply: (@cohVl _ coh); case: (Cj')=>P1 P2 P3 P4; split=>//=; done.
@@ -175,7 +175,7 @@ rewrite /rp_prep_req_inv; rewrite (rely_loc' _ R4) (rely_loc' _ R) locE//=.
 rewrite /TPCProtocol.rp_step Hpin/=.
 rewrite -(rely_loc' _ R1) in E1; rewrite (getStL_Kp _ pf E1)(getStP_K Hnin _ pf Hpin E1).
 rewrite/pstep_recv/=.
-by move/negbT: G1; rewrite Bool.negb_andb; case/orP=>->//=; rewrite orbC. 
+by move/negbT: G1; rewrite Bool.negb_andb; case/orP=>->//=; rewrite orbC.
 Qed.
 
 Next Obligation.
@@ -190,7 +190,7 @@ Qed.
 Program Definition resp_to_req (e : nat) (doCommit : bool) :
   {(dl : (data * Log))}, DHT [p, W]
   (fun i => loc i = st :-> (e, PGotRequest dl.1) \+ log :-> dl.2,
-   fun (_ : seq nat) m => 
+   fun (_ : seq nat) m =>
      let:  (d, lg) := dl in
      if doCommit
      then loc m = st :-> (e, PRespondedYes d) \+ log :-> lg
@@ -227,13 +227,13 @@ case=>e'[d'][][]Z1 Z2 _ G; subst d' e'.
 move: St; rewrite/Actions.send_act_step/==>[][_][h][].
 rewrite /pn_step -!(pf_irr C' (pn_safe_coh _))
         -!(pf_irr (pn_this_in _ H) (pn_this_in _ _)).
-rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)(getStL_Kp _ (pn_this_in _ H) E1)/=. 
+rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)(getStL_Kp _ (pn_this_in _ H) E1)/=.
 case=>Z Z';subst h i3; rewrite (rely_loc' _ R3) locE//; last by apply: (cohVl C').
 + by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
 by apply: (cohS (proj2 (rely_coh R1))).
 
 (* Send no-answer *)
-(* TODO: Remove proof duplication!!! *)  
+(* TODO: Remove proof duplication!!! *)
 split=>//; move=>b i3 i4[Sf]St R3.
 case: {-1}(Sf)=>_/=[]_[H][]C'//; rewrite -(rely_loc' _ R1) in E1.
 rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)/=.
@@ -241,7 +241,7 @@ case=>e'[d'][][]Z1 Z2 _ G; subst d' e'.
 move: St; rewrite/Actions.send_act_step/==>[][_][h][].
 rewrite /pn_step -!(pf_irr C' (pn_safe_coh _))
         -!(pf_irr (pn_this_in _ H) (pn_this_in _ _)).
-rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)(getStL_Kp _ (pn_this_in _ H) E1)/=. 
+rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)(getStL_Kp _ (pn_this_in _ H) E1)/=.
 case=>Z Z';subst h i3; rewrite (rely_loc' _ R3) locE//; last by apply: (cohVl C').
 + by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
 by apply: (cohS (proj2 (rely_coh R1))).
@@ -268,7 +268,7 @@ Program Definition receive_commabrt_loop (e : nat) (c : bool):
     loc i = st :-> (e, if c then PRespondedYes d else PRespondedNo d) \+ log :->lg,
     fun (res : option bool) m => let: (lg, d) := ld in
     exists b, res = Some b /\
-    if b 
+    if b
     then loc m = st :-> (e, PCommitted d) \+ log :-> (rcons lg (b, d))
     else loc m = st :-> (e, PAborted d) \+ log :-> (rcons lg (b, d)))
   :=
@@ -281,7 +281,7 @@ Program Definition receive_commabrt_loop (e : nat) (c : bool):
              then ret _ _ (Some (tg == commit_req))
              else ret _ _ None
            | None => ret _ _ None
-           end              
+           end
         )) None).
 Next Obligation. by apply: (with_spec x). Defined.
 Next Obligation. by move:H; rewrite /rp_commabrt_inv (rely_loc' _ H0). Qed.
@@ -312,32 +312,32 @@ case: ifP=>G1; apply: ret_rule=>//i5 R4.
 - rewrite /rp_commabrt_inv (rely_loc' _ R4) (rely_loc' _ R) locE//=.
   case/andP:G1=>/eqP=>Z1/eqP H2; subst from.
   rewrite -(rely_loc' _ R1) in E1.
-  case: (c) E1 E2 D G=>/=E1 E2; case=>Z; subst rt; rewrite E2{E2}//==>_;
+  case: (c) E1 E2 D G=>/=E1 E2; [case=>Z|move=>Z]; subst rt; rewrite E2{E2}//==>_;
   rewrite/rp_step (getStL_Kp _ pf E1)(getStP_K Hnin _ pf Hpin E1) Hpin;
-  by rewrite/pstep_recv/= H2 !eqxx/=. 
+  by rewrite/pstep_recv/= H2 !eqxx/=.
 rewrite /rp_commabrt_inv; rewrite (rely_loc' _ R4) (rely_loc' _ R) locE//=.
 rewrite -(rely_loc' _ R1) in E1.
-case: (c) E1 E2 D G=>/=E1 E2; case=>Z {E2}; subst rt=>//= _;
+case: (c) E1 E2 D G=>/=E1 _; [case=>Z|move=>Z]; subst rt=>//= _;
 rewrite/rp_step (getStL_Kp _ pf E1)(getStP_K Hnin _ pf Hpin E1) Hpin;
 by rewrite/pstep_recv/=; move/negbT: G1; rewrite Bool.negb_andb; case/orP=>->//=; rewrite orbC.
 Qed.
 
 Next Obligation.
 apply: ghC=>i1 [lg d] E1 C1/=.
-apply: (gh_ex (g:=(lg, d))); apply: call_rule=>//r i2 [H1]H2 C2. 
+apply: (gh_ex (g:=(lg, d))); apply: call_rule=>//r i2 [H1]H2 C2.
 rewrite /rp_commabrt_cond/rp_commabrt_inv in H1 H2; case: r H1 H2=>//b _.
 by exists b.
 Qed.
 
 (* Step 4 Send ack wrt commit/abort *)
- 
+
 Program Definition send_ack (e : nat) (hasCommitted : bool) :
   {(dl : (data * Log))}, DHT [p, W]
   (fun i =>  let:  (d, lg) := dl in
      if hasCommitted
      then loc i = st :-> (e, PCommitted d) \+ log :-> lg
      else loc i = st :-> (e, PAborted d) \+ log :-> lg,
-   fun (_ : seq nat) m => 
+   fun (_ : seq nat) m =>
      let:  (d, lg) := dl in
      if hasCommitted
      then loc m = st :-> (e.+1, PInit) \+ log :-> lg
@@ -375,12 +375,12 @@ case=>e'[d'][][]Z1 Z2 _ G; subst d' e'.
 move: St; rewrite/Actions.send_act_step/==>[][_][h][].
 rewrite /pn_step -!(pf_irr C' (pn_safe_coh _))
         -!(pf_irr (pn_this_in _ H) (pn_this_in _ _)).
-rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)(getStL_Kp _ (pn_this_in _ H) E1)/=. 
+rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)(getStL_Kp _ (pn_this_in _ H) E1)/=.
 case=>Z Z';subst h i3; rewrite (rely_loc' _ R3) locE//; last by apply: (cohVl C').
 + by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
 by apply: (cohS (proj2 (rely_coh R1))).
 (* Send abort-ack *)
-(* TODO: Remove proof duplication!!! *)  
+(* TODO: Remove proof duplication!!! *)
 split=>//; move=>b i3 i4[Sf]St R3.
 case: {-1}(Sf)=>_/=[]_[H][]C'//; rewrite -(rely_loc' _ R1) in E1.
 rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)/=.
@@ -388,7 +388,7 @@ case=>e'[d'][][]Z1 Z2 _ G; subst d' e'.
 move: St; rewrite/Actions.send_act_step/==>[][_][h][].
 rewrite /pn_step -!(pf_irr C' (pn_safe_coh _))
         -!(pf_irr (pn_this_in _ H) (pn_this_in _ _)).
-rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)(getStL_Kp _ (pn_this_in _ H) E1)/=. 
+rewrite (getStP_K Hnin C' (pn_this_in _ H) Hpin E1)(getStL_Kp _ (pn_this_in _ H) E1)/=.
 case=>Z Z';subst h i3; rewrite (rely_loc' _ R3) locE//; last by apply: (cohVl C').
 + by rewrite -(cohD (proj2 (rely_coh R1)))/ddom domPt inE/=.
 by apply: (cohS (proj2 (rely_coh R1))).
@@ -404,15 +404,15 @@ Definition get (r : option bool) : bool :=
 
 (* Just one round *)
 Program Definition participant_round (doCommit : bool) :
-  {(el : nat * Log)}, DHT [p, W] 
+  {(el : nat * Log)}, DHT [p, W]
   (fun i =>  loc i = st :-> (el.1, PInit) \+ log :-> el.2,
    fun (_ : unit) m => exists (b : bool)(d: data),
      loc m = st :-> (el.1.+1, PInit) \+ log :-> (rcons el.2 (b, d)))
-  := 
+  :=
   Do _ (e <-- read_round_p;
       receive_prep_req_loop e;;
       resp_to_req e doCommit;;
-      r <-- receive_commabrt_loop e doCommit;                     
+      r <-- receive_commabrt_loop e doCommit;
       send_ack e (get r);;
       ret _ _ tt).
 Next Obligation.
@@ -425,7 +425,7 @@ apply: call_rule=>//_ i3[d][_]E3 _.
 apply: step; apply: (gh_ex (g:=(d, lg))).
 apply: call_rule=>//_ i4 E4 _.
 apply: step; apply: (gh_ex (g:=(lg, d))).
-apply: call_rule=>[|r i5 [b [Z E5]] _]; first by case: doCommit E4. 
+apply: call_rule=>[|r i5 [b [Z E5]] _]; first by case: doCommit E4.
 subst r; apply: step; apply: (gh_ex (g:=(d, rcons lg (b, d)))).
 apply: call_rule=>//= _ i6 E6 _{E4}.
 apply: ret_rule=>i7 R6 {E5}; exists b, d; rewrite (rely_loc' _ R6).
@@ -446,11 +446,11 @@ Overall Implementation effort:
 (*****************************************************)
 
 Definition part_with_choices_loop_spec := forall (chs : seq bool),
-  {(el : nat * Log)}, DHT [p, W] 
+  {(el : nat * Log)}, DHT [p, W]
   (fun i =>  loc i = st :-> (el.1, PInit) \+ log :-> el.2,
    fun (_ : unit) m => exists (bs : seq bool)(ds : seq data),
      loc m = st :-> (el.1 + (size chs), PInit) \+ log :-> (el.2 ++ (seq.zip bs ds))).
-                                               
+
 
 Program Definition participant_with_choices_loop : part_with_choices_loop_spec :=
   fun choices  =>
@@ -460,7 +460,7 @@ Program Definition participant_with_choices_loop : part_with_choices_loop_spec :
            | [::] => ret _ _ tt
            end)) choices.
 Next Obligation.
-apply:ghC=>i; elim: choices i=>//=[|c cs/= Hi]i1 [e lg] E1 C1. 
+apply:ghC=>i; elim: choices i=>//=[|c cs/= Hi]i1 [e lg] E1 C1.
 - by apply: ret_rule=>i2 R1; exists [::], [::];
                         rewrite cats0 addn0 (rely_loc' _ R1).
 apply: step; apply: (gh_ex (g:=(e, lg))).
@@ -474,14 +474,14 @@ Qed.
 
 (* Take a list of choices and loop until they run out *)
 Program Definition participant_with_choices choices:
-  DHT [p, W] 
+  DHT [p, W]
   (fun i =>  loc i = st :-> (0, PInit) \+ log :-> ([::] : seq (bool * data)),
    fun (_ : unit) m => exists (bs : seq bool) (ds : seq data),
        loc m = st :-> (size choices, PInit) \+ log :-> (seq.zip bs ds))
   := Do (participant_with_choices_loop choices).
 Next Obligation.
 by move=>i/=E; apply: (gh_ex (g:=(0, [::]))); apply: call_rule.
-Qed.    
+Qed.
 
 End ParticipantImplementation.
 End TwoPhaseParticipant.

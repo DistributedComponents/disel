@@ -50,7 +50,7 @@ Qed.
 
 Definition CalcInv d :=
   forall (C: coh d) n to v args i s',
-    n \in cls -> to \in cs -> 
+    n \in cls -> to \in cs ->
     dsoup d = i \\-> (Msg (TMsg resp (v::args)) to n true) \+ s' ->
     f args = Some v.
 
@@ -65,7 +65,7 @@ Proof.
 move=>this to d msg S b.
 move=>/= Hi E G C' n to' v' args' i s1 N1 N2/= Es.
 case: (S)=>_[_][C]/hasP[[[me cc]args]]_.
-case/andP=>/eqP Z1/andP[/eqP Y]/eqP Z2. 
+case/andP=>/eqP Z1/andP[/eqP Y]/eqP Z2.
 move: (cohVs C')=>V; rewrite joinC/= in Es V.
 move: (cancel2 V Es)=>/=; case: ifP.
 - move=>_; case. case=>Z3 Z4 Z5 Z6; subst s1 to to' msg.
@@ -82,7 +82,7 @@ move=>/= Hi E G C' n to' v' args' i s1 N1 N2/= Es.
 move: (cohVs C')=>V; rewrite joinC/= in Es V.
 move: (cancel2 V Es)=>/=; case: ifP; last first.
 - move=>_[E1]/=E2 E3; clear Es V.
-  by case: (S)=>_[_]C _; apply: (Hi C n to' v' args' i _ _ _ E2).
+  by case: (S)=>_ _ C _; apply: (Hi C n to' v' args' i _ _ _ E2).
 move/eqP=>Z; subst i; by case; discriminate.
 Qed.
 
@@ -99,15 +99,15 @@ case B: (i \in dom (dsoup d)); last first.
 by move: dom_find B Es; rewrite /consume_msg; case=>//->_->; exists s1.
 move/um_eta: B=>[vm][_]S1.
 move: (cohVs C)=>V; rewrite S1 in V.
-rewrite S1 joinC consumeUn ?eqxx joinC// in Es. 
+rewrite S1 joinC consumeUn ?eqxx joinC// in Es.
 suff V': valid (i \\-> mark_msg vm \+
-                free (cT:=union_mapUMC mid (msg TaggedMessage)) i (dsoup d)).
+                free (cT:=union_mapUMC mid (msg TaggedMessage)) (dsoup d) i).
 - move: (cancel2 V' Es); case: ifP=>B.
   - move/eqP:B=>B{S1 V V' Es}; subst i'.
     by case: vm=>????/=; rewrite /mark_msg/=; case; discriminate.
-  by case=>_ X2 _; rewrite X2 joinCA in S1; rewrite S1; eexists _. 
+  by case=>_ X2 _; rewrite X2 joinCA in S1; rewrite S1; eexists _.
 move: (consume_valid i V).
-rewrite /consume_msg/= findUnL// ?domPt inE/= eqxx findPt/=. 
+rewrite /consume_msg/= findUnL// ?domPt inE/= eqxx findPt/=.
 by rewrite updUnL/= domPt/=!inE eqxx !updPt/=.
 Qed.
 
@@ -124,15 +124,15 @@ case B: (i \in dom (dsoup d)); last first.
 by move: dom_find B Es; rewrite /consume_msg; case=>//->_->; exists s1.
 move/um_eta: B=>[vm][_]S1.
 move: (cohVs C)=>V; rewrite S1 in V.
-rewrite S1 joinC consumeUn ?eqxx joinC// in Es. 
+rewrite S1 joinC consumeUn ?eqxx joinC// in Es.
 suff V': valid (i \\-> mark_msg vm \+
-                free (cT:=union_mapUMC mid (msg TaggedMessage)) i (dsoup d)).
+                free (cT:=union_mapUMC mid (msg TaggedMessage)) (dsoup d) i).
 - move: (cancel2 V' Es); case: ifP=>B.
   - move/eqP:B=>B{S1 V V' Es}; subst i'.
     by case: vm=>????/=; rewrite /mark_msg/=; case; discriminate.
-  by case=>_ X2 _; rewrite X2 joinCA in S1; rewrite S1; eexists _. 
+  by case=>_ X2 _; rewrite X2 joinCA in S1; rewrite S1; eexists _.
 move: (consume_valid i V).
-rewrite /consume_msg/= findUnL// ?domPt inE/= eqxx findPt/=. 
+rewrite /consume_msg/= findUnL// ?domPt inE/= eqxx findPt/=.
 by rewrite updUnL/= domPt/=!inE eqxx !updPt/=.
 Qed.
 
@@ -152,7 +152,7 @@ Overall Implementation effort:
 *)
 (**************************************************)
 
-        
+
 
 End CalculatorInductiveInv.
 

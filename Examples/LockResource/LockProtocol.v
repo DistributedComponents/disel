@@ -10,6 +10,7 @@ From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
 From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
+Obligation Tactic := Tactics.program_simpl.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -297,7 +298,7 @@ split=>/=.
 - by rewrite validU; apply: cohVl C.
 move=>n Ni. rewrite /local_coh/=.
 rewrite /getLocal/=findU; case: ifP=>B; last by case: C=>_ _ _/(_ n Ni).
-move/eqP: B=>Z; subst n this; rewrite eqxx (cohVl C)/=.
+move/eqP: B=>Z; subst n this; rewrite eqxx (cohVl C).
 split.
 by rewrite validPt.
 by eexists.
@@ -362,7 +363,7 @@ split=>/=; first by apply: consume_coh.
 - by rewrite validU; apply: cohVl C.
 move=>n Ni/=; rewrite /local_coh/=.
 rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni).
-move/eqP: B X=>Z/eqP X; subst n this; rewrite eqxx (cohVl C)/=.
+move/eqP: B X=>Z/eqP X; subst n this; rewrite eqxx (cohVl C).
 split; first by rewrite validPt.
 by eexists.
 Qed.
@@ -450,7 +451,7 @@ split=>/=.
 move=>n Ni. rewrite /local_coh/=.
 rewrite /getLocal/=findU; case: ifP=>B; last by case: C=>_ _ _/(_ n Ni).
 move/eqP: B=>Z; subst n.
-rewrite client_not_server// (cohVl C)/=.
+rewrite client_not_server// (cohVl C).
 split.
 - by rewrite validPt.
 split=>//.
