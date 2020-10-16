@@ -49,13 +49,13 @@ Definition coordinator :=
 
 (* Participants *)
 Program Definition participant p (pf : p \in pts) choices :=
-  participant_with_choices l cn pts others Hnin p pf choices. 
+  participant_with_choices l cn pts others Hnin p pf choices.
 
 Variables (choices1 choices2 choices3 : seq bool).
 
 (* Initial distributed state *)
 Definition st_ptr := TPCProtocol.States.st.
-Definition log_ptr := TPCProtocol.States.log. 
+Definition log_ptr := TPCProtocol.States.log.
 
 Definition init_heap_c := st_ptr :-> (0, CInit) \+ log_ptr :-> ([::] : seq (bool * data)).
 Definition init_heap_p := st_ptr :-> (0, PInit) \+ log_ptr :-> ([::] : seq (bool * data)).
@@ -112,11 +112,11 @@ split.
 - apply/andP; split; last by rewrite valid_unit.
   by rewrite validPt.
 - by rewrite/init_state validPt.
-- by apply: hook_complete_unit.  
+- by apply: hook_complete_unit.
 - by move=>z; rewrite /init_state !domPt inE/=.
 move=>k; case B: (l==k); last first.
 - have X: (k \notin dom init_state) /\ (k \notin dom W.1).
-    by rewrite /init_state/W/=!domPt !inE/=; move/negbT: B. 
+    by rewrite /init_state/W/=!domPt !inE/=; move/negbT: B.
   rewrite /getProtocol /getStatelet/=.
   case: dom_find X=>//; last by move=>? _ _[].
   by move=>->[_]; case: dom_find=>//->.
@@ -127,13 +127,12 @@ split=>//=; do?[by apply: valid_init_dstate]; first by split=>//m ms; rewrite fi
   rewrite !domUn !inE (validL valid_init_dstate)/=.
   rewrite !domUn !inE (validL (validL valid_init_dstate))/=.
   rewrite !domPt!inE/= !(eq_sym z).
-  rewrite 3!inE.
   by case:(cn==z)(p1==z)(p2==z)(p3==z);case;case;case.
 move=>z/=; rewrite !inE=>/orP [].
 - move/eqP=>Z; subst z; rewrite getCnLoc; split=>//=.
   by exists (0, CInit), [::].
 move=>H; have P : z \in pts by case/orP: H;[|case/orP]=>/eqP->.
-rewrite (getPLoc _ P); split=>//; case: ifP; first by move/eqP=>Z; subst z. 
+rewrite (getPLoc _ P); split=>//; case: ifP; first by move/eqP=>Z; subst z.
 by move=>_; rewrite P; exists (0, PInit), [::].
 Qed.
 

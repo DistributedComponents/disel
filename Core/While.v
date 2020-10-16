@@ -13,6 +13,7 @@ Require Import Actions Injection Process Always HoareTriples InferenceRules.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
+Obligation Tactic := Tactics.program_simpl.
 
 Section While.
 Variable this : nid.
@@ -30,11 +31,11 @@ Notation body_spec := (forall b : B, DTbin this W (logvar (body_spec' b))).
 
 Variable body : body_spec.
 
-Definition loop_spec := forall b, 
+Definition loop_spec := forall b,
   {a : A}, DHT [this, W]
   (fun s => I a b s, fun b' s1 => ~~ cond b' /\ I a b' s1).
 
-Program Definition while b0 : 
+Program Definition while b0 :
   {a : A}, DHT [this, W]
   (fun s => I a b0 s,
    fun b' s1 => ~~ cond b' /\ I a b' s1) :=
@@ -47,11 +48,11 @@ Next Obligation.
 apply: ghC=>s0 a/= HI0 C.
 case: ifP=> Hcond; last by apply: ret_rule=>s1 R1; split;[rewrite Hcond | eauto].
 apply: step.
-apply: call_rule'; first by move=> _; exists a. 
+apply: call_rule'; first by move=> _; exists a.
 move=> b' s1 HI1 C1.
 apply: (gh_ex (g:=a)).
-apply: call_rule'; first by move=>_; apply: HI1. 
-by move=>x m; case=>//; apply: HI1. 
+apply: call_rule'; first by move=>_; apply: HI1.
+by move=>x m; case=>//; apply: HI1.
 Qed.
 
 Next Obligation.

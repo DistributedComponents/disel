@@ -16,6 +16,7 @@ From DiSeL
 Require Import CalculatorProtocol CalculatorInvariant.
 From DiSeL
 Require Import SeqLib.
+Obligation Tactic := Tactics.program_simpl.
 
 Section CalculatorRecieve.
 
@@ -72,8 +73,8 @@ Program Definition tryrecv_resp :
         perm_eq rs ((cl, from, args) :: rs') &
         f args = Some v]
      | None => loc m = st :-> rs
-     end) 
-  := Do tryrecv_resp_act.    
+     end)
+  := Do tryrecv_resp_act.
 Next Obligation.
 apply: ghC=>i1 rs L1 C.
 apply: act_rule=>i2 R1/=; split; first by case: (rely_coh R1).
@@ -90,12 +91,12 @@ simpl in E1, Hw, R3; clear G.
 rewrite /cr_wf/= in Hw.
 case: tms E E1 R3 Hw=>t tms/= E E1 R3 Hw; subst t.
 have A1: exists s', dsoup d = mid \\-> (Msg (TMsg resp tms) from cl true) \+ s'.
-+ by move/esym/um_eta2: E=>->; exists (free mid (dsoup d)). 
++ by move/esym/um_eta2: E=>->; exists (free (dsoup d) mid).
 case: A1=>s' Es.
 
 (* Some auxiliary facts *)
 have Y : tms = head 0 tms :: behead tms.
-- suff M: exists x xs, tms = x::xs by case:M=>x [xs]E'; subst tms. 
+- suff M: exists x xs, tms = x::xs by case:M=>x [xs]E'; subst tms.
   by case/andP: Hw=>_; case: (tms)=>//x xs _; exists x, xs.
 have Y' : from \in cs.
 - case: (proj1 C)=>Cs _ _ _. case: Cs=>Vs/(_ mid)Cs.
@@ -109,12 +110,12 @@ rewrite Y in Hw.
 
 (* Proving the change in permissions *)
 have X: (cl, from, (behead tms)) \in rs.
-- by case/andP: Hw; rewrite (getStK (proj1 cohs) L1). 
+- by case/andP: Hw; rewrite (getStK (proj1 cohs) L1).
 have P1: valid (dstate d) by apply: (cohVl C).
 have P2: valid i2 by apply: (cohS (proj2 (rely_coh R1))).
-have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1)))domPt inE/=. 
+have P3: l \in dom i2 by rewrite -(cohD(proj2(rely_coh R1)))domPt inE/=.
 rewrite (rely_loc' _ R3)/= locE// /cr_step (getStK (proj1 cohs) L1)/=.
-clear R3 Hw P1 P2 P3; exists (remove_elem rs (cl, from, (behead tms))). 
+clear R3 Hw P1 P2 P3; exists (remove_elem rs (cl, from, (behead tms))).
 move: (remove_elem_in rs (cl, from, (behead tms))); rewrite X.
 by rewrite perm_sym=>H.
 Qed.
@@ -136,7 +137,7 @@ Definition receive_loop_inv (rs : reqs) :=
 Program Definition receive_loop' :
   {(rs : reqs)}, DHT [cl, W]
   (fun i => loc i = st :-> rs,
-   fun (res : option nat) m => 
+   fun (res : option nat) m =>
      exists (rs' : reqs) v from args ,
        [/\ res = Some v, loc m = st :-> rs',
         perm_eq rs ((cl, from, args) :: rs') &
@@ -169,7 +170,7 @@ apply: ghC=>i rs E1 C1; apply: (gh_ex (g:=rs)).
 apply: call_rule=>//res m[].
 rewrite /receive_loop_cond; case: res=>//=v _.
 move=>[rs'][from][args][E2]Hp F C2.
-by exists rs', v, from, args. 
+by exists rs', v, from, args.
 Qed.
 
 (* Blocking receive-loop that always returns a result (but may not
@@ -177,7 +178,7 @@ Qed.
 Program Definition blocking_receive_resp :
   {(rs : reqs)}, DHT [cl, W]
   (fun i => loc i = st :-> rs,
-   fun (res :  nat) m => 
+   fun (res :  nat) m =>
      exists (rs': reqs) from args ,
        [/\ loc m = st :-> rs',
         perm_eq rs ((cl, from, args) :: rs') &
@@ -205,7 +206,7 @@ Program Definition send_request server args :=
 Next Obligation. by rewrite InE; right; rewrite InE. Qed.
 
 
-Program Definition compute_f (server : nid) (args: seq nat) : 
+Program Definition compute_f (server : nid) (args: seq nat) :
   DHT [cl, W]
   (fun i =>
      [/\ loc i = st :-> ([::] : reqs),
@@ -215,13 +216,13 @@ Program Definition compute_f (server : nid) (args: seq nat) :
   Do _ (send_request server args;;
         blocking_receive_resp).
 Next Obligation.
-move=>i1/=[E1 H2 H3]. 
+move=>i1/=[E1 H2 H3].
 apply: step; apply: act_rule=>i2 R1.
 case: (rely_coh R1)=>_ C2.
 have C': coh cal (getStatelet i2 l) by case: C2=>_ _ _ _/(_ l);rewrite prEq.
 split=>//=.
 - split=>//=.
-  + by split=>//; case: C'. 
+  + by split=>//; case: C'.
   + rewrite/Actions.can_send -(cohD C2)/=domPt inE/= eqxx.
     by rewrite mem_cat Hc orbC.
   + rewrite/Actions.filter_hooks umfilt0=>???.
@@ -238,13 +239,13 @@ apply: call_rule=>//.
 - move=>C4; rewrite (rely_loc' _ R3) locE//; last by apply: (cohVl C').
   + by rewrite -(cohD C2) domPt inE/=.
   by apply: (cohS C2).
-clear R3=>v i5[rs'][from][args'][E5]P5 R C.  
-suff X: args = args' /\ rs' = [::] by case: X=>Z X; subst args' rs'.  
+clear R3=>v i5[rs'][from][args'][E5]P5 R C.
+suff X: args = args' /\ rs' = [::] by case: X=>Z X; subst args' rs'.
 suff X': rs' = [::].
-- subst rs'; split=>//; move/perm_mem: P5=>P5. 
+- subst rs'; split=>//; move/perm_mem: P5=>P5.
   move/P5: (cl, server, args).
   by rewrite inE eqxx inE/==>/esym/eqP; case=>_->.
-by case/perm_size: P5=>/esym/size0nil. 
+by case/perm_size: P5=>/esym/size0nil.
 Qed.
 
 (**************************************************)
@@ -263,7 +264,7 @@ Definition compute_list_spec server ys :=
   forall (xs_acc : (seq input) * (seq (input * nat))),
   DHT [cl, W]
    (fun i =>
-     let: (xs, acc) := xs_acc in         
+     let: (xs, acc) := xs_acc in
      [/\ loc i = st :-> ([::] : reqs),
       all prec xs,
       all (fun e => f e.1 == Some e.2) acc,
@@ -286,16 +287,16 @@ Program Definition compute_list_f server (xs : seq input) :
       xs = map fst res])
   :=
   Do (ffix (fun (rec : compute_list_spec server xs) xsa =>
-    Do _ (let: (xs, acc) := xsa in         
-          if xs is x :: xs' 
+    Do _ (let: (xs, acc) := xsa in
+          if xs is x :: xs'
           then r <-- compute_f server x;
                let: acc' := rcons acc (x, r) in
-               rec (xs', acc') 
-          else ret _ _ acc)) (xs, [::])). 
+               rec (xs', acc')
+          else ret _ _ acc)) (xs, [::])).
 
 Next Obligation.
 move=>i1/=[L1]; move:l0 l4=>zs acc H1 H2 H3 H4.
-case: zs H1 H3=>//=[_|z zs/andP[H1]H5] H3. 
+case: zs H1 H3=>//=[_|z zs/andP[H1]H5] H3.
 - by rewrite cats0 in H3;
   apply: ret_rule=>i2 R1; split=>//; rewrite ?(rely_loc' _ R1)//.
 apply: step; apply: call_rule=>//r i2[L2]F C2.

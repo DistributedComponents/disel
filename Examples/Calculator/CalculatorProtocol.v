@@ -21,7 +21,7 @@ Section CalculatorProtocol.
 
 Definition input := seq nat.
 
-(* Partially defined function, e.g., 
+(* Partially defined function, e.g.,
    addition or multiplication require precisely two arguments *)
 
 Variable f : input -> option nat.
@@ -58,8 +58,8 @@ Hypothesis Huniq : uniq nodes.
 
 (* Calculator server state *)
 Definition st := ptr_nat 1.
-(* 
-Calculator state: 
+(*
+Calculator state:
   - client node id
   - server node id
   - client-provided id (e.g., hash of the input)
@@ -156,7 +156,7 @@ Qed.
 
 Definition getSt n d (C : CalCoh d) : cstate :=
   match find st (getLocal n d) as f return _ = f -> _ with
-    Some v => fun epf => icast (sym_eq (cohSt C epf)) (dyn_val v) 
+    Some v => fun epf => icast (sym_eq (cohSt C epf)) (dyn_val v)
   | _ => fun epf => [::]
   end (erefl _).
 
@@ -164,7 +164,7 @@ Lemma getStK n d (C : CalCoh d)  s :
   getLocal n d = st :-> s -> getSt n C = s.
 Proof.
 move=>E; rewrite /getSt/=.
-move: (cohSt C); rewrite !E/==>H. 
+move: (cohSt C); rewrite !E/==>H.
 by apply: eqc.
 Qed.
 
@@ -183,7 +183,7 @@ Proof.
 case: {-1}(C)=>_ _ _/(_ _ pf).
 move=>[s][E]_; rewrite (getStK C E) E=>H.
 case: {-1}(C')=>_ _ _/(_ _ pf)=>[][s'][E']_.
-by rewrite (getStK C' E') in H; subst s'. 
+by rewrite (getStK C' E') in H; subst s'.
 Qed.
 
 (****************************************************)
@@ -215,14 +215,14 @@ rewrite /sr_step; case X: (this \in cs); last first.
   + by rewrite validU; apply: cohVl C.
   by move=>n Ni/=; case: (C)=>_ _ _/(_ n Ni)=>L; rewrite -(getLocalU)// (cohVl C).
 split=>/=; first by apply: consume_coh.
-- by apply: trans_updDom.  
+- by apply: trans_updDom.
 - by rewrite validU; apply: cohVl C.
 move=>n Ni/=; rewrite /localCoh/=.
-rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni). 
+rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni).
 move/eqP: B X=>Z/eqP X; subst n; rewrite (cohVl C)/=.
 have Y: all_valid (getSt this C).
 by case: {-1}(C)=>_ _ _/(_ _ pf)[]s[]/(getStK C)->.
-exists ((from, this, tms_cont tms) :: (getSt this C)); split=>//. 
+exists ((from, this, tms_cont tms) :: (getSt this C)); split=>//.
 rewrite /all_valid/= in Y *; rewrite Y.
 by rewrite /sr_wf in Wf; rewrite Wf.
 Qed.
@@ -235,7 +235,7 @@ Section ServerSendTransition.
 
 Definition entry_finder (to : nid) msg :=
   let: ans := head 0 msg in
-  fun e : perm => 
+  fun e : perm =>
     let: (n, _, args) := e in
     [&& n == to, f args == Some ans &
         msg == ans :: args].
@@ -246,8 +246,8 @@ Definition can_send (s : cstate) to msg :=
 Definition ss_safe (this to : nid)
            (d : dstatelet) (msg : seq nat) :=
   to \in cls /\ this \in cs /\
-  exists (C : coh d), 
-  has (entry_finder to msg) (getSt this C).         
+  exists (C : coh d),
+  has (entry_finder to msg) (getSt this C).
 
 Lemma ss_safe_coh this to d m : ss_safe this to d m -> coh d.
 Proof. by case=>_[]_[]. Qed.
@@ -265,7 +265,7 @@ Proof. by case=>_[?][]. Qed.
 Definition ss_step (this to : nid) (d : dstatelet)
            (msg : seq nat)
            (pf : ss_safe this to d msg) :=
-  let C := ss_safe_coh pf in 
+  let C := ss_safe_coh pf in
   let s := getSt this C in
   Some (st :-> remove_elem s (to, this, (behead msg))).
 
@@ -275,21 +275,21 @@ move=>this to d msg pf h[]->{h}.
 have C : (coh d) by case: pf=>?[_][].
 split=>/=.
 - split=>[|i ms/=]; first by rewrite valid_fresh (cohVs C).
-  rewrite findUnL; last by rewrite valid_fresh (cohVs C). 
+  rewrite findUnL; last by rewrite valid_fresh (cohVs C).
   case: ifP=>E; first by case: C=>[[Vs]]H _ _ _; move/H.
   move/findPt_inv=>[Z G]; subst i ms.
   split; rewrite ?(proj2 (ss_safe_in pf))?(ss_safe_this pf)//.
   case: pf=>?[C'][tf]/hasP[]=>[[[n]]]h args
              _/andP[/eqP]Z1/andP[/eqP Z2]/eqP Z3//=.
   case: pf=>[_][_][C']/hasP[[[x1] x2]]x3 H/andP[Z1]/andP[Z2]/eqP->.
-  by exists (head 0 msg), x3. 
+  by exists (head 0 msg), x3.
 - move=>z.
   move: (getSt this (ss_safe_coh pf) )=>G.
   rewrite -(cohDom C) domU inE/= (cohVl C).
-  by case: ifP=>///eqP->{z}; rewrite (cohDom C)(proj1 (ss_safe_in pf)). 
+  by case: ifP=>///eqP->{z}; rewrite (cohDom C)(proj1 (ss_safe_in pf)).
 - by rewrite validU; apply: cohVl C.
 move=>n Ni. rewrite /localCoh/=.
-rewrite /getLocal/=findU; case: ifP=>B/=; last by case: C=>_ _ _/(_ n Ni). 
+rewrite /getLocal/=findU; case: ifP=>B/=; last by case: C=>_ _ _/(_ n Ni).
 move/eqP: B=>Z; subst n; rewrite (cohVl C).
 exists (remove_elem (getSt this (ss_safe_coh pf)) (to, this, behead msg)).
 split=>//; apply: remove_elem_all.
@@ -300,11 +300,11 @@ Lemma ss_safe_def this to d msg :
       ss_safe this to d msg <->
       exists b pf, @ss_step this to d msg pf = Some b.
 Proof.
-split=>[pf/=|]; last by case=>?[]. 
-set b := let C := ss_safe_coh pf in 
+split=>[pf/=|]; last by case=>?[].
+set b := let C := ss_safe_coh pf in
          let s := getSt this C in
          st :-> remove_elem s (to, this, (behead msg)).
-by exists b, pf. 
+by exists b, pf.
 Qed.
 
 Definition server_send_trans :=
@@ -320,21 +320,21 @@ Section ClientSendTransition.
 
 Definition cs_safe (this to : nid)
            (d : dstatelet) (msg : seq nat) :=
-  [/\ to \in cs, this \in cls, coh d & prec msg].         
+  [/\ to \in cs, this \in cls, coh d & prec msg].
 
 Lemma cs_safe_coh this to d m : cs_safe this to d m -> coh d.
-Proof. by case=>_[]. Qed.
+Proof. by case. Qed.
 
 Lemma cs_safe_in this to d m : cs_safe this to d m ->
                              this \in nodes /\ to \in nodes.
 Proof.
-by rewrite !mem_cat; case=>->->/=_ _; split=>//; rewrite orbC. 
+by rewrite !mem_cat; case=>->->/=_ _; split=>//; rewrite orbC.
 Qed.
 
 Definition cs_step (this to : nid) (d : dstatelet)
            (msg : seq nat)
            (pf : cs_safe this to d msg) :=
-  let C := cs_safe_coh pf in 
+  let C := cs_safe_coh pf in
   let s := getSt this C in
   Some (st :-> ((this, to, msg)::s)).
 
@@ -342,10 +342,10 @@ Definition cs_step (this to : nid) (d : dstatelet)
 Lemma cs_step_coh : s_step_coh_t coh req cs_step.
 Proof.
 move=>this to d msg pf h[]->{h}.
-have C : (coh d) by case: pf=>?[].
+have C : (coh d) by case: pf.
 split=>/=.
 - split=>[|i ms/=]; first by rewrite valid_fresh (cohVs C).
-  rewrite findUnL; last by rewrite valid_fresh (cohVs C). 
+  rewrite findUnL; last by rewrite valid_fresh (cohVs C).
   case: ifP=>E; first by case: C=>[[Vs]]H _ _ _; move/H.
   move/findPt_inv=>[Z G]; subst i ms.
   split=>//; rewrite ?(proj2 (cs_safe_in pf));
@@ -353,10 +353,10 @@ split=>/=.
   by case: pf=>// _ _ _; exists msg.
 - move=>z; move: (getSt this (cs_safe_coh pf))=>G.
   rewrite -(cohDom C) domU inE/= (cohVl C).
-  by case: ifP=>///eqP->{z}; rewrite (cohDom C)(proj1 (cs_safe_in pf)). 
+  by case: ifP=>///eqP->{z}; rewrite (cohDom C)(proj1 (cs_safe_in pf)).
 - by rewrite validU; apply: cohVl C.
 move=>n Ni. rewrite /localCoh/=.
-rewrite /getLocal/=findU; case: ifP=>B; last by case: C=>_ _ _/(_ n Ni). 
+rewrite /getLocal/=findU; case: ifP=>B; last by case: C=>_ _ _/(_ n Ni).
 move/eqP: B=>Z; subst n; rewrite (cohVl C)/=.
 exists ((this, to, msg) :: getSt this (cs_safe_coh pf)); split=>//.
 have Y: all_valid (getSt this (cs_safe_coh pf)).
@@ -368,11 +368,11 @@ Lemma cs_safe_def this to d msg :
       cs_safe this to d msg <->
       exists b pf, @cs_step this to d msg pf = Some b.
 Proof.
-split=>[pf/=|]; last by case=>?[]. 
-set b := let C := cs_safe_coh pf in 
+split=>[pf/=|]; last by case=>?[].
+set b := let C := cs_safe_coh pf in
          let s := getSt this C in
          st :-> ((this, to, msg)::s).
-by exists b, pf. 
+by exists b, pf.
 Qed.
 
 Definition client_send_trans :=
@@ -388,7 +388,7 @@ Definition cr_wf d (C : coh d) this from (msg : seq nat) :=
   [&& (this, from, args) \in s &
      size msg > 2].
 
-Definition cr_step : receive_step_t coh := 
+Definition cr_step : receive_step_t coh :=
   fun this (from : nid) (m : seq nat) d (pf : coh d) (pt : this \in nodes) =>
     let s := getSt this pf : seq perm in
     st :-> remove_elem s (this, from, (behead m) : seq nat).
@@ -401,20 +401,20 @@ rewrite /sr_step; case X: (this \in cs); last first.
   + by apply: trans_updDom.
   + by rewrite validU; apply: cohVl C.
   move=>n Ni/=; rewrite /localCoh/=.
-  rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni). 
+  rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni).
   move/eqP: B X=>Z/eqP X; subst n; rewrite (cohVl C)/=.
-  exists (remove_elem (getSt this C) (this, from, behead tms)).  
+  exists (remove_elem (getSt this C) (this, from, behead tms)).
   split=>//; apply: remove_elem_all.
-  by case: {-1}(C)=>_ _ _/(_ _ Ni)[]s[]/(getStK (C))->.  
+  by case: {-1}(C)=>_ _ _/(_ _ Ni)[]s[]/(getStK (C))->.
 split=>/=; first by apply: consume_coh.
-- by apply: trans_updDom.  
+- by apply: trans_updDom.
 - by rewrite validU; apply: cohVl C.
 move=>n Ni/=; rewrite /localCoh/=.
-rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni). 
+rewrite /getLocal/=findU; case: ifP=>B/=; last by case: (C)=>_ _ _/(_ n Ni).
 move/eqP: B X=>Z/eqP X; subst n; rewrite (cohVl C)/=.
-exists (remove_elem (getSt this C) (this, from, behead tms)).  
+exists (remove_elem (getSt this C) (this, from, behead tms)).
 split=>//; apply: remove_elem_all.
-by case: {-1}(C)=>_ _ _/(_ _ Ni)[]s[]/(getStK (C))->.  
+by case: {-1}(C)=>_ _ _/(_ _ Ni)[]s[]/(getStK (C))->.
 Qed.
 
 Definition client_recv_trans := ReceiveTrans cr_step_coh.
@@ -468,5 +468,5 @@ Overall Implementation effort:
 
 *)
 (**************************************************)
- 
+
 Export CalculatorProtocol.Exports.

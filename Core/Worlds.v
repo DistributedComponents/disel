@@ -21,7 +21,7 @@ Section WorldGetters.
 
 Definition context := union_map Label protocol.
 
-(* 
+(*
 The hooks are dependencies between:
 
 1. a hook's unique id
@@ -59,7 +59,7 @@ Variables (p : protocol).
 Definition getProtocol i : protocol:=
   match find i (getc w) with
   | Some p => p
-  | None => EmptyProt i 
+  | None => EmptyProt i
   end.
 
 End WorldGetters.
@@ -87,7 +87,7 @@ Proof. by move=>????; rewrite dom0. Qed.
 
 Definition Coh (w : world) : Pred state := fun s =>
   let: c := fst w in
-  let: h := snd w in                                           
+  let: h := snd w in
   [/\ valid w, valid s, hook_complete w,
       dom c =i dom s &
       forall l, coh (getProtocol w l) (getStatelet s l)].
@@ -121,15 +121,15 @@ have Z: c = Unit by apply: (dom0E V1); move=>z; rewrite E dom0.
 subst c; suff Z: (h = Unit) by subst h.
 simpl in Hc; clear E H V1 V'.
 apply: (dom0E V2); move=> x; case X: (x \in dom h)=>//.
-by move: x X=>[[z lc] [ls t]]/Hc/andP[]; rewrite !dom0. 
+by move: x X=>[[z lc] [ls t]]/Hc/andP[]; rewrite !dom0.
 Qed.
 
 Lemma Coh0 (w : world) (s : state) :
   w = Unit -> s = Unit -> Coh w s.
 Proof.
-move=>->->{w s}; split; rewrite ?dom0=>//=; last first.
+move=>->->{w s}; split; rewrite ?valid_unit ?dom0=>//=; last first.
 - by move=>l; rewrite /getProtocol /getStatelet !find0E.
-by move=>z lc ls t; rewrite dom0.  
+by move=>z lc ls t; rewrite dom0.
 Qed.
 
 Lemma CohUn (w1 w2 : world) (s1 s2 : state) :
@@ -155,7 +155,7 @@ split=>//[|l]; last first.
   by case: ifP Z Z'=>_ F1 F2; [move: (H1 l)|move: (H2 l)];
      rewrite /getProtocol /getStatelet F1 F2.
 by move=>z lc ls t/=; rewrite domUn inE=>/andP[_]/orP[];[move/K1|move/K2];
-   move/andP=>[A1 A2]; rewrite !domUn !inE A1 A2 V -?(orbC true). 
+   move/andP=>[A1 A2]; rewrite !domUn !inE A1 A2 V -?(orbC true).
 Qed.
 
 (* Coherence is trivially precise wrt. statelets *)
@@ -164,7 +164,7 @@ Proof.
 move=>s1 s2 t1 t2 V C1 C2.
 case: C1 => H1 G1 K1 D1 _.
 case: C2 => H2 G2 K2 D2 _ H.
-by apply: (@dom_prec _ _ _  s1 s2 t1 t2)=>//z; rewrite -D1 -D2.
+by apply: (@dom_prec _ _ _ _ s1 s2 t1 t2) =>//z; rewrite -D1 -D2.
 Qed.
 
 Lemma locE i n k x y :
@@ -189,8 +189,7 @@ Lemma locU n n' x st s :
   getLocal n {| dstate := upd n' x st; dsoup := s |} =
   getLocal n {| dstate := st; dsoup := s |}.
 Proof.
-  move=> /negbTE N V.
-  by rewrite /getLocal findU/= N.
+by move=>/negbTE N V; rewrite /getLocal findU/= N.
 Qed.
 
 
@@ -203,7 +202,7 @@ Definition mkWorld : world := (l \\-> p, Unit).
 
 Lemma prEq : (getProtocol mkWorld l) = p.
 Proof. by rewrite /getProtocol findPt. Qed.
-                          
+
 (*
 
 Here's an incomplete list of procedures and facts, which might be

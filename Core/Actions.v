@@ -58,7 +58,7 @@ Structure action (V : Type) (this : nid)
          (* step_frame : forall s1 s2 r z, *)
          (*     a_lab != z -> Coh W s1 -> *)
          (*     a_safe s1 -> a_step s1 s2 r -> getS s1 z  = getS s2 z; *)
-         
+
          (* Action step semantics respects the overall network semantics *)
          step_sem  : forall s1 (pf : a_safe s1) s2 r,
              a_step pf s2 r -> network_step W this s1 s2
@@ -126,9 +126,9 @@ Notation getP l := (getProtocol W l).
 Notation getS s l := (getStatelet s l).
 Variable this : nid.
 
-(* 
+(*
 
-Filter for specific 
+Filter for specific
  - protocol labels
  - message tags
  - message bodies
@@ -152,13 +152,13 @@ Definition tryrecv_act_step s1 s2 (r : option (nid * nat * seq nat)) :=
   exists (pf : s1 \In Coh W),
   (* No message to receive -- all relevant messages are marked *)
     ([/\ (forall l m tms from rt b,
-          this \in nodes (getP l) (getS s1 l) -> 
+          this \in nodes (getP l) (getS s1 l) ->
           Some (Msg tms from this b) = find m (dsoup (getS s1 l)) ->
           rt \In (rcv_trans (getP l)) ->
           tag tms = (t_rcv rt) ->
           (* This is required for safety *)
           msg_wf rt (coh_s l pf) this from tms ->
-          (* The filter applies *)   
+          (* The filter applies *)
           filter l from (t_rcv rt) (tms_cont tms) ->
           ~~b),
     r = None & s2 = s1] \/
@@ -170,7 +170,7 @@ Definition tryrecv_act_step s1 s2 (r : option (nid * nat * seq nat)) :=
           tag tms = (t_rcv rt),
           (* This is required for safety *)
           msg_wf rt (coh_s l pf) this from tms &
-          (* The filter applies *)   
+          (* The filter applies *)
           filter l from (t_rcv rt) (tms_cont tms)],
       let loc' := receive_step rt from tms (coh_s l pf) pf' in
       let: f' := upd this loc' (dstate d) in
@@ -200,7 +200,7 @@ exists (let: d :=  getS s l in
         let: f' := upd this loc' (dstate d) in
         let: s' := consume_msg (dsoup d) m in
         upd l (DStatelet f' s') s), (Some (from, tag tms, tms_cont tms)).
-by exists C; right; exists l, m, tms, from, rt, T. 
+by exists C; right; exists l, m, tms, from, rt, T.
 Qed.
 
 Lemma tryrecv_act_step_safe s1 s2 r:
@@ -250,11 +250,11 @@ Definition can_send (s : state) := (l \in dom s) && (this \in nodes p (getS s l)
 (* Take only the hooks that affect the transition with a tag st of *)
 (* protocol l *)
 Definition filter_hooks (h : hooks) :=
-  um_filter (fun e => e.2 == (l, t_snd st)) h.
+  um_filterk (fun e => e.2 == (l, t_snd st)) h.
 
 Definition send_act_safe s :=
   [/\ Coh W s, send_safe st this to (getS s l) msg, can_send s &
-      (* All hooks from a "reduced footprint" are applicable *)         
+      (* All hooks from a "reduced footprint" are applicable *)
       all_hooks_fire (filter_hooks (geth W)) l (t_snd st) s this msg to].
 
 Lemma send_act_safe_coh s : send_act_safe s -> Coh W s.
@@ -297,7 +297,7 @@ rewrite /all_hooks_fire/filter_hooks in K.
 move: st S' E K pf'; clear pf' st; subst p=>st S' E K' pf'.
 apply: (@SendMsg W this s1 _ l st pf' to msg)=>////.
 move=>z lc hk E'; apply: (K' z); rewrite E'.
-by rewrite find_umfilt/= eqxx.
+by rewrite find_umfiltk/= eqxx.
 Qed.
 
 Definition send_action_wrapper :=

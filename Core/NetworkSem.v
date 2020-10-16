@@ -1,4 +1,4 @@
-From mathcomp.ssreflect 
+From mathcomp.ssreflect
 Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
 From mathcomp
 Require Import path.
@@ -33,13 +33,13 @@ Definition get_rt l := @rcv_trans (getp l).
 Lemma getsE l s : l \in dom s -> find l s = Some (gets s l).
 Proof.
 move=>D. rewrite /gets; case f: (find l s)=>[v|]=>//.
-by move: (find_none f); move/negbTE; rewrite D.
+by move: f; move/find_none/negbTE; rewrite D.
 Qed.
 
 Lemma coh_s l s: Coh w s -> coh (getp l) (gets s l).
 Proof. by case=>_ _ _ /(_ l). Qed.
 
-Lemma Coh_dom l s : l \in dom s -> Coh w s -> 
+Lemma Coh_dom l s : l \in dom s -> Coh w s ->
                      dom (dstate (gets s l)) =i nodes (getp l) (gets s l).
 Proof. by move=>D; case:w=>c h [] W V K E /(_ l); apply:cohDom. Qed.
 
@@ -48,9 +48,9 @@ Proof. by move=>D; case:w=>c h [] W V K E /(_ l); apply:cohDom. Qed.
 Definition all_hooks_fire (h : hooks) l st s n (msg : seq nat) to :=
   (* For any hook associated with client protocol l and send-tag st *)
   forall z lc hk, Some hk = find ((z, lc), (l, st)) h ->
-  lc \in dom s -> l \in dom s ->               
+  lc \in dom s -> l \in dom s ->
   let: core_local   := getl n (gets s lc) in
-  let: client_local := getl n (gets s l)  in              
+  let: client_local := getl n (gets s l)  in
   hk core_local client_local msg to.
 
 (* Semantics of the network in the presence of some world *)
@@ -64,16 +64,16 @@ Inductive network_step (s1 s2 : state) : Prop :=
           l st (_ : st \In @get_st l) to msg b
           (pf: this \in (nodes (getp l) (gets s1 l)))
           (pf' : l \in dom s1) (C: Coh w s1)
-          
+
           (* It's safe to send *)
           (S : send_safe st this to (gets s1 l) msg)
 
           (* All hooks are applicable *)
           (pf_hooks : all_hooks_fire (geth w) l (t_snd st) s1 this msg to)
-          
+
           (* b is a result of executing the transition *)
           (spf : Some b = send_step S) of
-          
+
           (* Generate the message and the new local state *)
           let: d :=  gets s1 l in
 
@@ -119,13 +119,13 @@ case=>[[H1 <-] | l st _ to a loc' pf D C S Ph Spf ->/= |
   rewrite V/=; move/eqP: b=>Z; subst k=>/=.
   case: st a S Ph Spf => /= t_snd ssafe G1 G2 sstep Y G3 a S Ph Spf.
   have X: exists b pf, sstep this to (gets s1 l) a pf = Some b by exists loc', S.
-  move/Y: X=>X; move: (G1 _ _ _ _ X) (G2 _ _ _ _ X)=>{G1 G2}G1 G2; apply: G3. 
+  move/Y: X=>X; move: (G1 _ _ _ _ X) (G2 _ _ _ _ X)=>{G1 G2}G1 G2; apply: G3.
   rewrite /gets in Spf; rewrite Spf; move: (coh_s l C)=>G1'.
   by rewrite -(pf_irr X S).
 case: (C)=>W V K E H; split=>//; first by rewrite validU/= V.
 - move=>z; rewrite domU/= !inE V.
   by case b:  (z == l)=>//; move/eqP: b=>?; subst; rewrite E D.
-move=>k; case b: (k == l); rewrite /gets findU b/=; last by apply: H.    
+move=>k; case b: (k == l); rewrite /gets findU b/=; last by apply: H.
 move: (coh_s l (And5 W V K E H))=>G1.
 rewrite V; move/eqP: b=>Z; subst k=>/=.
 have pf' : this \in dom (dstate (gets s1 l))
@@ -133,7 +133,7 @@ have pf' : this \in dom (dstate (gets s1 l))
 case: rt H1 H3 msg H4=>/= r_rcvwf mwf rstep G msg T F M.
 rewrite -(pf_irr (H l) (coh_s l C)) in M.
 move: (G (gets s1 l) from this i (H l) pf msg pf' T M F); rewrite /gets.
-by move: (H l)=>G1'; rewrite -(pf_irr G1 G1'). 
+by move: (H l)=>G1'; rewrite -(pf_irr G1 G1').
 Qed.
 
 (* Stepping preserves the protocol structure *)
@@ -143,7 +143,7 @@ Proof.
 by move/step_coh=>[[_ _ _ E1 _][_ _ _ E2 _]]z; rewrite -E1 -E2.
 Qed.
 
-(* Stepping only changes the local state of "this" node, 
+(* Stepping only changes the local state of "this" node,
    in any of the protocols. *)
 
 Lemma step_is_local s1 s2 l: network_step s1 s2 ->
@@ -151,11 +151,11 @@ Lemma step_is_local s1 s2 l: network_step s1 s2 ->
   find z (dstate (gets s1 l)) = find z (dstate (gets s2 l)).
 Proof.
 move=>S z N; case: S; first by case=>_ Z; subst s2.
-- move=>k st ? to a b pf D C S Ph Spf Z; subst s2; case B: (l == k); 
+- move=>k st ? to a b pf D C S Ph Spf Z; subst s2; case B: (l == k);
           rewrite /gets findU B //= (cohS C)/=.
-  by move/negbTE: N; rewrite findU=>->/=; move/eqP: B=>->. 
+  by move/negbTE: N; rewrite findU=>->/=; move/eqP: B=>->.
 move=>k rt ? i from H1 H2 C msg T/= [H3 H4]Z; subst s2.
-case B: (l == k); rewrite /gets findU B //= (cohS C)/=.  
+case B: (l == k); rewrite /gets findU B //= (cohS C)/=.
 by move/negbTE: N; rewrite findU=>->/=; move/eqP: B=>->.
 Qed.
 
@@ -179,8 +179,8 @@ Proof. by case/step_coh=>/cohS. Qed.
 Lemma stepV2 s1 s2: network_step s1 s2 -> valid s2.
 Proof. by case/step_coh=>_ /cohS. Qed.
 
-(* 
-   Network steps do not allocate/deallocate nodes 
+(*
+   Network steps do not allocate/deallocate nodes
    (although this might change soon)
  *)
 Lemma step_preserves_node_ids s1 s2 l:
@@ -192,12 +192,12 @@ move=>D S; case: (S); first by case=>C<-.
   rewrite /gets findU; case B: (l == l')=>//=; rewrite (stepV1 S)/==>n.
   move/eqP: B=>B; subst l'; rewrite domU/= !inE; case B: (n == this)=>//.
   move/eqP:B=>B; subst n; rewrite -(Coh_dom D C) in H1; rewrite H1.
-  by case: C=>_ _ _ _/(_ l)/cohVl->. 
-move=>l' rt _ m from H1 D' C msg E[F]W/=Z; subst s2.  
+  by case: C=>_ _ _ _/(_ l)/cohVl->.
+move=>l' rt _ m from H1 D' C msg E[F]W/=Z; subst s2.
 rewrite /gets findU; case B: (l == l')=>//=; rewrite (stepV1 S)/==>n.
 move/eqP: B=>B; subst l'; rewrite domU/= !inE; case B: (n == this)=>//.
 move/eqP:B=>B; subst n; clear S; rewrite -(Coh_dom D C) in H1; rewrite H1.
-by case: (C)=>_ _ _ _/(_ l)/cohVl->. 
+by case: (C)=>_ _ _ _/(_ l)/cohVl->.
 Qed.
 
 End NetworkSemantics.

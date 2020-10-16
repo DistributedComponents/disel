@@ -10,9 +10,9 @@ by Ilya Sergey, James R. Wilcox, and Zachary Tatlock, in the POPL 2018 proceedin
 
 ### Requirements
 
-* [Coq 8.7 or later](https://coq.inria.fr)
-* [Mathematical Components 1.9.0 or later](http://math-comp.github.io/math-comp/) (`ssreflect` suffices)
-* [FCSL PCM library 1.1.0 or later](https://github.com/imdea-software/fcsl-pcm)
+* [Coq 8.11 or later](https://coq.inria.fr)
+* [Mathematical Components 1.10.0 or later](http://math-comp.github.io/math-comp/) (`ssreflect` suffices)
+* [FCSL PCM library 1.3.0 or later](https://github.com/imdea-software/fcsl-pcm)
 * [OCaml 4.05.0 or later](https://ocaml.org) (to compile and run the extracted applications)
 
 ### Building Manually
@@ -104,26 +104,26 @@ The following describes how the paper corresponds to the code:
     - The directory `Examples/Calculator` contains the relevant files.
     - The protocol is defined in `CalculatorProtocol.v`,
       including the state space, coherence predicate, and four transitions
-      described in Figure 2. Note that the coherence predicate is stronger than 
+      described in Figure 2. Note that the coherence predicate is stronger than
       the one given in the paper: it incorporates Inv_1 from Section 2.3. This is
       discussed further below.
     - The program that implements blocking receive of server requests from
-      Section 2.2 is defined in `CalculatorServerLib.v`, 
+      Section 2.2 is defined in `CalculatorServerLib.v`,
       as `blocking_receive_req`.
     - The simple server from Section 2.3, as well as the batching and memoizing
-      servers from Figure 3 are implemented in 
+      servers from Figure 3 are implemented in
       `SimpleCalculatorServers.v`. They are all implemented in
-      terms of the higher-order `server_loop` function. The invariant Inv1 from 
+      terms of the higher-order `server_loop` function. The invariant Inv1 from
       Section 2.3 is incorporated into the protocol itself, as part of the coherence
-      predicate. 
-    - The simple client from Section 2.4 is implemented in 
+      predicate.
+    - The simple client from Section 2.4 is implemented in
       `CalculatorClientLib.v`. The invariant Inv2 is proved as
-      a separate inductive invariant using the WithInv rule in 
+      a separate inductive invariant using the WithInv rule in
       `CalculatorInvariant.v`. It is used to prove the clients
       satisfy their specifications.
     - The delegating server is in `DelegatingCalculatorServer.v`.
       It again uses the invariant Inv2.
-    - A runnable example using extraction to OCaml is given in 
+    - A runnable example using extraction to OCaml is given in
       `SimpleCalculatorApp.v`. It consists of one client and two
       servers, one of which delegates to the other. Instructions for how to run
       the example are given below under "Extracting and Running Disel Programs".
@@ -140,7 +140,7 @@ The following describes how the paper corresponds to the code:
       into Coq: any well-typed program has a specification ascribed to it.
     - Inference rules are represented by lemmas named `*_rule` in
       `Core/InferenceRules.v`. For example, `bind_rule` is an
-      implementation of `Bind` from Figure 8. 
+      implementation of `Bind` from Figure 8.
 * Two-Phase Commit and Querying (Section 4)
     - The relevant directory is `Examples/TwoPhaseCommit`.
     - The protocol as described in Section 4.1 is implemented in `TwoPhaseProtocol.v`.
@@ -229,7 +229,7 @@ sending msg in protocol 0 with tag = 0, contents = [0; 1; 2] to 2
 sending msg in protocol 0 with tag = 0, contents = [0; 1; 2] to 3
 ```
 
-  Tag 0 indicates a prepare message. The contents indicate the index of the 
+  Tag 0 indicates a prepare message. The contents indicate the index of the
   current request (0, since this is the first data item) and the actual data
   to commit (in this case, `[1; 2]`, as specified in `data_seq`). A separate
   prepare message is sent to each participant.
@@ -272,7 +272,7 @@ got msg in protocol 0 with tag = 5, contents = [0] from 2
 ## Proof Size Statistics
 
 Section 5.2 and Table 1 describe the size of our development. Those
-were obtained by using the `coqwc` tool on manually dissected files, 
-according to our vision of what should count as a program, spec, or a proof. 
+were obtained by using the `coqwc` tool on manually dissected files,
+according to our vision of what should count as a program, spec, or a proof.
 These numbers might slightly differ from reported in the paper due to
 the evolution of the project since the submission.

@@ -21,9 +21,9 @@ build: [make "-j%{jobs}%" "-C" "Core"]
 install: [make "-C" "Core" "install"]
 depends: [
   "ocaml"
-  "coq" {(>= "8.7" & < "8.13~") | (= "dev")}
-  "coq-mathcomp-ssreflect" {(>= "1.9.0" & < "1.12~") | (= "dev")}
-  "coq-fcsl-pcm"
+  "coq" {(>= "8.11" & < "8.13~") | (= "dev")}
+  "coq-mathcomp-ssreflect" {(>= "1.10.0" & < "1.12~") | (= "dev")}
+  "coq-fcsl-pcm" {(>= "1.3.0" & < "1.4.0") | (= "dev")}
 ]
 
 tags: [

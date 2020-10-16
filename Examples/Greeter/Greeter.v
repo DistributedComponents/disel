@@ -10,6 +10,7 @@ From DiSeL
 Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely.
 From DiSeL
 Require Import Actions Injection Process Always HoareTriples InferenceRules.
+Obligation Tactic := Tactics.program_simpl.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -42,7 +43,7 @@ Definition soupCoh : Pred soup :=
               let: from := from msg in
               let: tag := tag (content msg) in
               let: val := tms_cont (content msg) in
-              [/\ from \in fixed_nodes, 
+              [/\ from \in fixed_nodes,
                   tag == 0 & behead val == hello]].
 
 (* Coherence for the local state ensures that is has just one counter,
@@ -99,7 +100,7 @@ Lemma cohN n v :
   dyn_tp v = nat.
 Proof. by move=>H; case: (lcoh H)=>m->; rewrite findPt /=; case=><-. Qed.
 
-Definition getN n (pf : n \in fixed_nodes) : nat := 
+Definition getN n (pf : n \in fixed_nodes) : nat :=
   match find counter (getLocal n d) as f return _ = f -> _ with
     Some v => fun epf => icast (sym_eq (cohN pf epf)) (dyn_val v)
   | None => fun epf => 0
@@ -128,7 +129,7 @@ Definition greet_step (this to : nid) (d : dstatelet)
   if (behead msg == hello) && (to \in fixed_nodes)
   then Some (counter :-> (getN (greet_safe_coh pf) (this_in_pf pf)).+1)
   else None.
- 
+
 Lemma greet_safe_in this to d m : greet_safe this to d m ->
                                   this \in nodes d /\ to \in nodes d.
 Proof. by case. Qed.
@@ -151,10 +152,10 @@ Definition greet_tag := 0.
 Lemma greet_step_coh this to d msg (pf : greet_safe this to d msg) b :
   let: f := dstate d in
   let: s := dsoup d  in
-  Some b = greet_step pf ->         
+  Some b = greet_step pf ->
   let: f' := upd this b f in
-  let: tms := TMsg greet_tag msg in 
-  let: s' := (post_msg s (Msg tms this to true)).1 in 
+  let: tms := TMsg greet_tag msg in
+  let: s' := (post_msg s (Msg tms this to true)).1 in
   coh (DStatelet f' s').
 Proof.
 rewrite/greet_step; case:ifP=>///andP[/eqP Z1 H][]Z'; subst b=>/=.
@@ -244,8 +245,8 @@ Notation msgs i := (dsoup (getStatelet i l)).
 Definition greeter_spec to :=
   {n : nat}, DHT [this, W]
   (fun i => loc i = counter :-> n /\ to \in nodes,
-   fun r m => 
-       [/\ loc m = counter :-> n.+1, 
+   fun r m =>
+       [/\ loc m = counter :-> n.+1,
         head 0 r = n &
         exists z b, find z (msgs m) = Some (Msg (TMsg 0 (n :: hello)) this to b)]).
 
@@ -257,9 +258,9 @@ Next Obligation.
 apply ghC=>s1 n [Hloc] Hto C1.
 
 apply: step.
-- apply: act_rule. 
+- apply: act_rule.
   move=> s2 R1.
-  split; first by move: R1=> /rely_coh[]; rewrite /read_act/=/Actions.skip_safe. 
+  split; first by move: R1=> /rely_coh[]; rewrite /read_act/=/Actions.skip_safe.
   move=> y s2' s3 [Sf1]/=.
   rewrite /Actions.skip_step => -[] C2 ? ? R2; subst s2'; subst.
 
@@ -284,7 +285,7 @@ case: St=>Z1[h]/=[St]Z2; subst.
 (* Making use of the stepping relation *)
 rewrite /GreeterProtocol.greet_step/= Hto in St; case: St=>Z'; subst h.
 (* Rewriting the state getter *)
-erewrite !getNK in R4; first last. 
+erewrite !getNK in R4; first last.
 - by rewrite (rely_loc' l R3) (rely_loc' l R2) (rely_loc' l R1); exact: Hloc.
 - by rewrite (rely_loc' l R1); exact: Hloc.
 (* rewriting via rely *)
@@ -308,7 +309,7 @@ Qed.
 
 Definition greeter_spec2 n to :=
   DHT [this, W]
-  (fun i => loc i = counter :-> n /\ to \in nodes, 
+  (fun i => loc i = counter :-> n /\ to \in nodes,
    fun r m =>
      loc m = counter :-> n.+2 /\ head 0 r = n.+1).
 
@@ -324,7 +325,7 @@ apply: step.
 apply: (gh_ex (g := n)); apply: call_rule=>//.
 move=>? j[Hcount Hhead _] Cj.
 apply: (gh_ex (g := n.+1)); apply: call_rule=>//.
-by move=>r m[X1 X2 _]. 
+by move=>r m[X1 X2 _].
 Qed.
 
 End GreeterPrograms.
@@ -362,7 +363,7 @@ Definition greeter_spec3 n1 n2 to :=
   (fun i =>
      [/\ loc i l1 = counter :-> n1,
       loc i l2 = counter :-> n2 &
-      to \in nodes], 
+      to \in nodes],
    fun r m =>
      [/\ loc m l1 = counter :-> n1.+2,
       loc m l2 = counter :-> n2.+2 &
@@ -380,7 +381,7 @@ Program Definition greet3 n1 n2 to : greeter_spec3 n1 n2 to :=
       ret _ _ (head 0 r1 + head 0 r2)).
 
 Next Obligation. exact Unit. Defined.
-Next Obligation. 
+Next Obligation.
 rewrite -(unitR V)/V.
 have V: valid (W l1 nodes \+ W l2 nodes \+ Unit) by rewrite unitR validV.
 apply: (injectL V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
@@ -412,7 +413,7 @@ rewrite E2 -(rely_loc' l2 R1) in H2.
 apply: step.
 rewrite joinC; apply: inject_rule.
 - case: (rely_coh R1)=>/= _.
-  by rewrite injExtL//(cohW C). 
+  by rewrite injExtL//(cohW C).
 apply: call_rule=>//r2 m2 [E3]Z2 C3 j'' C3' R2.
 apply: ret_rule=>m3 R3[G1]G2 G3; split; last first.
 (* Playing with locality of transitions, propagating once obtained
@@ -425,7 +426,7 @@ rewrite (rely_loc' l1 R3).
 move/rely_coh: (R2)=>[]; rewrite injExtR ?(cohW C)// =>_ C5.
 rewrite joinC in C3' *.
 rewrite (locProjL C3' _ C5)//?/ddom ?domPt ?inE//=.
-by rewrite (rely_loc' l1 R2). 
+by rewrite (rely_loc' l1 R2).
 Qed.
 
 End CombineGreeters.
