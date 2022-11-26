@@ -7,7 +7,7 @@ From DiSeL Require Import Process Always HoareTriples InferenceRules.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
-Obligation Tactic := Tactics.program_simpl.
+Obligation Tactic := idtac.
 
 Section While.
 Variable this : nid.
@@ -39,6 +39,7 @@ Program Definition while b0 :
                        rec b')
                   else ret _ _ b)) b0).
 Next Obligation.
+move => b0 rec b.
 apply: ghC=>s0 a/= HI0 C.
 case: ifP=> Hcond; last by apply: ret_rule=>s1 R1; split;[rewrite Hcond | eauto].
 apply: step.
@@ -50,7 +51,7 @@ by move=>x m; case=>//; apply: HI1.
 Qed.
 
 Next Obligation.
-move => s0/= HI0.
+move => b0 s0/= HI0.
 by apply: call_rule'.
 Qed.
 
