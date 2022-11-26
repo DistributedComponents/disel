@@ -1,15 +1,9 @@
-From mathcomp.ssreflect
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
-From mathcomp
-Require Import path.
-Require Import Eqdep.
-Require Import Relation_Operators.
-From fcsl
-Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
-From DiSeL
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-From DiSeL
-Require Import Actions Injection Process InductiveInv.
+From mathcomp Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq path.
+From Coq Require Import Eqdep Relation_Operators.
+From pcm Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL Require Import Freshness State EqTypeX DepMaps Protocols Worlds.
+From DiSeL Require Import NetworkSem Rely Actions Injection.
+From DiSeL Require Import Process InductiveInv.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -425,15 +419,16 @@ have [E1 E2] : x1 = i1 /\ y1 = j1.
   by move/(joinxK (cohS C)).
 rewrite {E x1}E1 {y1}E2 in T *.
 have C' : i2 \+ j1 \In Coh W.
-- move: (C)=>C'; rewrite (cohE w) in C *=>[[s1]][s2][E]D1 D2.
+- move: (C)=>C'; rewrite (cohE w) in C.
+  move: C => [s1 [s2][E]D1 D2].
   move: (coh_prec (cohS C') Ci1 D1 E)=>Z; subst i1.
   move: (joinxK (cohS C') E)=>Z; subst s2; clear E.
   apply/(cohE w); exists i2, j1; split=>//.
-  by case/step_coh: (pstep_network_sem T). 
+  by case/step_coh: (pstep_network_sem T).
 move/(alw_step Ls): T=>{Ls} Ls.
 apply: alw_imp' (IH _ _ _ C' Ls)=>{IH Ls C' C Ci Ci1 i i1 i2 p q' sc' scs}.
 move=>s p _ [i2][j2][->{s}] Ci2 S2 H; exists i2, j2; split=>//.
-by apply: rely_trans S1 S2.  
+by apply: rely_trans S1 S2.
 Qed.
 
 Lemma aft_inject (p : proc this V A) (P : A -> state -> Prop) i j :

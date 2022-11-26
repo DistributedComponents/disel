@@ -1,9 +1,6 @@
-From mathcomp.ssreflect
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
-From mathcomp
-Require Import path.
-From fcsl
-Require Import pred prelude ordtype finmap pcm unionmap.
+From mathcomp Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
+From mathcomp Require Import path.
+From pcm Require Import pred prelude ordtype finmap pcm unionmap seqext.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.

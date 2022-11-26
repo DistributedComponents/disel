@@ -1,14 +1,10 @@
-From mathcomp.ssreflect
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq path.
-Require Import Eqdep.
-From fcsl
-Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
-From DiSeL
-Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely Actions.
-From DiSeL
-Require Import SeqLib QueryProtocol NewStatePredicates Actions.
-From DiSeL
-Require Import Injection Process Always HoareTriples InferenceRules While.
+From mathcomp Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq path.
+From Coq Require Import Eqdep.
+From pcm Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL Require Import Freshness State EqTypeX Protocols Worlds.
+From DiSeL Require Import NetworkSem Rely Actions SeqLib QueryProtocol.
+From DiSeL Require Import NewStatePredicates Actions Injection Process.
+From DiSeL Require Import Always HoareTriples InferenceRules While.
 Obligation Tactic := Tactics.program_simpl.
 
 Section QueryHooked.
@@ -1101,13 +1097,12 @@ split=>//; try apply: (msg_story_rely _ _ _ _ _ _ _ H3 H0).
 Defined.
 
 Next Obligation.
-rename H into d.
 apply: ghC=>i0 [[reqs resp] data][G0 H0] C0; apply: step.
 apply: act_rule=>i1 R1/=; split; first by case: (rely_coh R1).
 case=>[[[from tg] body] i2 i3|i2 i3]; last first.
 - case=>S/=[]C1; case; last by case=>?[?][?][?][?][?][].
   case=>_ _ Z; subst i2=>R3; apply: ret_rule=>i4 R4/=.
-  case: d G0 H0=>//=_[H1 H2 H3].
+  case: o G0 H0=>//=_[H1 H2 H3].
   rewrite !(rely_loc' _ R4)!(rely_loc' _ R3)!(rely_loc' _ R1); split=>//.
   by apply: (msg_story_rely _ _ _ _ _ _ _ _ R4);
     apply: (msg_story_rely _ _ _ _ _ _ _ _ R3);
@@ -1127,14 +1122,14 @@ suff X : [/\ getLocal this (getStatelet i2 lq) = qst :-> (reqs, resp),
           deserialize (behead tms) = data].
 - case: X=>X1 X2 X3 X4; split=>//.
   by apply: (query_init_rely _ _ _ _ R3); apply: (query_init_rely _ _ _ _ R).
-- case: d G0 H0=>//=_[_ H2][_] H3 _ _; case: X3=>Nq _ _ _.
+- case: o G0 H0=>//=_[_ H2][_] H3 _ _; case: X3=>Nq _ _ _.
   move: (X2); rewrite -(rely_loc' _ R)=>X3.
   apply: (core_state_stable _ _ _ _ R3 Nq X3).
   apply: (core_state_stable _ _ _ _ R Nq X2).
   move: (core_state_stable _ _ _ _ R1 Nq H2 H3)=>{H2 H3 X3 X4}Y.
   by subst i2; rewrite /getStatelet findU eq_sym; move/negbTE:Lab_neq=>->.
 clear R i4 R3.
-case: d G0 H0=>//=_[Q1 Q2 Q3]; rewrite -!(rely_loc' _ R1) in Q1 Q2.
+case: o G0 H0=>//=_[Q1 Q2 Q3]; rewrite -!(rely_loc' _ R1) in Q1 Q2.
 move: (msg_story_rely _ _ _ _ _ _ _ Q3 R1)=>{Q3}Q3.
 have P1: valid (dstate (getSq i1)) by case: (C1')=>P1 P2 P3 P4.
 have P2: valid i1 by apply: (cohS C1).

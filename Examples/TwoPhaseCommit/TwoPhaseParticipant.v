@@ -1,19 +1,10 @@
-From mathcomp.ssreflect
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
-From mathcomp
-Require Import path.
-Require Import Eqdep.
-Require Import Relation_Operators.
-From fcsl
-Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
-From DiSeL
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-From DiSeL
-Require Import Actions Injection Process Always HoareTriples InferenceRules.
-From DiSeL
-Require Import InductiveInv While.
-From DiSeL
-Require Import TwoPhaseProtocol.
+From mathcomp Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq path.
+From Coq Require Import Eqdep Relation_Operators.
+From pcm Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL Require Import Freshness State EqTypeX DepMaps Protocols.
+From DiSeL Require Import Worlds NetworkSem Rely Actions Injection Process.
+From DiSeL Require Import Always HoareTriples InferenceRules InductiveInv While.
+From DiSeL Require Import TwoPhaseProtocol.
 
 Module TwoPhaseParticipant.
 Section TwoPhaseParticipant.
@@ -149,7 +140,7 @@ Program Definition receive_prep_req_loop (e : nat):
 Next Obligation. by apply: with_spec x. Defined.
 Next Obligation. by move:H; rewrite /rp_prep_req_inv (rely_loc' _ H0). Qed.
 Next Obligation.
-apply:ghC=>i1 lg[/eqP->{H}/=E1]C1; apply: step.
+apply:ghC=>i1 lg[/eqP->{o}/=E1]C1; apply: step.
 apply: act_rule=>i2/=R1; split; first by case: (rely_coh R1).
 case=>[[[from e']d i3 i4]|i3 i4]; last first.
 - case=>S/=[]?; case; last by case=>?[?][?][?][?][?][].
@@ -286,7 +277,7 @@ Program Definition receive_commabrt_loop (e : nat) (c : bool):
 Next Obligation. by apply: (with_spec x). Defined.
 Next Obligation. by move:H; rewrite /rp_commabrt_inv (rely_loc' _ H0). Qed.
 Next Obligation.
-apply:ghC=>i1 [lg d][/eqP->{H}/=E1]C1; apply: step.
+apply:ghC=>i1 [lg d][/eqP->{o}/=E1]C1; apply: step.
 apply: act_rule=>i2/=R1; split; first by case: (rely_coh R1).
 case=>[[[from e']v i3 i4]|i3 i4]; last first.
 - case=>S/=[]?; case; last by case=>?[?][?][?][?][?][].
