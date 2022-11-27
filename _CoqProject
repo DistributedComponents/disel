@@ -1,5 +1,4 @@
--Q Core DiSeL
--Q Examples DiSeL
+-Q theories DiSeL
 
 -arg -w -arg -notation-overridden
 -arg -w -arg -local-declaration
@@ -9,45 +8,45 @@
 -arg -w -arg -notation-incompatible-format
 -arg -w -arg -deprecated-hint-without-locality
 
-Core/State.v
-Core/Freshness.v
-Core/Protocols.v
-Core/EqTypeX.v
-Core/DepMaps.v
-Core/StatePredicates.v
-Core/NewStatePredicates.v
-Core/Worlds.v
-Core/NetworkSem.v
-Core/Rely.v
-Core/Actions.v
-Core/Injection.v
-Core/InductiveInv.v
-Core/Process.v
-Core/Always.v
-Core/HoareTriples.v
-Core/InferenceRules.v
-Core/While.v
-Core/DiSeLExtraction.v
-Examples/SeqLib.v
-Examples/Greeter/Greeter.v
-Examples/Querying/QueryProtocol.v
-Examples/Querying/QueryHooked.v
-Examples/Calculator/CalculatorProtocol.v
-Examples/Calculator/CalculatorInvariant.v
-Examples/Calculator/CalculatorClientLib.v
-Examples/Calculator/CalculatorServerLib.v
-Examples/Calculator/SimpleCalculatorServers.v
-Examples/Calculator/DelegatingCalculatorServer.v
-Examples/Calculator/SimpleCalculatorApp.v
-Examples/Calculator/CalculatorExtraction.v
-Examples/TwoPhaseCommit/TwoPhaseProtocol.v
-Examples/TwoPhaseCommit/TwoPhaseCoordinator.v
-Examples/TwoPhaseCommit/TwoPhaseParticipant.v
-Examples/TwoPhaseCommit/SimpleTPCApp.v
-Examples/TwoPhaseCommit/TwoPhaseExtraction.v
-Examples/TwoPhaseCommit/TwoPhaseInductiveInv.v
-Examples/TwoPhaseCommit/TwoPhaseInductiveProof.v
-Examples/TwoPhaseCommit/TwoPhaseClient.v
-Examples/Querying/QueryPlusTPC.v
-Examples/LockResource/LockProtocol.v
-Examples/LockResource/ResourceProtocol.v
+theories/Core/State.v
+theories/Core/Freshness.v
+theories/Core/Protocols.v
+theories/Core/EqTypeX.v
+theories/Core/DepMaps.v
+theories/Core/StatePredicates.v
+theories/Core/NewStatePredicates.v
+theories/Core/Worlds.v
+theories/Core/NetworkSem.v
+theories/Core/Rely.v
+theories/Core/Actions.v
+theories/Core/Injection.v
+theories/Core/InductiveInv.v
+theories/Core/Process.v
+theories/Core/Always.v
+theories/Core/HoareTriples.v
+theories/Core/InferenceRules.v
+theories/Core/While.v
+theories/Core/DiSeLExtraction.v
+theories/Examples/SeqLib.v
+theories/Examples/Greeter/Greeter.v
+theories/Examples/Querying/QueryProtocol.v
+theories/Examples/Querying/QueryHooked.v
+theories/Examples/Calculator/CalculatorProtocol.v
+theories/Examples/Calculator/CalculatorInvariant.v
+theories/Examples/Calculator/CalculatorClientLib.v
+theories/Examples/Calculator/CalculatorServerLib.v
+theories/Examples/Calculator/SimpleCalculatorServers.v
+theories/Examples/Calculator/DelegatingCalculatorServer.v
+theories/Examples/Calculator/SimpleCalculatorApp.v
+theories/Examples/Calculator/CalculatorExtraction.v
+theories/Examples/TwoPhaseCommit/TwoPhaseProtocol.v
+theories/Examples/TwoPhaseCommit/TwoPhaseCoordinator.v
+theories/Examples/TwoPhaseCommit/TwoPhaseParticipant.v
+theories/Examples/TwoPhaseCommit/SimpleTPCApp.v
+theories/Examples/TwoPhaseCommit/TwoPhaseExtraction.v
+theories/Examples/TwoPhaseCommit/TwoPhaseInductiveInv.v
+theories/Examples/TwoPhaseCommit/TwoPhaseInductiveProof.v
+theories/Examples/TwoPhaseCommit/TwoPhaseClient.v
+theories/Examples/Querying/QueryPlusTPC.v
+theories/Examples/LockResource/LockProtocol.v
+theories/Examples/LockResource/ResourceProtocol.v

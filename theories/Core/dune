@@ -1,0 +1,12 @@
+(coq.theory
+ (name DiSeL.Core)
+ (package coq-disel)
+ (synopsis "Core framework files for Disel, a separation-style logic for compositional verification of distributed systems in Coq")
+ (modules :standard \ InjectionOld)
+ (flags :standard
+   -w -notation-overridden
+   -w -local-declaration
+   -w -duplicate-clear
+   -w -redundant-canonical-projection
+   -w -projection-no-head-constant
+   -w -deprecated-hint-without-locality))
