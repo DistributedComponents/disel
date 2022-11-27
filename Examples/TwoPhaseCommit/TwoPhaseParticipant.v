@@ -140,6 +140,7 @@ Program Definition receive_prep_req_loop (e : nat):
 Next Obligation. by apply: with_spec x. Defined.
 Next Obligation. by move:H; rewrite /rp_prep_req_inv (rely_loc' _ H0). Qed.
 Next Obligation.
+try rename H into o.
 apply:ghC=>i1 lg[/eqP->{o}/=E1]C1; apply: step.
 apply: act_rule=>i2/=R1; split; first by case: (rely_coh R1).
 case=>[[[from e']d i3 i4]|i3 i4]; last first.
@@ -277,6 +278,7 @@ Program Definition receive_commabrt_loop (e : nat) (c : bool):
 Next Obligation. by apply: (with_spec x). Defined.
 Next Obligation. by move:H; rewrite /rp_commabrt_inv (rely_loc' _ H0). Qed.
 Next Obligation.
+try rename H into o.
 apply:ghC=>i1 [lg d][/eqP->{o}/=E1]C1; apply: step.
 apply: act_rule=>i2/=R1; split; first by case: (rely_coh R1).
 case=>[[[from e']v i3 i4]|i3 i4]; last first.

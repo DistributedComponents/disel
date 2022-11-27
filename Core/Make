@@ -4,6 +4,7 @@
 -arg -w -arg -local-declaration
 -arg -w -arg -redundant-canonical-projection
 -arg -w -arg -projection-no-head-constant
+-arg -w -arg -deprecated-hint-without-locality
 
 Domain.v
 State.v

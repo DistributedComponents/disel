@@ -1097,6 +1097,7 @@ split=>//; try apply: (msg_story_rely _ _ _ _ _ _ _ H3 H0).
 Defined.
 
 Next Obligation.
+try rename H into o.
 apply: ghC=>i0 [[reqs resp] data][G0 H0] C0; apply: step.
 apply: act_rule=>i1 R1/=; split; first by case: (rely_coh R1).
 case=>[[[from tg] body] i2 i3|i2 i3]; last first.

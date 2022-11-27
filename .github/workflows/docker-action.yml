@@ -1,0 +1,58 @@
+name: Docker CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  build:
+    # the OS must be GNU/Linux to be able to use the docker-coq-action
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image:
+          - 'mathcomp/mathcomp-dev:coq-dev'
+          - 'mathcomp/mathcomp:1.15.0-coq-8.16'
+          - 'mathcomp/mathcomp:1.15.0-coq-8.15'
+          - 'mathcomp/mathcomp:1.14.0-coq-8.15'
+          - 'mathcomp/mathcomp:1.14.0-coq-8.14'
+          - 'mathcomp/mathcomp:1.13.0-coq-8.15'
+          - 'mathcomp/mathcomp:1.13.0-coq-8.14'
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+      - uses: coq-community/docker-coq-action@v1
+        with:
+          custom_image: ${{ matrix.image }}
+          custom_script: |
+            {{before_install}}
+            startGroup "Build disel dependencies"
+              opam pin add -n -y -k path coq-disel .
+              opam update -y
+              opam install -y -j $(nproc) coq-disel --deps-only
+            endGroup
+            startGroup "Build disel"
+              opam install -y -v -j $(nproc) coq-disel
+              opam list
+            endGroup
+            startGroup "Build disel-examples dependencies"
+              opam pin add -n -y -k path coq-disel-examples .
+              opam update -y
+              opam install -y -j $(nproc) coq-disel-examples --deps-only
+            endGroup
+            startGroup "Build disel-examples"
+              opam install -y -v -j $(nproc) coq-disel-examples
+              opam list
+            endGroup
+            startGroup "Uninstallation test"
+              opam remove -y coq-disel-examples
+              opam remove -y coq-disel
+            endGroup
+
+# See also:
+# https://github.com/coq-community/docker-coq-action#readme
+# https://github.com/erikmd/docker-coq-github-action-demo
