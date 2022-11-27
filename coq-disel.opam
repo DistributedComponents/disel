@@ -17,9 +17,9 @@ communication primitives. Components of composite systems are specified in Disel
 as protocols, which capture system-specific logic and disentangle system definitions
 from implementation details."""
 
-build: [make "-j%{jobs}%" "-C" "Core"]
-install: [make "-C" "Core" "install"]
+build: ["dune" "build" "-p" name "-j" jobs]
 depends: [
+  "dune" {>= "2.5"}
   "coq" {>= "8.14"}
   "coq-mathcomp-ssreflect" {>= "1.13"}
   "coq-fcsl-pcm" {>= "1.7.0"}
@@ -31,7 +31,7 @@ tags: [
   "keyword:program verification"
   "keyword:separation logic"
   "keyword:distributed algorithms"
-  "logpath:DiSeL"
+  "logpath:DiSeL.Core"
 ]
 authors: [
   "Ilya Sergey"
