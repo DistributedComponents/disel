@@ -1,15 +1,9 @@
-From mathcomp.ssreflect
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
-From mathcomp
-Require Import path.
-Require Import Eqdep.
-Require Import Relation_Operators.
-From pcm
-Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
-From DiSeL
-Require Import Domain Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-From DiSeL
-Require Import Actions Injection Process Always.
+From mathcomp Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq path.
+From Coq Require Import Eqdep Relation_Operators.
+From pcm Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From htt Require Import domain.
+From DiSeL Require Import Freshness State EqTypeX DepMaps Protocols.
+From DiSeL Require Import Worlds NetworkSem Rely Actions Injection Process Always.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -202,7 +196,7 @@ Variable this : nid.
 Variable W : world.
 Variables (A : Type) (s : spec A).
 
-Definition stPosetMixin := PosetMixin (@leq_refl this W A s) 
+Definition stPosetMixin := PosetMixin (@bot_bot this W A s) (@leq_refl this W A s)
                                       (@leq_asym this W A s) (@leq_trans this W A s).
 Canonical stPoset := Eval hnf in Poset (@DTbin this W A s) stPosetMixin.
 
