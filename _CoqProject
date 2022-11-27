@@ -38,15 +38,15 @@ theories/Examples/Calculator/CalculatorServerLib.v
 theories/Examples/Calculator/SimpleCalculatorServers.v
 theories/Examples/Calculator/DelegatingCalculatorServer.v
 theories/Examples/Calculator/SimpleCalculatorApp.v
-theories/Examples/Calculator/CalculatorExtraction.v
 theories/Examples/TwoPhaseCommit/TwoPhaseProtocol.v
 theories/Examples/TwoPhaseCommit/TwoPhaseCoordinator.v
 theories/Examples/TwoPhaseCommit/TwoPhaseParticipant.v
 theories/Examples/TwoPhaseCommit/SimpleTPCApp.v
-theories/Examples/TwoPhaseCommit/TwoPhaseExtraction.v
 theories/Examples/TwoPhaseCommit/TwoPhaseInductiveInv.v
 theories/Examples/TwoPhaseCommit/TwoPhaseInductiveProof.v
 theories/Examples/TwoPhaseCommit/TwoPhaseClient.v
 theories/Examples/Querying/QueryPlusTPC.v
 theories/Examples/LockResource/LockProtocol.v
 theories/Examples/LockResource/ResourceProtocol.v
+extraction/calculator/CalculatorExtraction.v
+extraction/TPC/TwoPhaseExtraction.v
