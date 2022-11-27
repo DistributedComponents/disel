@@ -14,6 +14,7 @@ depends: [
   "coq" {>= "8.14"}
   "coq-mathcomp-ssreflect" {>= "1.13"}
   "coq-fcsl-pcm" {>= "1.7.0"}
+  "coq-htt" {>= "1.2.0"}
   "coq-disel" {= version}
 ]
 

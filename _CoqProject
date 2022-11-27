@@ -9,7 +9,6 @@
 -arg -w -arg -notation-incompatible-format
 -arg -w -arg -deprecated-hint-without-locality
 
-Core/Domain.v
 Core/State.v
 Core/Freshness.v
 Core/Protocols.v

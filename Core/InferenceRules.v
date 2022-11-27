@@ -1,15 +1,10 @@
-From mathcomp.ssreflect
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
-From mathcomp
-Require Import path.
-Require Import Eqdep.
-Require Import Relation_Operators.
-From pcm
-Require Import pred prelude ordtype finmap pcm unionmap heap.
-From DiSeL
-Require Import Domain Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-From DiSeL
-Require Import Actions Injection Process Always HoareTriples InductiveInv.
+From mathcomp Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq path.
+From Coq Require Import Eqdep Relation_Operators.
+From pcm Require Import pred prelude ordtype finmap pcm unionmap heap.
+From htt Require Import domain.
+From DiSeL Require Import Freshness State EqTypeX DepMaps Protocols.
+From DiSeL Require Import Worlds NetworkSem Rely Actions Injection Process.
+From DiSeL Require Import Always HoareTriples InductiveInv.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.

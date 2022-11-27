@@ -72,6 +72,11 @@ dependencies:
     version: '{>= "1.7.0"}'
   description: |-
     [FCSL PCM](https://github.com/imdea-software/fcsl-pcm) 1.7.0 or later
+- opam:
+    name: coq-htt
+    version: '{>= "1.2.0"}'
+  description: |-
+    [Hoare Type Theory](https://github.com/imdea-software/htt) 1.2.0 or later
 
 namespace: DiSeL
 

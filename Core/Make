@@ -6,7 +6,6 @@
 -arg -w -arg -projection-no-head-constant
 -arg -w -arg -deprecated-hint-without-locality
 
-Domain.v
 State.v
 Freshness.v
 Protocols.v

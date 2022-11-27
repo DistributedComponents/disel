@@ -30,6 +30,7 @@ from implementation details.
 - Additional dependencies:
   - [MathComp](https://math-comp.github.io) 1.13.0 or later (`ssreflect` suffices)
   - [FCSL PCM](https://github.com/imdea-software/fcsl-pcm) 1.7.0 or later
+  - [Hoare Type Theory](https://github.com/imdea-software/htt) 1.2.0 or later
 - Coq namespace: `DiSeL`
 - Related publication(s):
   - [Programming and Proving with Distributed Protocols](http://jamesrwilcox.com/disel.pdf) doi:[10.1145/3158116](https://doi.org/10.1145/3158116)
