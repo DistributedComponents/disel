@@ -4,7 +4,7 @@ From mathcomp
 Require Import path.
 Require Import Eqdep.
 Require Import Relation_Operators.
-From fcsl
+From pcm
 Require Import pred prelude ordtype finmap pcm unionmap heap.
 From DiSeL
 Require Import Freshness DepMaps EqTypeX.

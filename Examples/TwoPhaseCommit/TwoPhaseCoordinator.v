@@ -1,19 +1,10 @@
-From mathcomp.ssreflect
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
-From mathcomp
-Require Import path.
-Require Import Eqdep.
-Require Import Relation_Operators.
-From fcsl
-Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
-From DiSeL
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-From DiSeL
-Require Import Actions Injection Process Always HoareTriples InferenceRules.
-From DiSeL
-Require Import InductiveInv While.
-From DiSeL
-Require Import TwoPhaseProtocol.
+From mathcomp Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq path.
+From Coq Require Import Eqdep Relation_Operators.
+From pcm Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL Require Import Freshness State EqTypeX DepMaps Protocols.
+From DiSeL Require Import Worlds NetworkSem Rely Actions Injection Process.
+From DiSeL Require Import Always HoareTriples InferenceRules InductiveInv While.
+From DiSeL Require Import TwoPhaseProtocol.
 
 Module TwoPhaseCoordinator.
 Section TwoPhaseCoordinator.
@@ -256,9 +247,8 @@ suff Pre:
     [move/eqP: X=>X; subst tos; rewrite eqxx| rewrite eq_sym X].
     rewrite /cstep_send/= (proj2 Hc)/= in G.
     rewrite [cn_safe_coh _ ](pf_irr _ C) E1' in G.
-  have Y: perm_eq (to :: ps) pts.
-    rewrite (perm_sym pts) in Hp.
-    by apply/permEl; rewrite -cat1s perm_catC; apply/permPl.
+  have Y: perm_eq (to :: ps) pts
+    by move: Hp; rewrite (perm_sym pts) perm_catC cat1s.
   rewrite Y/= in G.
   rewrite (rely_loc' l R2); subst k; rewrite locE; last apply: (cohVl C).
   + by rewrite -(pf_irr (cn_in cn pts others) (cn_this_in _ _))
@@ -526,7 +516,7 @@ have X: perm_eq (to :: ps) pts = (tos == [::]).
 rewrite X in G=>{X}; subst i3.
 rewrite locE//; [|by apply: (cohS C2)|by apply: (cohVl C2')].
 case:ifP=>->//; exists (to :: ps);split=>//.
-apply: (perm_trans P2); apply/permEl.
+apply: (perm_trans P2).
 by rewrite -[to::ps]cat1s -[to::tos]cat1s -!catA perm_catCA.
 Qed.
 
@@ -641,7 +631,7 @@ have X: perm_eq (to :: ps) pts = (tos == [::]).
 rewrite X in G=>{X}; subst i3.
 rewrite locE//; [|by apply: (cohS C2)|by apply: (cohVl C2')].
 case:ifP=>->//; exists (to :: ps);split=>//.
-apply: (perm_trans P2); apply/permEl.
+apply: (perm_trans P2).
 by rewrite -[to::ps]cat1s -[to::tos]cat1s -!catA perm_catCA.
 Qed.
 

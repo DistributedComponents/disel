@@ -1,14 +1,8 @@
-From mathcomp.ssreflect
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
-From mathcomp
-Require Import path.
-Require Import Eqdep.
-From fcsl
-Require Import axioms pred prelude ordtype finmap pcm unionmap heap.
-From DiSeL
-Require Import Freshness State EqTypeX Protocols Worlds NetworkSem Rely Actions.
-From DiSeL
-Require Import SeqLib.
+From mathcomp Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq path.
+From Coq Require Import Eqdep.
+From pcm Require Import axioms pred prelude ordtype finmap pcm unionmap heap seqext.
+From DiSeL Require Import Freshness State EqTypeX Protocols.
+From DiSeL Require Import Worlds NetworkSem Rely Actions SeqLib.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

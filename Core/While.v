@@ -1,19 +1,13 @@
-From mathcomp.ssreflect
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq.
-From mathcomp
-Require Import path.
-Require Import Eqdep.
-Require Import Relation_Operators.
-From fcsl
-Require Import pred prelude ordtype finmap pcm unionmap heap.
-From DiSeL
-Require Import Freshness State EqTypeX DepMaps Protocols Worlds NetworkSem Rely.
-From DiSeL
-Require Import Actions Injection Process Always HoareTriples InferenceRules.
+From mathcomp Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq path.
+From Coq Require Import Eqdep Relation_Operators.
+From pcm Require Import pred prelude ordtype finmap pcm unionmap heap.
+From DiSeL Require Import Freshness State EqTypeX DepMaps Protocols.
+From DiSeL Require Import Worlds NetworkSem Rely Actions Injection.
+From DiSeL Require Import Process Always HoareTriples InferenceRules.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
-Obligation Tactic := Tactics.program_simpl.
+Obligation Tactic := idtac.
 
 Section While.
 Variable this : nid.
@@ -45,6 +39,7 @@ Program Definition while b0 :
                        rec b')
                   else ret _ _ b)) b0).
 Next Obligation.
+move => b0 rec b.
 apply: ghC=>s0 a/= HI0 C.
 case: ifP=> Hcond; last by apply: ret_rule=>s1 R1; split;[rewrite Hcond | eauto].
 apply: step.
@@ -56,7 +51,7 @@ by move=>x m; case=>//; apply: HI1.
 Qed.
 
 Next Obligation.
-move => s0/= HI0.
+move => b0 s0/= HI0.
 by apply: call_rule'.
 Qed.
 

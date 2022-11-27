@@ -1,68 +1,70 @@
+<!---
+This file was generated from `meta.yml`, please do not edit manually.
+Follow the instructions on https://github.com/coq-community/templates to regenerate.
+--->
 # Disel: Distributed Separation Logic
 
-Implementation and case studies of Disel, a separation-style logic for
-compositional verification of distributed systems.
+[![Docker CI][docker-action-shield]][docker-action-link]
 
-This code accompanies the paper entitled [Programming and Proving with Distributed Protocols](http://homes.cs.washington.edu/~jrw12/disel.pdf)
-by Ilya Sergey, James R. Wilcox, and Zachary Tatlock, in the POPL 2018 proceedings.
+[docker-action-shield]: https://github.com/DistributedComponents/disel/workflows/Docker%20CI/badge.svg?branch=master
+[docker-action-link]: https://github.com/DistributedComponents/disel/actions?query=workflow:"Docker%20CI"
 
-## Building the Project
 
-### Requirements
 
-* [Coq 8.11 or later](https://coq.inria.fr)
-* [Mathematical Components 1.10.0 or later](http://math-comp.github.io/math-comp/) (`ssreflect` suffices)
-* [FCSL PCM library 1.3.0 or later](https://github.com/imdea-software/fcsl-pcm)
-* [OCaml 4.05.0 or later](https://ocaml.org) (to compile and run the extracted applications)
 
-### Building Manually
+Disel is a framework for implementation and compositional verification of
+distributed systems and their clients in Coq. In Disel, users implement
+distributed systems using a domain specific language shallowly embedded in Coq
+which provides both high-level programming constructs as well as low-level
+communication primitives. Components of composite systems are specified in Disel
+as protocols, which capture system-specific logic and disentangle system definitions
+from implementation details.
 
-If Coq is not installed such that its binaries like `coqc` and
-`coq_makefile` are in the `PATH`, then the `COQBIN` environment variable
-must be set to point to the directory containing such binaries.  For
-example:
-```
-export COQBIN=/home/user/coq/bin/
-```
+## Meta
 
-To build the whole project, including examples, simply run `make`
-in the root directory of the repository. For a faster build, use
-several parallel make jobs, e.g., `make -j 4`.
+- Author(s):
+  - Ilya Sergey (initial)
+  - James R. Wilcox (initial)
+- License: [BSD 2-Clause "Simplified" license](LICENSE)
+- Compatible Coq versions: 8.14 or later
+- Additional dependencies:
+  - [MathComp](https://math-comp.github.io) 1.13.0 or later (`ssreflect` suffices)
+  - [FCSL PCM](https://github.com/imdea-software/fcsl-pcm) 1.7.0 or later
+- Coq namespace: `DiSeL`
+- Related publication(s):
+  - [Programming and Proving with Distributed Protocols](http://jamesrwilcox.com/disel.pdf) doi:[10.1145/3158116](https://doi.org/10.1145/3158116)
 
-### Installation via OPAM
+## Building and installation instructions
 
-The latest release of the framework components of the project may be installed into Coq's
-`user-contrib` directory via [OPAM](https://opam.ocaml.org/doc/Install.html)
-for easy use in other developments; this will automatically install all
-requirements.
+The easiest way to install the latest released version of Disel: Distributed Separation Logic
+is via [OPAM](https://opam.ocaml.org/doc/Install.html):
 
-Make sure OPAM is installed and use the following commands:
-
-```
+```shell
 opam repo add coq-released https://coq.inria.fr/opam/released
 opam install coq-disel
 ```
 
-As an alternative, a VM for a previous version has been provided for
-your convenience and is described below.
+To instead build and install manually, do:
+
+``` shell
+git clone https://github.com/DistributedComponents/disel.git
+cd disel
+make   # or make -j <number-of-cores-on-your-machine> 
+make install
+```
+
 
 ## Project Structure
 
-* `Core` -- Disel implementation, metatheory and inference rules;
-
-* `Examples` -- Case studies implemented in Disel
-
+- `Core` -- Disel implementation, metatheory and inference rules;
+- `Examples` -- Case studies implemented in Disel
 	- `Calculator` -- the calculator system;
-
 	- `Greeter` -- a toy "Hello World"-like protocol, where
          participants can only exchange greetings with each other;
-
 	- `TwoPhaseCommit` -- Two Phase Commit protocol implementation;
-
 	- `Query` -- querying protocol and its composition with Two Phase
       Commit via hooks;
-
-* `shims` -- DiSeL runtime system
+- `shims` -- DiSeL runtime system
 
 ## VM Instructions
 
