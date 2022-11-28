@@ -3,7 +3,7 @@ open Debug
 
 type 'a prog = 'a
 
-let mkProg = fun x -> x
+let mkProg = Obj.magic ()
 
 type 'a action = 'a
 
