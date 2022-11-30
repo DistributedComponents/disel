@@ -57,15 +57,15 @@ make install
 
 ## Project Structure
 
-- `Core` -- Disel implementation, metatheory and inference rules;
-- `Examples` -- Case studies implemented in Disel
+- `theories/Core` -- Disel Coq implementation, metatheory and inference rules;
+- `theories/Examples` -- Case studies implemented in Disel using Coq
 	- `Calculator` -- the calculator system;
 	- `Greeter` -- a toy "Hello World"-like protocol, where
          participants can only exchange greetings with each other;
 	- `TwoPhaseCommit` -- Two Phase Commit protocol implementation;
 	- `Query` -- querying protocol and its composition with Two Phase
       Commit via hooks;
-- `shims` -- DiSeL runtime system
+- `shims` -- DiSeL runtime system in OCaml
 
 ## VM Instructions
 
