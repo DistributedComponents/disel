@@ -12,7 +12,7 @@ Unset Printing Implicit Defensive.
 Structure prog (W : world) A (this : nid) :=
   Prog {
       set_of : proc this W A -> Prop; 
-      (* Unifinshed is a bottom element that should be present *)
+      (* Unfinished is a bottom element that should be present *)
       _ : set_of Unfinished
   }.
 
@@ -441,7 +441,7 @@ Lemma conseq_refl (W : world) A this (e : DT this W A) :
   conseq e (spec_of e).
 Proof. by case: e; case=>p q [T H i] /= Hp C t; apply: H. Qed.
 
-Hint Resolve conseq_refl : core.
+#[export] Hint Resolve conseq_refl : core.
 
 
 (* Weakening the specifications *)

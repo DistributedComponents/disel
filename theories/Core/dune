@@ -8,5 +8,4 @@
    -w -local-declaration
    -w -duplicate-clear
    -w -redundant-canonical-projection
-   -w -projection-no-head-constant
-   -w -deprecated-hint-without-locality))
+   -w -projection-no-head-constant))

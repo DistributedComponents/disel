@@ -6,7 +6,6 @@
 -arg -w -arg -projection-no-head-constant
 -arg -w -arg -duplicate-clear
 -arg -w -arg -notation-incompatible-format
--arg -w -arg -deprecated-hint-without-locality
 
 theories/Core/State.v
 theories/Core/Freshness.v

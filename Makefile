@@ -1,4 +1,4 @@
-OCAMLBUILD = ocamlbuild -tag safe_string -libs unix -I shims
+OCAMLBUILD = ocamlbuild -tag safe_string -pkg unix -I shims
 
 default: Makefile.coq
 	$(MAKE) -f Makefile.coq
