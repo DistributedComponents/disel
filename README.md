@@ -99,7 +99,7 @@ without printing "error".
 
 Extracting and running the example applications is described below.
 
-## Code corresponding to the paper
+### Code corresponding to the paper
 
 The following describes how the paper corresponds to the code:
 
@@ -156,7 +156,7 @@ The following describes how the paper corresponds to the code:
     - The querying protocol from Section 4.4 is implemented in the directory
       `Examples/Querying`.
 
-## Exploring further
+### Exploring further
 
 We encourage you to explore Disel further by extending one of the
 examples or trying your own. For example, you could build an application
@@ -166,7 +166,7 @@ protocol for leader election in a ring and prove that at most one node
 becomes leader. To get started, we recommend following the Calculator example
 and modifying it as necessary.
 
-## Extracting and Running Disel Programs
+### Extracting and Running Disel Programs
 
 As described in Section 5.1, Disel programs can be extracted to OCaml and run.
 You can build the two examples as follows.
@@ -272,7 +272,7 @@ got msg in protocol 0 with tag = 5, contents = [0] from 2
   respond with AckAbort messages (tag 6). Once all four rounds are over,
   all nodes exit.
 
-## Proof Size Statistics
+### Proof Size Statistics
 
 Section 5.2 and Table 1 describe the size of our development. Those
 were obtained by using the `coqwc` tool on manually dissected files,
