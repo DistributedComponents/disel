@@ -15,8 +15,10 @@ jobs:
     strategy:
       matrix:
         image:
-          - 'mathcomp/mathcomp-dev:coq-dev'
-          - 'mathcomp/mathcomp:1.15.0-coq-8.16'
+          - 'mathcomp/mathcomp:1.19.0-coq-8.19'
+          - 'mathcomp/mathcomp:1.18.0-coq-8.18'
+          - 'mathcomp/mathcomp:1.17.0-coq-8.17'
+          - 'mathcomp/mathcomp:1.17.0-coq-8.16'
           - 'mathcomp/mathcomp:1.15.0-coq-8.15'
           - 'mathcomp/mathcomp:1.14.0-coq-8.15'
           - 'mathcomp/mathcomp:1.14.0-coq-8.14'
@@ -24,7 +26,7 @@ jobs:
           - 'mathcomp/mathcomp:1.13.0-coq-8.14'
       fail-fast: false
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: coq-community/docker-coq-action@v1
         with:
           custom_image: ${{ matrix.image }}
