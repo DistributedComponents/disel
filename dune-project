@@ -1,3 +1,3 @@
-(lang dune 2.5)
-(using coq 0.2)
+(lang dune 3.5)
+(using coq 0.6)
 (name disel)

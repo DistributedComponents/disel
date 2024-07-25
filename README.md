@@ -6,8 +6,8 @@ Follow the instructions on https://github.com/coq-community/templates to regener
 
 [![Docker CI][docker-action-shield]][docker-action-link]
 
-[docker-action-shield]: https://github.com/DistributedComponents/disel/workflows/Docker%20CI/badge.svg?branch=master
-[docker-action-link]: https://github.com/DistributedComponents/disel/actions?query=workflow:"Docker%20CI"
+[docker-action-shield]: https://github.com/DistributedComponents/disel/actions/workflows/docker-action.yml/badge.svg?branch=master
+[docker-action-link]: https://github.com/DistributedComponents/disel/actions/workflows/docker-action.yml
 
 
 
@@ -28,7 +28,7 @@ from implementation details.
 - License: [BSD 2-Clause "Simplified" license](LICENSE)
 - Compatible Coq versions: 8.14 or later
 - Additional dependencies:
-  - [MathComp](https://math-comp.github.io) 1.13.0 or later (`ssreflect` suffices)
+  - [MathComp](https://math-comp.github.io) 1.13.0 to 1.19.0 (`ssreflect` suffices)
   - [FCSL PCM](https://github.com/imdea-software/fcsl-pcm) 1.7.0 or later
   - [Hoare Type Theory](https://github.com/imdea-software/htt) 1.2.0 or later
 - Coq namespace: `DiSeL`
