@@ -91,21 +91,21 @@ Proof. by move=>????; rewrite dom0. Qed.
 
 Next Obligation.
 rewrite -(unitR V)/V.
-have V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
+have @V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
 apply: (injectL V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
 by move=>??????; rewrite dom0.
 Defined.
 
 Next Obligation.
 rewrite -(unitR V)/V.
-have V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
+have @V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
 apply: (injectR V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
 by move=>??????; rewrite dom0.
 Qed.
 
 Next Obligation.
 rewrite -(unitR V)/V.
-have V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
+have @V: valid (W1 \+ W2 \+ Unit) by rewrite unitR validV.
 apply: (injectL V); do?[apply: hook_complete_unit | apply: hooks_consistent_unit].
 by move=>??????; rewrite dom0.
 Defined.
