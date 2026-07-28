@@ -6,7 +6,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section Keys.
-Variables (K : ordType) (V : Type) (U : union_map_class K V).
+Variables (K : ordType) (C : pred K) (V : Type) (U : union_map K C V).
 Implicit Types (k : K) (v : V) (f : U).
 
 Lemma keys_last_mono f1 f2 k :
@@ -15,9 +15,9 @@ Lemma keys_last_mono f1 f2 k :
         (forall x, x \in dom f1 -> x \in dom f2) ->
         oleq (last k (dom f1)) (last k (dom f2)).
 Proof.
-rewrite !umEX; case: (UMC.from f1).
+rewrite /domx !umEX; case: (UMC_from f1).
 - by move=>_ H _; apply: path_lastR H=>//; apply: otrans.
-move=>{f1} f1 /= _ H1; case: (UMC.from f2)=>/=.
+move=>{f1} f1 /= _ H1; case: (UMC_from f2)=>/=.
 - by move=>_ /allP; case: (supp f1)=>//; rewrite /oleq eq_refl orbT.
 by move=>{f2} f2 /= _; apply: seq_last_monoR H1=>//; apply: otrans.
 Qed.
@@ -31,19 +31,18 @@ End Keys.
 
 Section FreshLastKey.
 Variable V : Type.
-Implicit Type f : union_map [ordType of nat] V.
+Implicit Type f : umap nat V.
 
 Definition last_key f := last 0 (dom f).
 
 Lemma last_key0 : last_key Unit = 0.
-Proof. by rewrite /last_key /Unit /= !umEX. Qed.
+Proof. by rewrite /last_key /domx /Unit. Qed.
 
 Lemma last_key_dom f : valid f -> last_key f \notin dom f -> f = Unit.
 Proof.
-rewrite /valid /= /last_key /Unit /= !umEX /= -{4}[f]UMC.tfE.
-case: (UMC.from f)=>//=; case=>s H /= H1 _ /seq_last_in.
-rewrite /UM.empty UMC.eqE UM.umapE /supp fmapE /= {H H1}.
-by elim: s.
+rewrite /last_key /domx !umEX /UM.valid /UM.dom /UM.empty -{4}[f]tfE.
+case: (UMC_from f)=>//=; case=>s H H1 _ /seq_last_in.
+by rewrite eqE UM.umapE /supp fmapE /= {H H1}; elim: s.
 Qed.
 
 Lemma dom_last_key f :  valid f -> ~~ unitb f -> last_key f \in dom f.
@@ -51,7 +50,7 @@ Proof. by move=>X; apply: contraR; move/(last_key_dom X)=>->; apply: unitb0. Qed
 
 Lemma last_key_max f x : x \in dom f -> x <= last_key f.
 Proof.
-rewrite /last_key /= !umEX; case: (UMC.from f)=>//; case=>s H _ /=.
+rewrite /last_key /domx /= !umEX; case: (UMC_from f)=>//; case=>s H _ /=.
 rewrite /supp /ord /= (leq_eqVlt x) orbC.
 by apply: sorted_last_key_maxR (sorted_oleq H)=>//; apply: otrans.
 Qed.
@@ -59,7 +58,7 @@ Qed.
 Lemma max_key_last f x :
         x \in dom f -> {in dom f, forall y, y <= x} -> last_key f = x.
 Proof.
-rewrite /last_key !umEX; case: (UMC.from f)=>//; case=>s H _ /=.
+rewrite /last_key /domx !umEX; case: (UMC_from f)=>//; case=>s H _ /=.
 move=>H1 /= H2; apply: sorted_max_key_last (sorted_oleq H) H1 _.
 - by apply: otrans.
 - by apply: oantisym.
@@ -67,11 +66,11 @@ by move=>z /(H2 z); rewrite leq_eqVlt orbC.
 Qed.
 
 Lemma last_keyPt (x : nat) v : last_key (x \\-> v) = x.
-Proof. by rewrite /last_key /um_pts /= !umEX. Qed.
+Proof. by rewrite /last_key domPtK; case: (x =P 0). Qed.
 
 Lemma hist_path f : path oleq 0 (dom f).
 Proof.
-rewrite !umEX; case: (UMC.from f)=>// {f} f /= _; case: f; case=>//= x s H.
+rewrite /domx !umEX; case: (UMC_from f)=>// {f} f /= _; case: f; case=>//= x s H.
 rewrite {1}/oleq /ord /= orbC -leq_eqVlt /=.
 by apply: sub_path H=>z y; rewrite /oleq=>->.
 Qed.
@@ -79,7 +78,7 @@ Qed.
 Lemma last_key_mono f1 f2 :
         {subset dom f1 <= dom f2} -> last_key f1 <= last_key f2.
 Proof.
-rewrite leq_eqVlt orbC=>H; apply: (@keys_last_mono _ _ _ f1 f2);
+rewrite leq_eqVlt orbC=>H; apply: (@keys_last_mono _ _ _ _ f1 f2);
 try by apply: hist_path.
 by move=>x /=; move: (H x).
 Qed.
@@ -126,4 +125,3 @@ by rewrite leq_eqVlt; case: eqP=>//= _; apply: dom_ordfresh.
 Qed.
 
 End FreshLastKey.
-
