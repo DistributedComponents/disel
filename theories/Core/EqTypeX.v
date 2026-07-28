@@ -1,3 +1,4 @@
+From HB Require Import structures.
 From mathcomp Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq path.
 From Coq Require Import Eqdep Relation_Operators.
 
@@ -50,10 +51,9 @@ Definition eq_opX T := EqualityX.op (EqualityX.class T).
 Lemma eqxP : Equality.axiom (@eq_opX U).
 Proof. by case: U=>s[op a ?]; apply: a. Qed.
 
-Canonical eqMixinX := EqMixin eqxP.
-Canonical eqTypeX' := EqType U eqMixinX.                                   
-
 End EqualityConversion.
+
+HB.instance Definition _ (U : eqTypeX) := hasDecEq.Build U (@eqxP U).
 
 (* Section EqualityConversion2. *)
 
@@ -67,4 +67,3 @@ End EqualityConversion.
 (* Canonical eqTypeX2' := EqTypeX U eqMixinX2.                                    *)
 
 (* End EqualityConversion2. *)
-
